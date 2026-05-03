@@ -1,4 +1,4 @@
-import { define } from "../utils.ts";
+import { define } from "../utils.ts"
 
 export default define.page(function App({ Component }) {
   return (
@@ -12,5 +12,5 @@ export default define.page(function App({ Component }) {
         <Component />
       </body>
     </html>
-  );
-});
+  )
+})

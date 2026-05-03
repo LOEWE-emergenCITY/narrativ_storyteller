@@ -6,4 +6,5 @@ export interface State {
   shared: string
 }
 
+// Create a typed helper for middleware/routes
 export const define = createDefine<State>()

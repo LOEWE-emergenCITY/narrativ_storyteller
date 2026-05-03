@@ -3,10 +3,10 @@ import { define } from "@/utils.ts"
 export default define.page(() => {
   return (
     <main>
-      <h1>About Us</h1>
+      <h1>About</h1>
       <p>
-        We are a team of passionate developers building web applications with
-        Deno and Fresh.
+        Hier könnte Ihre Werbung stehen. Oder auch nicht. Das hier ist die
+        About-Seite.
       </p>
     </main>
   )

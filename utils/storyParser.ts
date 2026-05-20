@@ -13,7 +13,7 @@ export interface Block {
   position?: string // e.g., "-61,632" (visual position in editor)
   color?: string
   visited: boolean
-  contentLines: Map<number, string | ContentNode>
+  contentLines: Map<number, ContentNode>
 }
 
 export type ContentNode = TextNode | ActionNode | CommandNode | ConditionNode
@@ -84,7 +84,7 @@ export async function parseStory(filePath: string): Promise<Story> {
     tags: undefined,
     position: undefined,
     visited: false,
-    contentLines: new Map<number, string | ContentNode>(),
+    contentLines: new Map<number, ContentNode>(),
   } as Block
 
   const lines = fileContent.split("\n")
@@ -97,7 +97,7 @@ export async function parseStory(filePath: string): Promise<Story> {
         tags: undefined,
         position: undefined,
         visited: false,
-        contentLines: new Map<number, string | ContentNode>(),
+        contentLines: new Map<number, ContentNode>(),
       } as Block
       continue
     }

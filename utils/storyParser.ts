@@ -2,7 +2,7 @@
 
 export interface Story {
   file: string
-  blocks: Block[]
+  blocks: Map<string, Block>
   variables: Map<string, string | number | boolean>
 }
 
@@ -16,7 +16,7 @@ export interface Block {
   contentLines: Map<number, string | ContentNode>
 }
 
-export type ContentNode = ChatNode | ActionNode | CommandNode | ConditionNode
+export type ContentNode = TextNode | ActionNode | CommandNode | ConditionNode
 
 export interface ActionNode {
   type: "choice" | "jump" | "detour"
@@ -40,8 +40,9 @@ export interface ConditionNode {
   endLine: number
 }
 
-export interface ChatNode {
-  speaker: string // e.g., "Kathrin"
+export interface TextNode {
+  type: "text" | "chat"
+  speaker?: string // e.g., "Kathrin"
   text: string // e.g., "What a boring day..."
 }
 
@@ -73,7 +74,7 @@ export async function parseStory(filePath: string): Promise<Story> {
 
   const story: Story = {
     file: filePath,
-    blocks: [],
+    blocks: new Map<string, Block>(),
     variables: new Map<string, string | number>(),
   }
 
@@ -89,7 +90,7 @@ export async function parseStory(filePath: string): Promise<Story> {
   const lines = fileContent.split("\n")
   for (const [index, line] of lines.entries()) {
     if (line.startsWith("===")) {
-      story.blocks.push(currentBlock)
+      story.blocks.set(currentBlock.title, currentBlock)
       currentBlock = {
         title: "",
         group: undefined,
@@ -362,12 +363,27 @@ export async function parseStory(filePath: string): Promise<Story> {
       }
     }
 
+    // Check for chat line (e.g., "Kathrin: What a boring day...")
+    if (trimmedLine.match(/^([^:]+):\s*(.*)$/)) {
+      contentNode = {
+        type: "chat",
+        speaker: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
+        text: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
+      } as TextNode
+    }
+
     if (contentNode) {
       currentBlock.contentLines.set(index, contentNode)
       continue
     }
 
-    currentBlock.contentLines.set(index, trimmedLine.split("//")[0].trim()) // remove inline comments
+    // default case: treat as text line
+    const textNode = {
+      type: "text",
+      text: trimmedLine.split("//")[0].trim(),
+    } as TextNode
+
+    currentBlock.contentLines.set(index, textNode)
   }
 
   return story

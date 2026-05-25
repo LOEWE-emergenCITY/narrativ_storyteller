@@ -4,6 +4,7 @@ import { Text } from "@/components/Text.tsx"
 import { Button } from "@/components/Button.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
 import { clsx } from "clsx"
+import { Chat } from "@/components/Chat.tsx"
 
 function buttonChoiceHandler(
   choiceNode: ContentNode[],
@@ -103,6 +104,14 @@ function contentNodesRenderer(
       )
       continue
     }
+    if (node.type === "chat") {
+      const isReceiver = node.speaker === "Angela"
+      const isSender = !isReceiver
+      renderedNodes.push(
+        <Chat isReceiver={isReceiver} isSender={isSender}>{node.text}</Chat>,
+      )
+      continue
+    }
     if (
       node.type === "mood"
     ) {
@@ -167,10 +176,6 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
     setCurrentIndentionLevel(0)
     setChoices([0])
   }, [currentBlockTitle])
-
-  console.log(currentBlock?.contentNodes)
-  console.log("Indention Level:", currentIndentionLevel)
-  console.log("Choices:", choices)
 
   return (
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">

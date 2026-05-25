@@ -19,9 +19,9 @@ export function Chat(props: ChatProps) {
     >
       <div
         class={clsx(
-          "py-1 border rounded-sm border-gray-300 max-w-[70%]",
-          props.isSender && "pe-2 bg-[#f2f2f2] text-right",
-          props.isReceiver && "ps-2 bg-[#5f2869] text-white",
+          "py-1 border rounded-sm px-2 border-gray-300 max-w-[70%]",
+          props.isSender && "bg-[#f2f2f2] text-right",
+          props.isReceiver && "bg-[#5f2869] text-white",
         )}
       >
         {props.children}

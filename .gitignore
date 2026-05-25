@@ -14,4 +14,4 @@ vendor/
 # static customer data
 static/moods/
 static/imgs/
-data/stories/
+# data/stories/

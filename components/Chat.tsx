@@ -24,8 +24,8 @@ export function Chat(props: ChatProps) {
       >
         <div
           class={clsx(
-            "py-1 border rounded-md shadow-sm px-2 border-gray-300 max-w-[70%]",
-            props.isAngela ? "bg-[#f2f2f2]" : "bg-[#5f2869] text-white",
+            "py-1 border rounded-md px-2 border-gray-300 max-w-[70%] bg-opacity-60 shadow-sm",
+            props.isAngela ? "bg-[#f2f2f2]" : "bg-[#5f2869] text-white ",
           )}
         >
           {props.children}

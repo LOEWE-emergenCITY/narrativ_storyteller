@@ -17,7 +17,7 @@ export function Button(props: ButtonProps) {
         {...props}
         class={clsx(
           "px-2 py-4 text-start flex items-center",
-          "border-[#b3c6c6] border-2 rounded-sm bg-white hover:bg-gray-200 transition-colors w-full",
+          "border-[#b3c6c6] border-2 rounded-sm bg-white hover:bg-gray-200 transition-colors w-full shadow-sm",
         )}
       >
         <div

@@ -12,7 +12,7 @@ export function MoodImage(props: MoodImageProps) {
       <img
         src={imgPath}
         alt={`Mood: ${props.name}`}
-        class="w-full rounded-sm border border-gray-300"
+        class="w-full rounded-sm border border-gray-300 shadow-sm"
       />
     </div>
   )

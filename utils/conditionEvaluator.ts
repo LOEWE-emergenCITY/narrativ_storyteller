@@ -1,6 +1,6 @@
 /**
  * Condition Evaluator Stub
- * 
+ *
  * This stub provides a placeholder for condition evaluation logic.
  * Full implementation will include variable evaluation, operators, etc.
  */
@@ -19,6 +19,9 @@ export function evaluateCondition(condition: string | undefined): boolean {
 /**
  * Check if a line index exists in the contentLines map
  */
-export function hasLineAtIndex(lineIndex: number, contentLines: Map<number, unknown>): boolean {
+export function hasLineAtIndex(
+  lineIndex: number,
+  contentLines: Map<number, unknown>,
+): boolean {
   return contentLines.has(lineIndex)
 }

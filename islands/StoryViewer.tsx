@@ -8,9 +8,11 @@ import { clsx } from "clsx"
 function buttonChoiceHandler(
   choiceNode: ContentNode[],
   currentIndex: number,
-  currentIdentionLevel: number,
   setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
+  currentIdentionLevel: number,
   setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
+  choices: number[],
+  setChoices: Dispatch<StateUpdater<number[]>>,
 ) {
   if (choiceNode[currentIndex].type !== "choice") {
     console.error(
@@ -18,6 +20,8 @@ function buttonChoiceHandler(
     )
     return
   }
+
+  setChoices([...choices, choiceNode[currentIndex].choiceLevel])
 
   if (choiceNode[currentIndex + 1].type === "jump") {
     // handle jump, should set the current block to the jump target
@@ -32,12 +36,13 @@ function buttonChoiceHandler(
 
 function contentNodesRenderer(
   contentNodes: ContentNode[],
-  identionLevel: number,
   setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
+  identionLevel: number,
   setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
+  choices: number[],
+  setChoices: Dispatch<StateUpdater<number[]>>,
 ) {
   const renderedNodes = []
-  let choiceId = 0
 
   for (let i = 0; i < contentNodes.length; i++) {
     const node = contentNodes[i]
@@ -46,17 +51,67 @@ function contentNodesRenderer(
       continue
     }
 
+    if (!choices.includes(node.choiceLevel)) {
+      if (node.type === "choice" && node.identionLevel === identionLevel) {
+        renderedNodes.push(
+          <Button
+            choiceId={String(node.choiceLevel)}
+            onClick={() =>
+              buttonChoiceHandler(
+                contentNodes,
+                i,
+                setCurrentBlockTitle,
+                identionLevel,
+                setCurrentIndentionLevel,
+                choices,
+                setChoices,
+              )}
+          >
+            {node.text}
+          </Button>,
+        )
+      }
+
+      continue
+    }
+
+    if (node.identionLevel === identionLevel) {
+      if (node.type === "jump") {
+        if (node.jumpTarget === undefined) {
+          console.error("Jump node missing jumpTarget", node)
+          continue
+        }
+        renderedNodes.push(
+          <Button
+            choiceId="->"
+            onClick={() => {
+              setCurrentBlockTitle(node.jumpTarget || "")
+            }}
+          >
+            {`Continue ${node.jumpTarget ? `to ${node.jumpTarget}` : ""}`}
+          </Button>,
+        )
+      } else if (node.type === "detour") {
+        renderedNodes.push(<>DETOUR</>)
+        continue
+      }
+    }
+
     if (node.type === "text") {
       renderedNodes.push(
         <Text>{node.text}</Text>,
       )
-    } else if (
+      continue
+    }
+    if (
       node.type === "mood"
     ) {
       renderedNodes.push(
         <MoodImage name={node.command} />,
       )
-    } else if (
+      continue
+    }
+    if (
       node.type === "set" || node.type === "scienceFact"
     ) {
       renderedNodes.push(
@@ -72,7 +127,9 @@ function contentNodesRenderer(
           IdentionLevel: {node.identionLevel}
         </div>,
       )
-    } else if (
+      continue
+    }
+    if (
       node.type === "if" || node.type === "elseif" || node.type === "else" ||
       node.type === "endif" || node.type === "once" || node.type === "endonce"
     ) {
@@ -90,44 +147,7 @@ function contentNodesRenderer(
           EndLine: {node.endLine}
         </div>,
       )
-    }
-
-    if (node.identionLevel === identionLevel) {
-      if (node.type === "choice") {
-        choiceId++
-        renderedNodes.push(
-          <Button
-            choiceId={String(choiceId)}
-            onClick={() =>
-              buttonChoiceHandler(
-                contentNodes,
-                i,
-                identionLevel,
-                setCurrentBlockTitle,
-                setCurrentIndentionLevel,
-              )}
-          >
-            {node.text}
-          </Button>,
-        )
-      } else if (node.type === "jump") {
-        if (node.jumpTarget === undefined) {
-          console.error("Jump node missing jumpTarget", node)
-          continue
-        }
-        renderedNodes.push(
-          <Button
-            choiceId="->"
-            onClick={() => {
-              setCurrentBlockTitle(node.jumpTarget || "")
-            }}
-          >
-            {`Continue`}
-          </Button>,
-        )
-      } else if (node.type === "detour") {
-        renderedNodes.push(<>DETOUR</>)
-      }
+      continue
     }
   }
 
@@ -140,21 +160,28 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
   )
   const [currentBlockTitle, setCurrentBlockTitle] = useState("Start")
   const [currentIndentionLevel, setCurrentIndentionLevel] = useState(0)
+  const [choices, setChoices] = useState<number[]>([0])
 
   useEffect(() => {
     setCurrentBlock(initialStory.blocks.get(currentBlockTitle))
+    setCurrentIndentionLevel(0)
+    setChoices([0])
   }, [currentBlockTitle])
 
   console.log(currentBlock?.contentNodes)
+  console.log("Indention Level:", currentIndentionLevel)
+  console.log("Choices:", choices)
 
   return (
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
       <div class="max-w-3xl mx-auto flex flex-col">
         {contentNodesRenderer(
           currentBlock?.contentNodes || [],
-          currentIndentionLevel,
           setCurrentBlockTitle,
+          currentIndentionLevel,
           setCurrentIndentionLevel,
+          choices,
+          setChoices,
         )}
       </div>
     </div>

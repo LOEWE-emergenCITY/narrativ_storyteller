@@ -164,13 +164,14 @@ function parseBlockMetadata(line: string, currentBlock: Block): boolean {
 
 function parseCommandNode(
   trimmedLine: string,
-  nestedLevel: number,
+  identionLevel: number,
+  choiceLevel: number,
 ): CommandNode | null {
   if (trimmedLine.startsWith("<<set ")) {
     return {
       type: "set",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       command: trimmedLine.substring(5).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -178,8 +179,8 @@ function parseCommandNode(
   if (trimmedLine.startsWith("<<Mood ")) {
     return {
       type: "mood",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       command: trimmedLine.substring(7).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -187,8 +188,8 @@ function parseCommandNode(
   if (trimmedLine.startsWith("<<GatherScienceFact ")) {
     return {
       type: "scienceFact",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       command: trimmedLine.substring(20).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -198,15 +199,16 @@ function parseCommandNode(
 
 function parseActionNode(
   trimmedLine: string,
-  nestedLevel: number,
+  identionLevel: number,
+  choiceLevel: number,
   currentBlockTitle: string,
   currentLineIndex: number,
 ): ActionNode | null {
   if (trimmedLine.startsWith("<<jump ")) {
     return {
       type: "jump",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       jumpTarget: trimmedLine.substring(7).split(">>")[0].trim(),
     } as ActionNode
   }
@@ -214,8 +216,8 @@ function parseActionNode(
   if (trimmedLine.startsWith("<<detour ")) {
     return {
       type: "detour",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       jumpTarget: trimmedLine.substring(9).split(">>")[0].trim(),
       returnTargetLine: {
         title: currentBlockTitle,
@@ -229,7 +231,8 @@ function parseActionNode(
 
 function parseConditionNode(
   trimmedLine: string,
-  nestedLevel: number,
+  identionLevel: number,
+  choiceLevel: number,
   lines: string[],
   currentIndex: number,
   filePath: string,
@@ -238,13 +241,13 @@ function parseConditionNode(
     const endLine = findConditionBlockEnd(
       lines,
       currentIndex,
-      nestedLevel,
+      identionLevel,
       filePath,
     )
     return {
       type: "if",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       condition: trimmedLine.substring(5).split(">>")[0].trim(),
       endLine,
     } as ConditionNode
@@ -254,13 +257,13 @@ function parseConditionNode(
     const endLine = findConditionBlockEnd(
       lines,
       currentIndex,
-      nestedLevel,
+      identionLevel,
       filePath,
     )
     return {
       type: "elseif",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       condition: trimmedLine.substring(9).split(">>")[0].trim(),
       endLine,
     } as ConditionNode
@@ -270,13 +273,13 @@ function parseConditionNode(
     const endLine = findConditionBlockEnd(
       lines,
       currentIndex,
-      nestedLevel,
+      identionLevel,
       filePath,
     )
     return {
       type: "else",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       endLine,
     } as ConditionNode
   }
@@ -284,8 +287,8 @@ function parseConditionNode(
   if (trimmedLine.startsWith("<<endif")) {
     return {
       type: "endif",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       endLine: currentIndex + 1,
     } as ConditionNode
   }
@@ -294,13 +297,13 @@ function parseConditionNode(
     const endLine = findOnceBlockEnd(
       lines,
       currentIndex,
-      nestedLevel,
+      identionLevel,
       filePath,
     )
     return {
       type: "once",
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
       endLine,
     } as ConditionNode
   }
@@ -309,8 +312,8 @@ function parseConditionNode(
     return {
       type: "endonce",
       endLine: currentIndex + 1,
-      identionLevel: nestedLevel,
-      choiceLevel: nestedLevel,
+      identionLevel,
+      choiceLevel,
     } as ConditionNode
   }
 
@@ -319,34 +322,43 @@ function parseConditionNode(
 
 function parseChoiceNode(
   trimmedLine: string,
-  nestedLevel: number,
-): ContentNode | null {
-  return {
+  identionLevel: number,
+  choiceLevel: number,
+): [ContentNode | null, number] {
+  const newChoiceLevel = choiceLevel + 1
+  const choiceNode = {
     type: "choice",
-    identionLevel: nestedLevel,
-    choiceLevel: nestedLevel,
+    identionLevel,
+    choiceLevel: newChoiceLevel,
     text: trimmedLine.substring(3).split(">>")[0].split("//")[0].trim(),
   } as ActionNode
+
+  return [choiceNode, newChoiceLevel]
 }
 
 function parseChatNode(
   trimmedLine: string,
-  nestedLevel: number,
+  identionLevel: number,
+  choiceLevel: number,
 ): TextNode | null {
   return {
     type: "chat",
-    identionLevel: nestedLevel,
-    choiceLevel: nestedLevel,
+    identionLevel,
+    choiceLevel,
     speaker: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
     text: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
   } as TextNode
 }
 
-function parseTextNode(trimmedLine: string, nestedLevel: number): TextNode {
+function parseTextNode(
+  trimmedLine: string,
+  identionLevel: number,
+  choiceLevel: number,
+): TextNode {
   return {
     type: "text",
-    identionLevel: nestedLevel,
-    choiceLevel: nestedLevel,
+    identionLevel,
+    choiceLevel,
     text: trimmedLine.split("//")[0].trim(),
   } as TextNode
 }
@@ -379,6 +391,7 @@ export async function parseStory(filePath: string): Promise<Story> {
   } as Block
 
   const lines = fileContent.split("\n")
+  let choiceLevel = 0
 
   for (const [index, line] of lines.entries()) {
     // Handle block separator
@@ -392,6 +405,7 @@ export async function parseStory(filePath: string): Promise<Story> {
         visited: false,
         contentNodes: [] as ContentNode[],
       } as Block
+      choiceLevel = 0
       continue
     }
 
@@ -417,28 +431,46 @@ export async function parseStory(filePath: string): Promise<Story> {
     }
 
     // Calculate nested level
-    const nestedLevel = getNestedLevel(line, filePath, index)
+    const indentionLevel = getNestedLevel(line, filePath, index)
 
     let contentNode: ContentNode | null = null
 
     // Try parsing different node types in order
     if (trimmedLine.startsWith("<<")) {
-      contentNode = parseCommandNode(trimmedLine, nestedLevel) ||
-        parseActionNode(trimmedLine, nestedLevel, currentBlock.title, index) ||
-        parseConditionNode(trimmedLine, nestedLevel, lines, index, filePath)
+      contentNode =
+        parseCommandNode(trimmedLine, indentionLevel, choiceLevel) ||
+        parseActionNode(
+          trimmedLine,
+          indentionLevel,
+          choiceLevel,
+          currentBlock.title,
+          index,
+        ) ||
+        parseConditionNode(
+          trimmedLine,
+          indentionLevel,
+          choiceLevel,
+          lines,
+          index,
+          filePath,
+        )
     }
 
     if (!contentNode) {
       if (trimmedLine.startsWith("-> ")) {
-        contentNode = parseChoiceNode(trimmedLine, nestedLevel)
+        ;[contentNode, choiceLevel] = parseChoiceNode(
+          trimmedLine,
+          indentionLevel,
+          choiceLevel,
+        )
       } else if (trimmedLine.match(/^([^:]+):\s*(.*)$/)) {
-        contentNode = parseChatNode(trimmedLine, nestedLevel)
+        contentNode = parseChatNode(trimmedLine, indentionLevel, choiceLevel)
       }
     }
 
     // Default to text node if nothing matched
     if (!contentNode) {
-      contentNode = parseTextNode(trimmedLine, nestedLevel)
+      contentNode = parseTextNode(trimmedLine, indentionLevel, choiceLevel)
     }
 
     currentBlock.contentNodes.push(contentNode)

@@ -153,14 +153,30 @@ function contentNodesRenderer(
 
     if (
       node.type === "if" || node.type === "elseif" || node.type === "else" ||
-      node.type === "endif" || node.type === "once" || node.type === "endonce"
+      node.type === "endif"
     ) {
       renderedNodes.push(
         <div
           class={clsx(
-            node.type === "once" || node.type === "endonce"
-              ? "bg-red-100 border-red-300"
-              : "bg-yellow-100 border-yellow-300",
+            "bg-yellow-100 border-yellow-300",
+            "w-full py-2 px-4 rounded-sm border",
+          )}
+        >
+          NodeCondition: {node.condition}
+          <br />
+          IdentionLevel: {node.identionLevel}
+          <br />
+          SkipLines: {node.skipLines}
+        </div>,
+      )
+      continue
+    }
+
+    if (node.type === "once" || node.type === "endonce") {
+      renderedNodes.push(
+        <div
+          class={clsx(
+            "bg-red-100 border-red-300",
             "w-full py-2 px-4 rounded-sm border",
           )}
         >

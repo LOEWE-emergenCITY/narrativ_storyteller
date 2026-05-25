@@ -50,16 +50,19 @@ export interface TextNode {
 
 function parseDeclaredValue(value: string): string | number | boolean {
   const trimmed = value.trim()
+  // return boolean
   if (/^(true|false)$/i.test(trimmed)) {
     return trimmed.toLowerCase() === "true"
   }
 
+  // return number
   const numericValue = Number(trimmed)
   if (trimmed !== "" && !Number.isNaN(numericValue)) {
     return numericValue
   }
 
-  return trimmed
+  // return string
+  return trimmed.replace(/^"(.*)"$/, "$1") // remove surrounding quotes if present
 }
 
 export async function parseStory(filePath: string): Promise<Story> {
@@ -150,10 +153,10 @@ export async function parseStory(filePath: string): Promise<Story> {
     if (trimmedLine.startsWith("<<")) {
       // variables
       if (trimmedLine.startsWith("<<declare ")) {
-        const content = trimmedLine.substring(9).split(">>")
-        const varName = content[0].trim()
-        const value = parseDeclaredValue(content[1] ?? "")
-        story.variables.set(varName, value)
+        const content = trimmedLine.substring(9).split(">>")[0].split("=")
+        const key = content[0].trim()
+        const value = content[1] ? parseDeclaredValue(content[1]) : ""
+        story.variables.set(key, value)
         continue
       }
 

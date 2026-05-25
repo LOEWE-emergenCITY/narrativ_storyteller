@@ -42,6 +42,7 @@ function contentNodesRenderer(
   setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
   choices: number[],
   setChoices: Dispatch<StateUpdater<number[]>>,
+  handleSetNode: (command: string) => void,
 ) {
   const renderedNodes = []
 
@@ -124,6 +125,11 @@ function contentNodesRenderer(
       continue
     }
     if (
+      node.type === "set"
+    ) {
+      handleSetNode(node.command)
+    }
+    if (
       node.type === "set" || node.type === "scienceFact"
     ) {
       renderedNodes.push(
@@ -156,7 +162,7 @@ function contentNodesRenderer(
         >
           NodeCondition: {node.condition}
           IdentionLevel: {node.identionLevel}
-          EndLine: {node.endLine}
+          SkipLines: {node.skipLines}
         </div>,
       )
       continue
@@ -180,6 +186,54 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
     setChoices([0])
   }, [currentBlockTitle])
 
+  function handleSetNode(command: string) {
+    const [variableName, setCommand] = command.split("to").map((part) =>
+      part.trim()
+    )
+    const commands = setCommand.split(" ")
+
+    // if it's a simple set command like "set mood=tense"
+    if (commands.length === 1) {
+      if (
+        initialStory.variables.has(variableName) &&
+        initialStory.variables.has(commands[0])
+      ) {
+        // set variable to value of another variable
+        initialStory.variables.set(
+          variableName,
+          initialStory.variables.get(commands[0])!,
+        )
+      } else if (commands[0] === "true" || commands[0] === "false") {
+        // set boolean
+        initialStory.variables.set(variableName, commands[0] === "true")
+      } else if (commands[0].startsWith('"') && commands[0].endsWith('"')) {
+        // set string
+        initialStory.variables.set(variableName, commands[0].slice(1, -1))
+      } else {
+        console.error(`Invalid set command: ${command}`)
+      }
+
+      return
+    }
+
+    if (commands.length === 3) {
+      const leftValue = initialStory.variables.get(commands[0]) as number
+      const rightValue = Number(commands[2])
+
+      if (commands[1] === "+") {
+        initialStory.variables.set(variableName, leftValue + rightValue)
+        return
+      }
+
+      if (commands[1] === "-") {
+        initialStory.variables.set(variableName, leftValue - rightValue)
+        return
+      }
+
+      console.error(`Invalid set command: ${command}`)
+    }
+  }
+
   return (
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
       <div class="max-w-3xl mx-auto flex flex-col">
@@ -190,6 +244,7 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
           setCurrentIndentionLevel,
           choices,
           setChoices,
+          handleSetNode,
         )}
       </div>
     </div>

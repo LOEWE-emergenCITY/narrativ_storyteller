@@ -31,16 +31,16 @@ export default define.page(function Home() {
           et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea
           takimata sanctus est Lorem ipsum dolor sit amet.
         </Text>
-        <Chat isReceiver>
+        <Chat isAngela={false} sender="Kathrin">
           Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
           dolor sit amet.
         </Chat>
-        <Chat isSender>
+        <Chat isAngela={true} sender="Angela">
           Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
           dolor sit amet.
         </Chat>
-        <MoodImage name="kathrin_regular" alt="kathrin_regular" />
-        <MoodImage name="angela_annoyed" alt="angela_annoyed" />
+        <MoodImage name="kathrin_regular" />
+        <MoodImage name="angela_annoyed" />
         <Button choiceId="1">
           orem ipsum dolor sit amet, consetetur sadipscing elitr
         </Button>

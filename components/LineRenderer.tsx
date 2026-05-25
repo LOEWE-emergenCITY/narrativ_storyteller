@@ -44,9 +44,8 @@ export function LineRenderer({ line, index }: LineRendererProps) {
   if (isTextNode(line)) {
     if (line.type === "chat") {
       const isSender = line.speaker === "Angela"
-      const isReceiver = !isSender
       return (
-        <Chat key={index} isSender={isSender} isReceiver={isReceiver}>
+        <Chat key={index} isAngela={isSender} sender={String(line.speaker)}>
           <div>
             {line.speaker && (
               <div class="font-bold text-sm mb-1">{line.speaker}</div>

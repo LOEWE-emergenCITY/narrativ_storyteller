@@ -105,10 +105,13 @@ function contentNodesRenderer(
       continue
     }
     if (node.type === "chat") {
-      const isReceiver = node.speaker === "Angela"
-      const isSender = !isReceiver
       renderedNodes.push(
-        <Chat isReceiver={isReceiver} isSender={isSender}>{node.text}</Chat>,
+        <Chat
+          isAngela={node.speaker === "Angela"}
+          sender={String(node.speaker)}
+        >
+          {node.text}
+        </Chat>,
       )
       continue
     }

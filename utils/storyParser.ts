@@ -106,7 +106,13 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     // main content validation and parsing
 
-    const nestedLevel = (line.match(/^ */)?.[0] ?? "").length // defined by space count at line start
+    const nestedLevel = (line.match(/^ */)?.[0] ?? "").length / 4 // defined by space count at line start
+
+    if (nestedLevel % 1 !== 0) {
+      throw new Error(
+        `Inconsistent indentation in file: ${filePath}, line: ${index + 1}`,
+      )
+    }
 
     let contentNode: ContentNode | null = null
 
@@ -169,7 +175,15 @@ export async function parseStory(filePath: string): Promise<Story> {
             break
           }
           const searchNestedLevel =
-            (lines[searchIndex].match(/^ */)?.[0] ?? "").length
+            (lines[searchIndex].match(/^ */)?.[0] ?? "").length / 4
+
+          if (searchNestedLevel % 1 !== 0) {
+            throw new Error(
+              `Inconsistent indentation in file: ${filePath}, line: ${
+                index + 1
+              }`,
+            )
+          }
 
           if (nestedLevel !== searchNestedLevel) {
             continue // consider only lines on the same nested level for matching if/elseif/else with endif

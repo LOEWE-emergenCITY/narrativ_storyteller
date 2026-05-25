@@ -129,16 +129,11 @@ function contentNodesRenderer(
     ) {
       handleSetNode(node.command)
     }
-    if (
-      node.type === "set" || node.type === "scienceFact"
-    ) {
+    if (node.type === "scienceFact") {
       renderedNodes.push(
         <div
           class={clsx(
-            node.type === "set"
-              ? "bg-blue-100 border-blue-300"
-              : "bg-green-100 border-green-300",
-            "w-full py-2 px-4 rounded-sm border",
+            "w-full py-2 px-4 rounded-sm border bg-green-100 border-green-300",
           )}
         >
           NodeCommand: {node.command}

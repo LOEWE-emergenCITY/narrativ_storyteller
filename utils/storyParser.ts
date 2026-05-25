@@ -317,38 +317,10 @@ export async function parseStory(filePath: string): Promise<Story> {
     }
 
     if (trimmedLine.startsWith("-> ")) {
-      let siblingLine = -1
-      for (
-        let searchIndex = index + 1;
-        searchIndex < lines.length;
-        searchIndex++
-      ) {
-        const searchLine = lines[searchIndex].trim()
-
-        if (searchLine.startsWith("===")) {
-          break
-        }
-
-        const searchNestedLevel =
-          (lines[searchIndex].match(/^ */)?.[0] ?? "").length
-
-        if (nestedLevel !== searchNestedLevel) {
-          continue // consider only lines on the same nested level for matching if/elseif/else with endif
-        }
-
-        if (
-          searchLine.startsWith("-> ")
-        ) {
-          siblingLine = searchIndex
-          break
-        }
-      }
       contentNode = {
         type: "choice",
         identionLevel: nestedLevel,
         text: trimmedLine.substring(3).split(">>")[0].split("//")[0].trim(),
-        nextLine: index + 1,
-        siblingLine,
       }
     }
 

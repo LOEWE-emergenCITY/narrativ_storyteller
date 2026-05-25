@@ -41,7 +41,7 @@ export interface ConditionNode {
   identionLevel: number
   choiceLevel: number
   condition?: string // e.g., "if mood == tense" || if condition == null => jump to next line
-  endLine: number
+  skipLines: number
 }
 
 export interface TextNode {

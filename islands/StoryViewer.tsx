@@ -46,6 +46,8 @@ function contentNodesRenderer(
 ) {
   const renderedNodes = []
 
+  // console.log(contentNodes)
+
   for (let i = 0; i < contentNodes.length; i++) {
     const node = contentNodes[i]
 
@@ -54,6 +56,7 @@ function contentNodesRenderer(
     }
 
     if (!choices.includes(node.choiceLevel)) {
+      console.log(node)
       if (node.type === "choice" && node.identionLevel === identionLevel) {
         renderedNodes.push(
           <Button
@@ -85,7 +88,7 @@ function contentNodesRenderer(
         }
         renderedNodes.push(
           <Button
-            choiceId="->"
+            choiceId=">"
             onClick={() => {
               setCurrentBlockTitle(node.jumpTarget || "")
             }}
@@ -105,6 +108,7 @@ function contentNodesRenderer(
       )
       continue
     }
+
     if (node.type === "chat") {
       renderedNodes.push(
         <Chat
@@ -116,6 +120,7 @@ function contentNodesRenderer(
       )
       continue
     }
+
     if (
       node.type === "mood"
     ) {
@@ -124,11 +129,13 @@ function contentNodesRenderer(
       )
       continue
     }
+
     if (
       node.type === "set"
     ) {
       handleSetNode(node.command)
     }
+
     if (node.type === "scienceFact") {
       renderedNodes.push(
         <div
@@ -137,11 +144,13 @@ function contentNodesRenderer(
           )}
         >
           NodeCommand: {node.command}
+          <br />
           IdentionLevel: {node.identionLevel}
         </div>,
       )
       continue
     }
+
     if (
       node.type === "if" || node.type === "elseif" || node.type === "else" ||
       node.type === "endif" || node.type === "once" || node.type === "endonce"
@@ -156,7 +165,9 @@ function contentNodesRenderer(
           )}
         >
           NodeCondition: {node.condition}
+          <br />
           IdentionLevel: {node.identionLevel}
+          <br />
           SkipLines: {node.skipLines}
         </div>,
       )

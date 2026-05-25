@@ -24,7 +24,7 @@ export function Button(props: ButtonProps) {
           class={clsx(
             "rounded-sm border-2 border-[#b3c6c6]",
             "text-3xl font-bold flex text-[#b3c6c6]",
-            "items-center justify-center size-9 me-4",
+            "items-center justify-center size-9 me-4 px-2",
           )}
         >
           {props.choiceId}

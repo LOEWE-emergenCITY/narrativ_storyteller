@@ -85,7 +85,7 @@ function findConditionBlockEnd(
       searchLine.startsWith("<<elseif") ||
       searchLine.startsWith("<<else")
     ) {
-      return searchIndex
+      return searchIndex - startIndex
     }
   }
 
@@ -238,7 +238,7 @@ function parseConditionNode(
   filePath: string,
 ): ConditionNode | null {
   if (trimmedLine.startsWith("<<if ")) {
-    const endLine = findConditionBlockEnd(
+    const skipLines = findConditionBlockEnd(
       lines,
       currentIndex,
       identionLevel,
@@ -249,12 +249,12 @@ function parseConditionNode(
       identionLevel,
       choiceLevel,
       condition: trimmedLine.substring(5).split(">>")[0].trim(),
-      endLine,
+      skipLines,
     } as ConditionNode
   }
 
   if (trimmedLine.startsWith("<<elseif ")) {
-    const endLine = findConditionBlockEnd(
+    const skipLines = findConditionBlockEnd(
       lines,
       currentIndex,
       identionLevel,
@@ -265,12 +265,12 @@ function parseConditionNode(
       identionLevel,
       choiceLevel,
       condition: trimmedLine.substring(9).split(">>")[0].trim(),
-      endLine,
+      skipLines,
     } as ConditionNode
   }
 
   if (trimmedLine.startsWith("<<else")) {
-    const endLine = findConditionBlockEnd(
+    const skipLines = findConditionBlockEnd(
       lines,
       currentIndex,
       identionLevel,
@@ -280,7 +280,7 @@ function parseConditionNode(
       type: "else",
       identionLevel,
       choiceLevel,
-      endLine,
+      skipLines,
     } as ConditionNode
   }
 
@@ -289,12 +289,12 @@ function parseConditionNode(
       type: "endif",
       identionLevel,
       choiceLevel,
-      endLine: currentIndex + 1,
+      skipLines: 1,
     } as ConditionNode
   }
 
   if (trimmedLine.startsWith("<<once")) {
-    const endLine = findOnceBlockEnd(
+    const skipLines = findOnceBlockEnd(
       lines,
       currentIndex,
       identionLevel,
@@ -304,14 +304,14 @@ function parseConditionNode(
       type: "once",
       identionLevel,
       choiceLevel,
-      endLine,
+      skipLines,
     } as ConditionNode
   }
 
   if (trimmedLine.startsWith("<<endonce")) {
     return {
       type: "endonce",
-      endLine: currentIndex + 1,
+      skipLines: 1,
       identionLevel,
       choiceLevel,
     } as ConditionNode
@@ -392,6 +392,7 @@ export async function parseStory(filePath: string): Promise<Story> {
 
   const lines = fileContent.split("\n")
   let choiceLevel = 0
+  let prevIndentionLevel = 0
 
   for (const [index, line] of lines.entries()) {
     // Handle block separator
@@ -432,6 +433,13 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     // Calculate nested level
     const indentionLevel = getNestedLevel(line, filePath, index)
+    if (indentionLevel < prevIndentionLevel) {
+      // if we go back to a higher level, reset choice level to 0, because choices on higher levels are independent of the previous choices on lower levels
+      if (!trimmedLine.startsWith("-> ")) {
+        choiceLevel = 0 // reset choice level when going back to a higher level
+      }
+    }
+    prevIndentionLevel = indentionLevel
 
     let contentNode: ContentNode | null = null
 

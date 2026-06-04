@@ -45,6 +45,7 @@ function contentNodesRenderer(
   setChoices: Dispatch<StateUpdater<number[]>>,
   handleSetNode: (command: string) => void,
   visitedBlocks: Set<string>,
+  variables: Map<string, string | number | boolean>,
 ) {
   const renderedNodes = []
 
@@ -167,7 +168,7 @@ function contentNodesRenderer(
       node.type === "if" || node.type === "elseif" || node.type === "else" ||
       node.type === "endif"
     ) {
-      handleConditionNode(node, visitedBlocks)
+      handleConditionNode(node, visitedBlocks, variables)
       renderedNodes.push(
         <div
           class={clsx(
@@ -292,6 +293,7 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
           setChoices,
           handleSetNode,
           initialStory.visitedBlocks,
+          initialStory.variables,
         )}
       </div>
     </div>

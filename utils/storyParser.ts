@@ -6,7 +6,7 @@ import {
   ContentNode,
   Story,
   TextNode,
-} from "@/utils/StoryTypes.tsx"
+} from "@/utils/storyTypes.tsx"
 
 // ===== VALUE PARSING =====
 

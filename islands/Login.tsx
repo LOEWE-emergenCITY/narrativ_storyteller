@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks"
-import { Story } from "@/utils/StoryTypes.tsx"
+import { Story } from "@/utils/storyTypes.tsx"
 import StoryViewer from "@/islands/StoryViewer.tsx"
 
 function Login({ initialStory }: { initialStory: Story }) {

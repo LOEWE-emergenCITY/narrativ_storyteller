@@ -49,6 +49,14 @@ function contentNodesRenderer(
   const renderedNodes = []
 
   for (let i = 0; i < contentNodes.length; i++) {
+    // console.log(
+    //   "Rendering node",
+    //   contentNodes[i],
+    //   "with identionLevel",
+    //   identionLevel,
+    //   "and choices",
+    //   choices,
+    // )
     const node = contentNodes[i]
 
     if (node.identionLevel > identionLevel) {
@@ -79,7 +87,7 @@ function contentNodesRenderer(
       continue
     }
 
-    if (node.identionLevel === identionLevel) {
+    if (node.identionLevel <= identionLevel) {
       if (node.type === "jump") {
         if (node.jumpTarget === undefined) {
           console.error("Jump node missing jumpTarget", node)
@@ -222,7 +230,7 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
   }, [currentBlockTitle])
 
   function handleSetNode(command: string) {
-    const [variableName, setCommand] = command.split("to").map((part) =>
+    const [variableName, setCommand] = command.split(" to ").map((part) =>
       part.trim()
     )
     const commands = setCommand.split(" ")
@@ -244,6 +252,9 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
       } else if (commands[0].startsWith('"') && commands[0].endsWith('"')) {
         // set string
         initialStory.variables.set(variableName, commands[0].slice(1, -1))
+      } else if (Number(commands[0])) {
+        // set number
+        initialStory.variables.set(variableName, Number(commands[0]))
       } else {
         console.error(`Invalid set command: ${command}`)
       }

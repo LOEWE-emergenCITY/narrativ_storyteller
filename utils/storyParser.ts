@@ -388,6 +388,7 @@ export async function parseStory(filePath: string): Promise<Story> {
     file: filePath,
     blocks: new Map<string, Block>(),
     variables: new Map<string, string | number>(),
+    visitedBlocks: new Set<string>(),
   }
 
   let currentBlock = {

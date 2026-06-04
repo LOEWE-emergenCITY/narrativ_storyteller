@@ -5,6 +5,7 @@ import { Button } from "@/components/Button.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
 import { clsx } from "clsx"
 import { Chat } from "@/components/Chat.tsx"
+import { handleConditionNode } from "@/utils/conditionHandler.ts"
 
 function buttonChoiceHandler(
   choiceNode: ContentNode[],
@@ -43,10 +44,9 @@ function contentNodesRenderer(
   choices: number[],
   setChoices: Dispatch<StateUpdater<number[]>>,
   handleSetNode: (command: string) => void,
+  visitedBlocks: Set<string>,
 ) {
   const renderedNodes = []
-
-  // console.log(contentNodes)
 
   for (let i = 0; i < contentNodes.length; i++) {
     const node = contentNodes[i]
@@ -56,7 +56,6 @@ function contentNodesRenderer(
     }
 
     if (!choices.includes(node.choiceLevel)) {
-      console.log(node)
       if (node.type === "choice" && node.identionLevel === identionLevel) {
         renderedNodes.push(
           <Button
@@ -71,8 +70,8 @@ function contentNodesRenderer(
                 choices,
                 setChoices,
               )}
+            html={node.text}
           >
-            {node.text}
           </Button>,
         )
       }
@@ -160,6 +159,7 @@ function contentNodesRenderer(
       node.type === "if" || node.type === "elseif" || node.type === "else" ||
       node.type === "endif"
     ) {
+      handleConditionNode(node, visitedBlocks)
       renderedNodes.push(
         <div
           class={clsx(
@@ -204,14 +204,18 @@ function contentNodesRenderer(
 }
 
 function StoryViewer({ initialStory }: { initialStory: Story }) {
-  const [currentBlock, setCurrentBlock] = useState<Block | undefined>(
-    initialStory.blocks.get("Start"),
-  )
+  const [currentBlock, setCurrentBlock] = useState<Block | undefined>(() => {
+    initialStory.visitedBlocks.add("Start")
+    return (initialStory.blocks.get("Start"))
+  })
   const [currentBlockTitle, setCurrentBlockTitle] = useState("Start")
   const [currentIndentionLevel, setCurrentIndentionLevel] = useState(0)
   const [choices, setChoices] = useState<number[]>([0])
 
   useEffect(() => {
+    if (!initialStory.visitedBlocks.has(currentBlockTitle)) {
+      initialStory.visitedBlocks.add(currentBlockTitle)
+    }
     setCurrentBlock(initialStory.blocks.get(currentBlockTitle))
     setCurrentIndentionLevel(0)
     setChoices([0])
@@ -276,6 +280,7 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
           choices,
           setChoices,
           handleSetNode,
+          initialStory.visitedBlocks,
         )}
       </div>
     </div>

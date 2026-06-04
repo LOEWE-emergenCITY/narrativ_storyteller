@@ -3,6 +3,7 @@
 export interface Story {
   file: string
   blocks: Map<string, Block>
+  visitedBlocks: Set<string>
   variables: Map<string, string | number | boolean>
 }
 

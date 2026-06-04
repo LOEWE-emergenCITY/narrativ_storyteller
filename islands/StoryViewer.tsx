@@ -1,5 +1,5 @@
 import { Dispatch, StateUpdater, useEffect, useState } from "preact/hooks"
-import { ActionNode, Block, ContentNode, Story } from "@/utils/StoryTypes.tsx"
+import { ActionNode, Block, ContentNode, Story } from "@/utils/storyTypes.tsx"
 import { Text } from "@/components/Text.tsx"
 import { Button } from "@/components/Button.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
@@ -104,7 +104,7 @@ function contentNodesRenderer(
 
     if (node.type === "text") {
       renderedNodes.push(
-        <Text>{node.text}</Text>,
+        <Text html={node.text} />,
       )
       continue
     }

@@ -136,13 +136,18 @@ function contentNodesRenderer(
       handleSetNode(node.command)
     }
 
-    if (node.type === "scienceFact") {
+    if (node.type === "scienceFact" || node.type === "scene") {
       renderedNodes.push(
         <div
           class={clsx(
-            "w-full py-2 px-4 rounded-sm border bg-green-100 border-green-300",
+            "w-full py-2 px-4 rounded-sm border",
+            node.type === "scienceFact"
+              ? "bg-green-100 border-green-300"
+              : "bg-blue-100 border-blue-300",
           )}
         >
+          Type: {node.type}
+          <br />
           NodeCommand: {node.command}
           <br />
           IdentionLevel: {node.identionLevel}
@@ -162,6 +167,8 @@ function contentNodesRenderer(
             "w-full py-2 px-4 rounded-sm border",
           )}
         >
+          Type: {node.type}
+          <br />
           NodeCondition: {node.condition}
           <br />
           IdentionLevel: {node.identionLevel}
@@ -180,6 +187,8 @@ function contentNodesRenderer(
             "w-full py-2 px-4 rounded-sm border",
           )}
         >
+          Type: {node.type}
+          <br />
           NodeCondition: {node.condition}
           <br />
           IdentionLevel: {node.identionLevel}

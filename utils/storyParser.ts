@@ -185,6 +185,15 @@ function parseCommandNode(
     } as CommandNode
   }
 
+  if (trimmedLine.startsWith("<<Scene ")) {
+    return {
+      type: "scene",
+      identionLevel,
+      choiceLevel,
+      command: trimmedLine.substring(8).split(">>")[0].trim(),
+    } as CommandNode
+  }
+
   if (trimmedLine.startsWith("<<GatherScienceFact ")) {
     return {
       type: "scienceFact",

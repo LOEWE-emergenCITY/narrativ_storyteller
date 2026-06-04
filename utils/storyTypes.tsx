@@ -29,7 +29,7 @@ export interface ActionNode {
 }
 
 export interface CommandNode {
-  type: "set" | "mood" | "scienceFact"
+  type: "set" | "mood" | "scienceFact" | "scene"
   identionLevel: number
   choiceLevel: number
   command: string // e.g., "set mood=tense" or "mood KathrinBrowsesOnPhone"
@@ -67,7 +67,8 @@ function isConditionNode(node: ContentNode): node is ConditionNode {
 
 function isCommandNode(node: ContentNode): node is CommandNode {
   return node &&
-    (node.type === "set" || node.type === "mood" || node.type === "scienceFact")
+    (node.type === "set" || node.type === "mood" ||
+      node.type === "scienceFact" || node.type === "scene")
 }
 
 function isTextNode(node: ContentNode): node is TextNode {

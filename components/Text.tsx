@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact"
 import clsx from "clsx"
-import { HTMLRenderer } from "../utils/HTMLRenderer.tsx"
+import { useHTMLRenderer } from "@/utils/customHooks.ts"
 
 export interface TextProps {
   children?: ComponentChildren
@@ -9,9 +9,21 @@ export interface TextProps {
 }
 
 export function Text(props: TextProps) {
+  const sanitized = useHTMLRenderer(props.html ? props.html : "")
+
+  if (props.html) {
+    return (
+      <div
+        // deno-lint-ignore react-no-danger
+        dangerouslySetInnerHTML={{ __html: sanitized }}
+        class={clsx("text-lg text-left py-2 px-4", props.className)}
+      />
+    )
+  }
+
   return (
     <p class={clsx("text-lg text-left py-2 px-4", props.className)}>
-      {props.html ? <HTMLRenderer html={props.html} /> : props.children}
+      props.children
     </p>
   )
 }

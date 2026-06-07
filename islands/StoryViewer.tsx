@@ -1,226 +1,273 @@
 import { Dispatch, StateUpdater, useEffect, useState } from "preact/hooks"
-import { ActionNode, Block, ContentNode, Story } from "@/utils/storyTypes.tsx"
+import { Block, ContentNode, Story } from "@/utils/storyTypes.tsx"
+import {
+  filterVisibleNodes,
+  getDebugNodeClass,
+  getNodeType,
+  isDebugNode,
+  isNodeVisible,
+  RenderConfig,
+  RenderContext,
+  RenderHandlers,
+} from "@/utils/nodeRenderers.ts"
+import { parseSetValue } from "@/utils/valueParser.ts"
+import { ErrorReporter } from "@/utils/errorReporter.ts"
 import { Text } from "@/components/Text.tsx"
 import { Button } from "@/components/Button.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
-import { clsx } from "clsx"
 import { Chat } from "@/components/Chat.tsx"
-import { handleConditionNode } from "@/utils/conditionHandler.ts"
+import { clsx } from "clsx"
 
-function buttonChoiceHandler(
-  choiceNode: ContentNode[],
-  currentIndex: number,
-  setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
-  currentIdentionLevel: number,
-  setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
-  choices: number[],
-  setChoices: Dispatch<StateUpdater<number[]>>,
-) {
-  if (choiceNode[currentIndex].type !== "choice") {
-    console.error(
-      `Expected a choice node, but got a ${choiceNode[currentIndex].type} node`,
+/**
+ * Execute a set command to update story variables
+ * Format: "variable to value" or "variable to value op number"
+ */
+function executeSetCommand(
+  command: string,
+  variables: Map<string, string | number | boolean>,
+  errorReporter?: ErrorReporter,
+): void {
+  const reporter = errorReporter ?? new ErrorReporter()
+
+  const [variableName, setCommand] = command.split(" to ").map((part) =>
+    part.trim()
+  )
+
+  if (!variableName || !setCommand) {
+    reporter.addError(
+      `Invalid set command format: ${command}`,
+      "set_error",
+      { command },
     )
     return
   }
 
-  setChoices([...choices, choiceNode[currentIndex].choiceLevel])
+  const commandParts = setCommand.split(" ")
 
-  if (choiceNode[currentIndex + 1].type === "jump") {
-    // handle jump, should set the current block to the jump target
-    setCurrentBlockTitle(
-      (choiceNode[currentIndex + 1] as ActionNode).jumpTarget || "",
-    )
+  // Simple set: "variable to value"
+  if (commandParts.length === 1) {
+    const value = parseSetValue(commandParts[0], variables, reporter)
+    if (value !== null) {
+      variables.set(variableName, value)
+    }
     return
   }
 
-  setCurrentIndentionLevel(currentIdentionLevel + 1)
+  // Arithmetic set: "variable to var op number" (e.g., "score to $score + 10")
+  if (commandParts.length === 3) {
+    const [leftRaw, operator, rightRaw] = commandParts
+    const leftValue = parseSetValue(leftRaw, variables, reporter) as number
+    const rightValue = parseSetValue(rightRaw, variables, reporter) as number
+
+    if (leftValue === null || rightValue === null) {
+      return
+    }
+
+    let result: number
+
+    switch (operator) {
+      case "+":
+        result = leftValue + rightValue
+        break
+      case "-":
+        result = leftValue - rightValue
+        break
+      default:
+        reporter.addError(
+          `Invalid operator in set command: ${operator}`,
+          "set_error",
+          { operator },
+        )
+        return
+    }
+
+    variables.set(variableName, result)
+    return
+  }
+
+  reporter.addError(
+    `Invalid set command format: ${command}`,
+    "set_error",
+    { command },
+  )
 }
 
-function contentNodesRenderer(
+/**
+ * Create handler for choice node clicks
+ */
+function createChoiceClickHandler(
   contentNodes: ContentNode[],
-  setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
-  identionLevel: number,
+  currentIndex: number,
   setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
+  currentIndentionLevel: number,
   choices: number[],
   setChoices: Dispatch<StateUpdater<number[]>>,
-  handleSetNode: (command: string) => void,
-  visitedBlocks: Set<string>,
-  variables: Map<string, string | number | boolean>,
-) {
-  const renderedNodes = []
+  setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
+): void {
+  const node = contentNodes[currentIndex]
 
-  for (let i = 0; i < contentNodes.length; i++) {
-    // console.log(
-    //   "Rendering node",
-    //   contentNodes[i],
-    //   "with identionLevel",
-    //   identionLevel,
-    //   "and choices",
-    //   choices,
-    // )
-    const node = contentNodes[i]
+  if (node.type !== "choice") {
+    console.error(
+      `Expected a choice node at index ${currentIndex}, but got ${node.type}`,
+    )
+    return
+  }
 
-    if (node.identionLevel > identionLevel) {
-      continue
-    }
+  // Add this choice to the selected choices
+  setChoices([...choices, node.choiceLevel])
 
-    if (!choices.includes(node.choiceLevel)) {
-      if (node.type === "choice" && node.identionLevel === identionLevel) {
-        renderedNodes.push(
-          <Button
-            choiceId={String(node.choiceLevel)}
-            onClick={() =>
-              buttonChoiceHandler(
-                contentNodes,
-                i,
-                setCurrentBlockTitle,
-                identionLevel,
-                setCurrentIndentionLevel,
-                choices,
-                setChoices,
-              )}
-            html={node.text}
-          >
-          </Button>,
-        )
-      }
+  // Check if next node is a jump
+  const nextNode = contentNodes[currentIndex + 1]
+  if (nextNode?.type === "jump") {
+    setCurrentBlockTitle((nextNode as any).jumpTarget || "")
+    return
+  }
 
-      continue
-    }
+  // Increase indentation level to show nested content
+  setCurrentIndentionLevel(currentIndentionLevel + 1)
+}
 
-    if (node.identionLevel <= identionLevel) {
-      if (node.type === "jump") {
-        if (node.jumpTarget === undefined) {
-          console.error("Jump node missing jumpTarget", node)
-          continue
-        }
-        renderedNodes.push(
-          <Button
-            choiceId=">"
-            onClick={() => {
-              setCurrentBlockTitle(node.jumpTarget || "")
-            }}
-          >
-            {`Continue ${node.jumpTarget ? `to ${node.jumpTarget}` : ""}`}
-          </Button>,
-        )
-      } else if (node.type === "detour") {
-        renderedNodes.push(<>DETOUR</>)
-        continue
-      }
-    }
+/**
+ * Render a single content node to JSX
+ */
+function renderNode(
+  node: ContentNode,
+  index: number,
+  contentNodes: ContentNode[],
+  config: RenderConfig,
+): JSX.Element[] {
+  const result: JSX.Element[] = []
+  const visibleNodes = filterVisibleNodes(
+    contentNodes,
+    config.indentionLevel,
+    config.choices,
+  )
 
-    if (node.type === "text") {
-      renderedNodes.push(
-        <Text html={node.text} />,
+  if (!isNodeVisible(node, visibleNodes)) {
+    return result
+  }
+
+  const nodeType = getNodeType(node)
+
+  switch (nodeType) {
+    case "text":
+      result.push(
+        <Text html={(node as any).text} />,
       )
-      continue
-    }
+      break
 
-    if (node.type === "chat") {
-      renderedNodes.push(
+    case "chat": {
+      const chatNode = node as any
+      result.push(
         <Chat
-          isAngela={node.speaker === "Angela"}
-          sender={String(node.speaker)}
+          isAngela={chatNode.speaker === "Angela"}
+          sender={String(chatNode.speaker)}
         >
-          {node.text}
+          {chatNode.text}
         </Chat>,
       )
-      continue
+      break
     }
 
-    if (
-      node.type === "mood"
-    ) {
-      renderedNodes.push(
-        <MoodImage name={node.command} />,
+    case "mood":
+      result.push(
+        <MoodImage name={(node as any).command} />,
       )
-      continue
+      break
+
+    case "set":
+      config.handlers.onSetNode((node as any).command)
+      break
+
+    case "detour":
+      result.push(<>DETOUR</>)
+      break
+
+    case "choice": {
+      const choiceNode = node as any
+      result.push(
+        <Button
+          choiceId={String(choiceNode.choiceLevel)}
+          onClick={() => {
+            createChoiceClickHandler(
+              contentNodes,
+              index,
+              (null as any), // setCurrentIndentionLevel will be injected
+              config.indentionLevel,
+              config.choices,
+              (null as any), // setChoices will be injected
+              config.handlers.onJumpClick,
+            )
+          }}
+          html={choiceNode.text || ""}
+        />,
+      )
+      break
     }
 
-    if (
-      node.type === "set"
-    ) {
-      handleSetNode(node.command)
-    }
-
-    if (node.type === "scienceFact" || node.type === "scene") {
-      renderedNodes.push(
-        <div
-          class={clsx(
-            "w-full py-2 px-4 rounded-sm border",
-            node.type === "scienceFact"
-              ? "bg-green-100 border-green-300"
-              : "bg-blue-100 border-blue-300",
-          )}
+    case "jump": {
+      const jumpNode = node as any
+      if (!jumpNode.jumpTarget) {
+        console.error("Jump node missing jumpTarget", jumpNode)
+        break
+      }
+      result.push(
+        <Button
+          choiceId=">"
+          onClick={() => {
+            config.handlers.onJumpClick(jumpNode.jumpTarget || "")
+          }}
         >
-          Type: {node.type}
-          <br />
-          NodeCommand: {node.command}
-          <br />
-          IdentionLevel: {node.identionLevel}
-        </div>,
+          {`Continue ${jumpNode.jumpTarget ? `to ${jumpNode.jumpTarget}` : ""}`}
+        </Button>,
       )
-      continue
+      break
     }
 
-    if (
-      node.type === "if" || node.type === "elseif" || node.type === "else" ||
-      node.type === "endif"
-    ) {
-      handleConditionNode(node, visitedBlocks, variables)
-      renderedNodes.push(
-        <div
-          class={clsx(
-            "bg-yellow-100 border-yellow-300",
-            "w-full py-2 px-4 rounded-sm border",
-          )}
-        >
-          Type: {node.type}
-          <br />
-          NodeCondition: {node.condition}
-          <br />
-          IdentionLevel: {node.identionLevel}
-          <br />
-          SkipLines: {node.skipLines}
-        </div>,
-      )
-      continue
-    }
-
-    if (node.type === "once" || node.type === "endonce") {
-      renderedNodes.push(
-        <div
-          class={clsx(
-            "bg-red-100 border-red-300",
-            "w-full py-2 px-4 rounded-sm border",
-          )}
-        >
-          Type: {node.type}
-          <br />
-          NodeCondition: {node.condition}
-          <br />
-          IdentionLevel: {node.identionLevel}
-          <br />
-          SkipLines: {node.skipLines}
-        </div>,
-      )
-      continue
-    }
+    case "debug":
+      if (isDebugNode(node)) {
+        const debugClass = getDebugNodeClass(node)
+        const className = clsx(
+          "w-full py-2 px-4 rounded-sm border",
+          debugClass,
+        )
+        result.push(
+          <div class={className}>
+            Type: {node.type}
+            <br />
+            {node.type === "scienceFact" || node.type === "scene"
+              ? `NodeCommand: ${(node as any).command}`
+              : `NodeCondition: ${(node as any).condition}`}
+            <br />
+            IdentionLevel: {node.identionLevel}
+            <br />
+            {node.type !== "scienceFact" && node.type !== "scene"
+              ? <>SkipLines: {(node as any).skipLines}</>
+              : null}
+          </div>,
+        )
+      }
+      break
   }
 
-  return renderedNodes
+  return result
 }
 
-function StoryViewer({ initialStory }: { initialStory: Story }) {
+interface StoryViewerProps {
+  initialStory: Story
+}
+
+function StoryViewer({ initialStory }: StoryViewerProps) {
   const [currentBlock, setCurrentBlock] = useState<Block | undefined>(() => {
     initialStory.visitedBlocks.add("Start")
-    return (initialStory.blocks.get("Start"))
+    return initialStory.blocks.get("Start")
   })
+
   const [currentBlockTitle, setCurrentBlockTitle] = useState("Start")
   const [currentIndentionLevel, setCurrentIndentionLevel] = useState(0)
   const [choices, setChoices] = useState<number[]>([0])
 
+  // Track block visits and reset state when block changes
   useEffect(() => {
     if (!initialStory.visitedBlocks.has(currentBlockTitle)) {
       initialStory.visitedBlocks.add(currentBlockTitle)
@@ -230,71 +277,49 @@ function StoryViewer({ initialStory }: { initialStory: Story }) {
     setChoices([0])
   }, [currentBlockTitle])
 
-  function handleSetNode(command: string) {
-    const [variableName, setCommand] = command.split(" to ").map((part) =>
-      part.trim()
-    )
-    const commands = setCommand.split(" ")
-
-    // if it's a simple set command like "set mood=tense"
-    if (commands.length === 1) {
-      if (
-        initialStory.variables.has(variableName) &&
-        initialStory.variables.has(commands[0])
-      ) {
-        // set variable to value of another variable
-        initialStory.variables.set(
-          variableName,
-          initialStory.variables.get(commands[0])!,
-        )
-      } else if (commands[0] === "true" || commands[0] === "false") {
-        // set boolean
-        initialStory.variables.set(variableName, commands[0] === "true")
-      } else if (commands[0].startsWith('"') && commands[0].endsWith('"')) {
-        // set string
-        initialStory.variables.set(variableName, commands[0].slice(1, -1))
-      } else if (Number(commands[0])) {
-        // set number
-        initialStory.variables.set(variableName, Number(commands[0]))
-      } else {
-        console.error(`Invalid set command: ${command}`)
-      }
-
-      return
-    }
-
-    if (commands.length === 3) {
-      const leftValue = initialStory.variables.get(commands[0]) as number
-      const rightValue = Number(commands[2])
-
-      if (commands[1] === "+") {
-        initialStory.variables.set(variableName, leftValue + rightValue)
-        return
-      }
-
-      if (commands[1] === "-") {
-        initialStory.variables.set(variableName, leftValue - rightValue)
-        return
-      }
-
-      console.error(`Invalid set command: ${command}`)
-    }
+  // Create render handlers
+  const handlers: RenderHandlers = {
+    onChoiceClick: (index: number) => {
+      createChoiceClickHandler(
+        currentBlock?.contentNodes || [],
+        index,
+        setCurrentIndentionLevel,
+        currentIndentionLevel,
+        choices,
+        setChoices,
+        setCurrentBlockTitle,
+      )
+    },
+    onJumpClick: setCurrentBlockTitle,
+    onSetNode: (command: string) => {
+      executeSetCommand(command, initialStory.variables)
+    },
   }
+
+  // Create render context
+  const context: RenderContext = {
+    visitedBlocks: initialStory.visitedBlocks,
+    variables: initialStory.variables,
+  }
+
+  // Create render config
+  const renderConfig: RenderConfig = {
+    contentNodes: currentBlock?.contentNodes || [],
+    indentionLevel: currentIndentionLevel,
+    choices,
+    handlers,
+    context,
+  }
+
+  // Render all nodes
+  const renderedNodes = (currentBlock?.contentNodes || [])
+    .map((node, i) => renderNode(node, i, currentBlock?.contentNodes || [], renderConfig))
+    .flat()
 
   return (
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
       <div class="max-w-3xl mx-auto flex flex-col">
-        {contentNodesRenderer(
-          currentBlock?.contentNodes || [],
-          setCurrentBlockTitle,
-          currentIndentionLevel,
-          setCurrentIndentionLevel,
-          choices,
-          setChoices,
-          handleSetNode,
-          initialStory.visitedBlocks,
-          initialStory.variables,
-        )}
+        {renderedNodes}
       </div>
     </div>
   )

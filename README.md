@@ -15,3 +15,9 @@ deno task dev
 ```
 
 This will watch the project directory and restart as necessary.
+
+# Features
+
+## Parse .yarn file
+
+[x] Read file [] interpret [x] render simple HTML tags like <i>,<b>, <br> []

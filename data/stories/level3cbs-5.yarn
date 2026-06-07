@@ -427,7 +427,7 @@ Kathrin senkt den Blick. "Das ist echt ätzend."
 Kathrin rutscht in ihrem Stuhl hin und her. "Du musst jetzt aber nicht arbeiten, oder?"
 Sie sieht besorgt aus. Und schuldbewusst, weil sie sich Sorgen macht.
 //<<Mood kathrin_guiltily>>
-Angela seufzt. "Nein." Sie <i>muss</i> nicht. Aber wenn Kathrin sie nicht so ansehen würde, säße sie vermutlich schon an ihrem Laptop ...
+Angela seufzt. "Nein." Sie <i>muss</i> <b>nicht</b>. Aber wenn Kathrin sie nicht so ansehen würde, säße sie vermutlich schon an ihrem Laptop ...
 //<<Mood angela_annoyed>>
 "Willst du wissen, was in den Nachrichten steht?", fragt Kathrin. Es klingt nach einem Ablenkungsmanöver.
 -> Angela entscheidet sich, das Thema MEIS vorerst ruhen zu lassen. Es gibt andere in ihrem Team, die sich damit befassen können. "Sag schon. Was Wichtiges?"

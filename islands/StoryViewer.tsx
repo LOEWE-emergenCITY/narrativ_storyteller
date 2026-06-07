@@ -1,9 +1,16 @@
 import { Dispatch, StateUpdater, useEffect, useState } from "preact/hooks"
-import { Block, ContentNode, Story } from "@/utils/storyTypes.tsx"
+import {
+  ActionNode,
+  Block,
+  CommandNode,
+  ConditionNode,
+  ContentNode,
+  Story,
+  TextNode,
+} from "@/utils/storyTypes.tsx"
 import {
   filterVisibleNodes,
   getDebugNodeClass,
-  getNodeType,
   isDebugNode,
   isNodeVisible,
   RenderConfig,
@@ -17,6 +24,7 @@ import { Button } from "@/components/Button.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { clsx } from "clsx"
+import { JSX } from "preact/jsx-runtime"
 
 /**
  * Execute a set command to update story variables
@@ -119,7 +127,7 @@ function createChoiceClickHandler(
   // Check if next node is a jump
   const nextNode = contentNodes[currentIndex + 1]
   if (nextNode?.type === "jump") {
-    setCurrentBlockTitle((nextNode as any).jumpTarget || "")
+    setCurrentBlockTitle((nextNode as ActionNode).jumpTarget || "")
     return
   }
 
@@ -147,17 +155,15 @@ function renderNode(
     return result
   }
 
-  const nodeType = getNodeType(node)
-
-  switch (nodeType) {
+  switch (node.type) {
     case "text":
       result.push(
-        <Text html={(node as any).text} />,
+        <Text html={(node as TextNode).text} />,
       )
       break
 
     case "chat": {
-      const chatNode = node as any
+      const chatNode = node as TextNode
       result.push(
         <Chat
           isAngela={chatNode.speaker === "Angela"}
@@ -171,20 +177,22 @@ function renderNode(
 
     case "mood":
       result.push(
-        <MoodImage name={(node as any).command} />,
+        <MoodImage name={(node as CommandNode).command} />,
       )
       break
 
     case "set":
-      config.handlers.onSetNode((node as any).command)
+      config.handlers.onSetNode((node as CommandNode).command)
       break
 
-    case "detour":
+    case "detour": {
+      const detourNode = node as ActionNode
       result.push(<>DETOUR</>)
       break
+    }
 
     case "choice": {
-      const choiceNode = node as any
+      const choiceNode = node as ActionNode
       result.push(
         <Button
           choiceId={String(choiceNode.choiceLevel)}
@@ -192,10 +200,10 @@ function renderNode(
             createChoiceClickHandler(
               contentNodes,
               index,
-              (null as any), // setCurrentIndentionLevel will be injected
+              config.handlers.setCurrentIndentionLevel!,
               config.indentionLevel,
               config.choices,
-              (null as any), // setChoices will be injected
+              config.handlers.setChoices!,
               config.handlers.onJumpClick,
             )
           }}
@@ -206,7 +214,7 @@ function renderNode(
     }
 
     case "jump": {
-      const jumpNode = node as any
+      const jumpNode = node as ActionNode
       if (!jumpNode.jumpTarget) {
         console.error("Jump node missing jumpTarget", jumpNode)
         break
@@ -236,13 +244,13 @@ function renderNode(
             Type: {node.type}
             <br />
             {node.type === "scienceFact" || node.type === "scene"
-              ? `NodeCommand: ${(node as any).command}`
-              : `NodeCondition: ${(node as any).condition}`}
+              ? `NodeCommand: ${(node as CommandNode).command}`
+              : `NodeCondition: ${(node as ConditionNode).condition}`}
             <br />
             IdentionLevel: {node.identionLevel}
             <br />
             {node.type !== "scienceFact" && node.type !== "scene"
-              ? <>SkipLines: {(node as any).skipLines}</>
+              ? <>SkipLines: {(node as ConditionNode).skipLines}</>
               : null}
           </div>,
         )
@@ -294,6 +302,8 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
     onSetNode: (command: string) => {
       executeSetCommand(command, initialStory.variables)
     },
+    setCurrentIndentionLevel,
+    setChoices,
   }
 
   // Create render context
@@ -313,7 +323,9 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
 
   // Render all nodes
   const renderedNodes = (currentBlock?.contentNodes || [])
-    .map((node, i) => renderNode(node, i, currentBlock?.contentNodes || [], renderConfig))
+    .map((node, i) =>
+      renderNode(node, i, currentBlock?.contentNodes || [], renderConfig)
+    )
     .flat()
 
   return (

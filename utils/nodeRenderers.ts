@@ -1,15 +1,11 @@
-import {
-  ActionNode,
-  CommandNode,
-  ConditionNode,
-  ContentNode,
-  TextNode,
-} from "@/utils/storyTypes.tsx"
+import { ContentNode } from "@/utils/storyTypes.tsx"
 
 export interface RenderHandlers {
   onChoiceClick: (index: number) => void
   onJumpClick: (target: string) => void
   onSetNode: (command: string) => void
+  setCurrentIndentionLevel?: (updater: number | ((prev: number) => number)) => void
+  setChoices?: (updater: number[] | ((prev: number[]) => number[])) => void
 }
 
 export interface RenderContext {
@@ -68,22 +64,6 @@ export function isNodeVisible(
   visibleNodes: ContentNode[],
 ): boolean {
   return visibleNodes.includes(node)
-}
-
-/**
- * Get the node type for rendering purposes
- */
-export function getNodeType(
-  node: ContentNode,
-): "text" | "chat" | "choice" | "jump" | "mood" | "set" | "debug" | "detour" {
-  if (node.type === "text") return "text"
-  if (node.type === "chat") return "chat"
-  if (node.type === "choice") return "choice"
-  if (node.type === "jump") return "jump"
-  if (node.type === "mood") return "mood"
-  if (node.type === "set") return "set"
-  if (node.type === "detour") return "detour"
-  return "debug" // All condition and once/endonce nodes
 }
 
 /**

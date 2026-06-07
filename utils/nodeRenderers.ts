@@ -32,7 +32,6 @@ export function filterVisibleNodes(
   choices: number[],
 ): ContentNode[] {
   const visible: ContentNode[] = []
-
   for (let i = 0; i < contentNodes.length; i++) {
     const node = contentNodes[i]
 
@@ -46,8 +45,15 @@ export function filterVisibleNodes(
     console.log(node)
 
     // If this choice hasn't been selected, only show available choices
-    if (!choices.includes(node.choiceLevel)) {
-      if (node.type === "choice" && node.identionLevel === indentionLevel) {
+    if (
+      node.choiceLevel.every((level) => {
+        console.log(choices.includes(level))
+        return choices.includes(level)
+      })
+    ) {
+      visible.push(node)
+
+      if (node.type === "choice" && !choices.includes(node.myChoiceLevel!)) {
         console.log("pushing choice node", node)
         visible.push(node)
       }

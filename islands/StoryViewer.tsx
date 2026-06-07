@@ -122,8 +122,15 @@ function createChoiceClickHandler(
     return
   }
 
+  if (node.myChoiceLevel === undefined) {
+    console.error(
+      `Choice node at index ${currentIndex} is missing myChoiceLevel`,
+    )
+    return
+  }
+
   // Add this choice to the selected choices
-  setChoices([...choices, node.choiceLevel])
+  setChoices([...choices, node.myChoiceLevel])
 
   // Check if next node is a jump
   const nextNode = contentNodes[currentIndex + 1]
@@ -144,14 +151,9 @@ function renderNode(
   index: number,
   contentNodes: ContentNode[],
   config: RenderConfig,
+  visibleNodes: ContentNode[],
 ): JSX.Element[] {
   const result: JSX.Element[] = []
-
-  const visibleNodes = filterVisibleNodes(
-    contentNodes,
-    config.indentionLevel,
-    config.choices,
-  )
 
   if (!isNodeVisible(node, visibleNodes)) {
     return result
@@ -195,9 +197,10 @@ function renderNode(
 
     case "choice": {
       const choiceNode = node as ActionNode
+      console.log(config.choices.includes(choiceNode.myChoiceLevel!))
       result.push(
         <Button
-          choiceId={String(choiceNode.choiceLevel)}
+          choiceId={String(choiceNode.myChoiceLevel)}
           onClick={() => {
             createChoiceClickHandler(
               contentNodes,
@@ -211,7 +214,7 @@ function renderNode(
           }}
           html={choiceNode.text || ""}
           disabled={node.identionLevel === config.indentionLevel &&
-            config.choices.includes(choiceNode.choiceLevel)}
+            config.choices.includes(choiceNode.myChoiceLevel!)}
         />,
       )
       break
@@ -325,10 +328,22 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
     context,
   }
 
+  const visibleNodes = filterVisibleNodes(
+    renderConfig.contentNodes,
+    renderConfig.indentionLevel,
+    renderConfig.choices,
+  )
+
   // Render all nodes
-  const renderedNodes = (currentBlock?.contentNodes || [])
+  const renderedNodes = renderConfig.contentNodes
     .map((node, i) =>
-      renderNode(node, i, currentBlock?.contentNodes || [], renderConfig)
+      renderNode(
+        node,
+        i,
+        renderConfig.contentNodes,
+        renderConfig,
+        visibleNodes,
+      )
     )
     .flat()
 

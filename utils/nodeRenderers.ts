@@ -4,7 +4,9 @@ export interface RenderHandlers {
   onChoiceClick: (index: number) => void
   onJumpClick: (target: string) => void
   onSetNode: (command: string) => void
-  setCurrentIndentionLevel?: (updater: number | ((prev: number) => number)) => void
+  setCurrentIndentionLevel?: (
+    updater: number | ((prev: number) => number),
+  ) => void
   setChoices?: (updater: number[] | ((prev: number[]) => number[])) => void
 }
 
@@ -39,9 +41,14 @@ export function filterVisibleNodes(
       continue
     }
 
+    console.log(choices)
+    console.log(indentionLevel)
+    console.log(node)
+
     // If this choice hasn't been selected, only show available choices
     if (!choices.includes(node.choiceLevel)) {
       if (node.type === "choice" && node.identionLevel === indentionLevel) {
+        console.log("pushing choice node", node)
         visible.push(node)
       }
       continue
@@ -64,6 +71,22 @@ export function isNodeVisible(
   visibleNodes: ContentNode[],
 ): boolean {
   return visibleNodes.includes(node)
+}
+
+/**
+ * Get the node type for rendering purposes
+ */
+export function getNodeType(
+  node: ContentNode,
+): "text" | "chat" | "choice" | "jump" | "mood" | "set" | "debug" | "detour" {
+  if (node.type === "text") return "text"
+  if (node.type === "chat") return "chat"
+  if (node.type === "choice") return "choice"
+  if (node.type === "jump") return "jump"
+  if (node.type === "mood") return "mood"
+  if (node.type === "set") return "set"
+  if (node.type === "detour") return "detour"
+  return "debug" // All condition and once/endonce nodes
 }
 
 /**

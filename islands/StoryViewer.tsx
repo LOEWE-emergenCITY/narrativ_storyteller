@@ -11,6 +11,7 @@ import {
 import {
   filterVisibleNodes,
   getDebugNodeClass,
+  getNodeType,
   isDebugNode,
   isNodeVisible,
   RenderConfig,
@@ -145,6 +146,7 @@ function renderNode(
   config: RenderConfig,
 ): JSX.Element[] {
   const result: JSX.Element[] = []
+
   const visibleNodes = filterVisibleNodes(
     contentNodes,
     config.indentionLevel,
@@ -155,7 +157,7 @@ function renderNode(
     return result
   }
 
-  switch (node.type) {
+  switch (getNodeType(node)) {
     case "text":
       result.push(
         <Text html={(node as TextNode).text} />,
@@ -208,6 +210,8 @@ function renderNode(
             )
           }}
           html={choiceNode.text || ""}
+          disabled={node.identionLevel === config.indentionLevel &&
+            config.choices.includes(choiceNode.choiceLevel)}
         />,
       )
       break

@@ -3,7 +3,6 @@ import {
   ActionNode,
   Block,
   CommandNode,
-  ConditionNode,
   ContentNode,
   Story,
   TextNode,
@@ -26,6 +25,7 @@ import { MoodImage } from "@/components/MoodImage.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { clsx } from "clsx"
 import { JSX } from "preact/jsx-runtime"
+
 
 /**
  * Execute a set command to update story variables
@@ -239,7 +239,6 @@ function renderNode(
       )
       break
     }
-
     case "debug":
       if (isDebugNode(node)) {
         const debugClass = getDebugNodeClass(node)
@@ -253,13 +252,9 @@ function renderNode(
             <br />
             {node.type === "scienceFact" || node.type === "scene"
               ? `NodeCommand: ${(node as CommandNode).command}`
-              : `NodeCondition: ${(node as ConditionNode).condition}`}
+              : null}
             <br />
             IdentionLevel: {node.identionLevel}
-            <br />
-            {node.type !== "scienceFact" && node.type !== "scene"
-              ? <>SkipLines: {(node as ConditionNode).skipLines}</>
-              : null}
           </div>,
         )
       }
@@ -332,6 +327,7 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
   const visibleNodes = filterVisibleNodes(
     renderConfig.contentNodes,
     renderConfig.choices,
+    renderConfig.context,
   )
 
   // Render all nodes

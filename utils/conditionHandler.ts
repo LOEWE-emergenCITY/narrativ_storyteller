@@ -72,25 +72,6 @@ function evaluateSimpleComparison(
 }
 
 /**
- * Evaluate OR conditions like (var1 == "x" or var2 > 5)
- */
-function evaluateOrCondition(
-  blockStr: string,
-  variables: Map<string, string | number | boolean>,
-  errorReporter?: ErrorReporter,
-): boolean {
-  const orBlocks = blockStr
-    .replace(/[()]/g, "")
-    .split(" or ")
-    .map((part) => part.trim())
-
-  return orBlocks.some((orBlock) => {
-    const orConditions = orBlock.split(" ").map((part) => part.trim())
-    return evaluateSimpleComparison(orConditions, variables, errorReporter)
-  })
-}
-
-/**
  * Evaluate multiplication conditions like $total_time*(3/4) > 10
  */
 function evaluateMultiplicationCondition(
@@ -125,7 +106,6 @@ function evaluateMultiplicationCondition(
 
   let rightValue = 1
 
-  // Parse fraction if present
   if (rightValueRaw.includes("/")) {
     const fraction = parseFraction(rightValueRaw, errorReporter)
     if (fraction === null) return false
@@ -136,55 +116,146 @@ function evaluateMultiplicationCondition(
     rightValue = parsed
   }
 
-  // Apply multiplication
   const computedValue = multiplicator * rightValue
 
   return compareValues(operator, leftValue, computedValue)
 }
 
 /**
- * Evaluate a visited condition like visited(StartBlock) or visited(StartBlock, not)
+ * Evaluate a visited() expression.
+ *
+ * Handles:
+ *   visited("BlockName")            → true if visited
+ *   visited("BlockName") == true    → true if visited
+ *   visited("BlockName") == false   → true if NOT visited
  */
 function handleVisitedCondition(
   condition: string,
   visitedBlocks: Set<string>,
   errorReporter?: ErrorReporter,
 ): boolean {
-  const visitedCondition = condition
-    .replace("visited(", "")
-    .replace(")", "")
+  // Extract block name (strips surrounding quotes) and optional == true/false
+  const match = condition
     .trim()
-    .split(" ")
+    .match(/^visited\("([^"]+)"\)(?:\s*==\s*(true|false))?$/)
 
-  if (visitedCondition.length > 2) {
-    errorReporter?.addError(
-      `Invalid visited condition format`,
-      "condition_error",
-      { condition },
-    )
-    return false
+  if (!match) {
+    // Fallback: try without quotes for legacy visited(BlockName) syntax
+    const legacyMatch = condition
+      .trim()
+      .match(/^visited\(([^")]+)\)(?:\s*==\s*(true|false))?$/)
+
+    if (!legacyMatch) {
+      errorReporter?.addError(
+        `Invalid visited condition format: ${condition}`,
+        "condition_error",
+        { condition },
+      )
+      return false
+    }
+
+    const blockTitle = legacyMatch[1].trim()
+    const comparison = legacyMatch[2]
+    const isVisited = visitedBlocks.has(blockTitle)
+    return comparison === "false" ? !isVisited : isVisited
   }
 
-  const blockTitle = visitedCondition[0]
-  const hasNotModifier = visitedCondition.length === 2 &&
-    visitedCondition[1] === "not"
-
+  const blockTitle = match[1]
+  const comparison = match[2] // "true", "false", or undefined
   const isVisited = visitedBlocks.has(blockTitle)
 
-  return hasNotModifier ? !isVisited : isVisited
+  return comparison === "false" ? !isVisited : isVisited
 }
 
 /**
- * Main comparison condition handler supporting:
- * - Simple comparisons: var == value
- * - Boolean variables: var (truthy check)
- * - OR conditions: (var1 == x or var2 > y)
- * - Multiplication: var1 * var2 (3/4) > 10
- * - Negation: not (condition)
+ * Evaluate a single condition block — handles all atomic condition shapes:
+ *   - visited("X") / visited("X") == false
+ *   - $var                          (truthy check)
+ *   - $var == value                 (3-part comparison)
+ *   - $var * $other (3/4) > 10     (multiplication)
+ */
+function evaluateSingleBlock(
+  block: string,
+  variables: Map<string, string | number | boolean>,
+  visitedBlocks: Set<string>,
+  errorReporter?: ErrorReporter,
+): boolean {
+  const trimmed = block.trim()
+
+  // visited() check
+  if (trimmed.startsWith("visited(")) {
+    return handleVisitedCondition(trimmed, visitedBlocks, errorReporter)
+  }
+
+  const parts = trimmed.split(" ").map((p) => p.trim()).filter((p) => p)
+
+  // Single variable truthy check
+  if (parts.length === 1) {
+    if (!variables.has(parts[0])) {
+      errorReporter?.addError(
+        `Variable not found: ${parts[0]}`,
+        "validation_error",
+        { variable: parts[0] },
+      )
+      return false
+    }
+    return Boolean(variables.get(parts[0]))
+  }
+
+  // 3-part comparison: $var == value
+  if (parts.length === 3) {
+    return evaluateSimpleComparison(parts, variables, errorReporter)
+  }
+
+  // Multiplication condition: $var * $other (3/4) > 10
+  if (trimmed.includes("*")) {
+    return evaluateMultiplicationCondition(trimmed, variables, errorReporter)
+  }
+
+  errorReporter?.addError(
+    `Unrecognized single block condition format`,
+    "condition_error",
+    { block: trimmed },
+  )
+  return false
+}
+
+/**
+ * Evaluate OR conditions: block1 or block2 or block3
+ * Each block is evaluated via evaluateSingleBlock.
+ */
+function evaluateOrCondition(
+  blockStr: string,
+  variables: Map<string, string | number | boolean>,
+  visitedBlocks: Set<string>,
+  errorReporter?: ErrorReporter,
+): boolean {
+  const orBlocks = blockStr
+    .replace(/[()]/g, "")
+    .split(" or ")
+    .map((part) => part.trim())
+
+  return orBlocks.some((orBlock) =>
+    evaluateSingleBlock(orBlock, variables, visitedBlocks, errorReporter)
+  )
+}
+
+/**
+ * Main comparison condition handler.
+ *
+ * Supports:
+ *   - Simple comparisons:  $var == value
+ *   - Boolean variables:   $var
+ *   - visited():           visited("X") / visited("X") == false
+ *   - AND chains:          cond1 and cond2 and cond3
+ *   - OR conditions:       cond1 or cond2  (also inside AND chains)
+ *   - Multiplication:      $var * $other (3/4) > 10
+ *   - Negation:            not (condition)
  */
 function handleComparisionCondition(
   condition: string,
   variables: Map<string, string | number | boolean>,
+  visitedBlocks: Set<string>,
   errorReporter?: ErrorReporter,
 ): boolean {
   const trimmed = condition.trim()
@@ -195,73 +266,32 @@ function handleComparisionCondition(
     return !handleComparisionCondition(
       innerCondition,
       variables,
+      visitedBlocks,
       errorReporter,
     )
   }
 
-  // Split by AND to handle multiple conditions
+  // Split by AND — each block is evaluated independently and all must be true
   const conditionBlocks = trimmed.split(" and ").map((part) => part.trim())
 
-  if (conditionBlocks.length === 0) {
-    errorReporter?.addError(
-      `Invalid condition: empty or malformed`,
-      "condition_error",
-      { condition: trimmed },
-    )
-    return false
-  }
-
-  const results: boolean[] = []
-
   for (const block of conditionBlocks) {
-    const conditions = block.split(" ").map((part) => part.trim())
-
-    // Single variable truthy check
-    if (conditions.length === 1) {
-      const variableName = conditions[0]
-      if (!variables.has(variableName)) {
-        errorReporter?.addError(
-          `Variable not found: ${variableName}`,
-          "validation_error",
-          { variable: variableName },
-        )
+    // OR condition within an AND block
+    if (block.includes(" or ")) {
+      if (
+        !evaluateOrCondition(block, variables, visitedBlocks, errorReporter)
+      ) {
         return false
       }
-      results.push(Boolean(variables.get(variableName)))
       continue
     }
 
-    // OR condition
-    if (conditions.length > 3 && block.includes(" or ")) {
-      results.push(evaluateOrCondition(block, variables, errorReporter))
-      continue
+    // All other shapes (visited, truthy, comparison, multiplication)
+    if (!evaluateSingleBlock(block, variables, visitedBlocks, errorReporter)) {
+      return false
     }
-
-    // Multiplication condition
-    if (conditions.length > 3 && block.includes("*")) {
-      results.push(
-        evaluateMultiplicationCondition(block, variables, errorReporter),
-      )
-      continue
-    }
-
-    // Simple comparison (3 elements)
-    if (conditions.length === 3) {
-      results.push(evaluateSimpleComparison(conditions, variables, errorReporter))
-      continue
-    }
-
-    // Unrecognized format
-    errorReporter?.addError(
-      `Unrecognized condition format`,
-      "condition_error",
-      { block },
-    )
-    return false
   }
 
-  // All conditions must be true (AND logic)
-  return results.every((res) => res)
+  return true
 }
 
 /**
@@ -286,18 +316,15 @@ export function handleConditionNode(
       return true // No condition means always true
     }
 
-    if (node.condition.startsWith("visited(")) {
-      return handleVisitedCondition(node.condition, visitedBlocks, reporter)
-    }
-
     return handleComparisionCondition(
       node.condition,
       variables,
+      visitedBlocks,
       reporter,
     )
   }
 
-  // Else blocks are always true when reached
+  // Else blocks are always true when reached — the stack decides, not evaluation
   if (node.type === "else") {
     return true
   }

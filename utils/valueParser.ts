@@ -121,9 +121,7 @@ export function parseFraction(
   errorReporter?: ErrorReporter,
 ): number | null {
   const cleaned = fractionStr.replace(/[()]/g, "").trim()
-  const [numeratorRaw, denominatorRaw] = cleaned.split("/").map((p) =>
-    p.trim()
-  )
+  const [numeratorRaw, denominatorRaw] = cleaned.split("/").map((p) => p.trim())
 
   if (!numeratorRaw || !denominatorRaw) {
     errorReporter?.addError(

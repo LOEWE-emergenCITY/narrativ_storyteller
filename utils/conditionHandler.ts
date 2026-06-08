@@ -62,7 +62,11 @@ function evaluateSimpleComparison(
   }
 
   const leftValue = variables.get(leftValueRaw)!
-  const rightValue = parseConditionValue(rightValueRaw, variables, errorReporter)
+  const rightValue = parseConditionValue(
+    rightValueRaw,
+    variables,
+    errorReporter,
+  )
 
   if (rightValue === null) {
     return false

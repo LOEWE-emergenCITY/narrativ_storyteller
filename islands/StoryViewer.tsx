@@ -26,7 +26,6 @@ import { Chat } from "@/components/Chat.tsx"
 import { clsx } from "clsx"
 import { JSX } from "preact/jsx-runtime"
 
-
 /**
  * Execute a set command to update story variables
  * Format: "variable to value" or "variable to value op number"

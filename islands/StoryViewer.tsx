@@ -213,8 +213,8 @@ function renderNode(
             )
           }}
           html={choiceNode.text || ""}
-          disabled={config.choices.length > choiceNode.identionLevel + 1 &&
-            config.choices[choiceNode.identionLevel + 1] ===
+          disabled={config.choices.length > choiceNode.choicePath.length &&
+            config.choices[choiceNode.choicePath.length] ===
               choiceNode.myChoiceLevel!}
         />,
       )
@@ -281,7 +281,7 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
 
   const [currentBlockTitle, setCurrentBlockTitle] = useState("Start")
   const [currentIndentionLevel, setCurrentIndentionLevel] = useState(0)
-  const [choices, setChoices] = useState<number[]>([0])
+  const [choices, setChoices] = useState<number[]>([])
 
   // Track block visits and reset state when block changes
   useEffect(() => {
@@ -290,7 +290,7 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
     }
     setCurrentBlock(initialStory.blocks.get(currentBlockTitle))
     setCurrentIndentionLevel(0)
-    setChoices([0])
+    setChoices([])
   }, [currentBlockTitle])
 
   // Create render handlers

@@ -332,33 +332,32 @@ function parseConditionNode(
 function parseChoiceNode(
   trimmedLine: string,
   identionLevel: number,
+  effectiveLevel: number,
   choicePath: number[],
 ): [ContentNode | null, number[]] {
-  let newChoiceLevel = (choicePath[identionLevel] || 0) + 1
+  // Read parent's sibling counter (one level up) to seed myChoiceLevel
+  let newChoiceLevel = (choicePath[effectiveLevel - 1] ?? 0) + 1
 
-  // get the choice level for the next choice on the same indentation level and check if there are older siblings, then you are next
-  if (choicePath[identionLevel + 1] !== undefined) {
-    newChoiceLevel = choicePath[identionLevel + 1] + 1
+  // If a sibling at this effective level already exists, increment from it
+  if (choicePath[effectiveLevel] !== undefined) {
+    newChoiceLevel = choicePath[effectiveLevel] + 1
   }
 
-  if (choicePath.length > identionLevel + 1) {
-    // reset choice levels for deeper indentation levels, because they are independent of the choices on the current level
-    choicePath.splice(identionLevel + 1)
+  if (choicePath.length > effectiveLevel) {
+    // Reset sibling counters for this level and deeper — they are independent of the current choice
+    choicePath.splice(effectiveLevel)
   }
 
   const choiceNode = {
     type: "choice",
     identionLevel,
-    choicePath: [...choicePath], // inherit choice path from parent levels
-    myChoiceLevel: newChoiceLevel, // track the choice level for this specific choice node
+    choicePath: [...choicePath], // ancestor sibling counters (depth = choicePath.length)
+    myChoiceLevel: newChoiceLevel,
     text: trimmedLine.substring(3).split(">>")[0].split("//")[0].trim(),
   } as ActionNode
 
-  if (choicePath[identionLevel + 1] === undefined) {
-    choicePath.push(newChoiceLevel)
-  } else {
-    choicePath[identionLevel + 1] = newChoiceLevel
-  }
+  // Store sibling counter at effectiveLevel (direct assignment avoids sparse-array push bugs)
+  choicePath[effectiveLevel] = newChoiceLevel
 
   return [choiceNode, choicePath]
 }
@@ -419,7 +418,8 @@ export async function parseStory(filePath: string): Promise<Story> {
   } as Block
 
   const lines = fileContent.split("\n")
-  let choicePath = [0]
+  let choicePath: number[] = []
+  let baseChoiceIndent = -1
   let prevIndentionLevel = 0
 
   for (const [index, line] of lines.entries()) {
@@ -434,7 +434,8 @@ export async function parseStory(filePath: string): Promise<Story> {
         visited: false,
         contentNodes: [] as ContentNode[],
       } as Block
-      choicePath = [0]
+      choicePath = []
+      baseChoiceIndent = -1
       continue
     }
 
@@ -464,7 +465,8 @@ export async function parseStory(filePath: string): Promise<Story> {
     if (indentionLevel < prevIndentionLevel) {
       // if we go back to a higher level, reset choice level to 0, because choices on higher levels are independent of the previous choices on lower levels
       if (!trimmedLine.startsWith("-> ")) {
-        choicePath = [0] // reset choice level when going back to a higher level
+        choicePath = [] // reset choice level when going back to a higher level
+        baseChoiceIndent = -1
       }
     }
     prevIndentionLevel = indentionLevel
@@ -493,9 +495,12 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     if (!contentNode) {
       if (trimmedLine.startsWith("-> ")) {
+        if (baseChoiceIndent === -1) baseChoiceIndent = indentionLevel
+        const effectiveLevel = indentionLevel - baseChoiceIndent
         ;[contentNode, choicePath] = parseChoiceNode(
           trimmedLine,
           indentionLevel,
+          effectiveLevel,
           JSON.parse(JSON.stringify(choicePath)),
         )
       } else if (trimmedLine.match(/^([^:]+):\s*(.*)$/)) {

@@ -39,8 +39,8 @@ export function filterVisibleNodes(
     ) {
       if (
         node.type === "choice" &&
-        choices.length > node.identionLevel + 1 &&
-        choices[node.identionLevel + 1] !== node.myChoiceLevel!
+        choices.length > node.choicePath.length &&
+        choices[node.choicePath.length] !== node.myChoiceLevel!
       ) {
         continue
       }

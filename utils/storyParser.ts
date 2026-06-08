@@ -165,13 +165,13 @@ function parseBlockMetadata(line: string, currentBlock: Block): boolean {
 function parseCommandNode(
   trimmedLine: string,
   identionLevel: number,
-  choiceLevel: number[],
+  choicePath: number[],
 ): CommandNode | null {
   if (trimmedLine.startsWith("<<set ")) {
     return {
       type: "set",
       identionLevel,
-      choiceLevel,
+      choicePath,
       command: trimmedLine.substring(5).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -180,7 +180,7 @@ function parseCommandNode(
     return {
       type: "mood",
       identionLevel,
-      choiceLevel,
+      choicePath,
       command: trimmedLine.substring(7).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -189,7 +189,7 @@ function parseCommandNode(
     return {
       type: "scene",
       identionLevel,
-      choiceLevel,
+      choicePath,
       command: trimmedLine.substring(8).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -198,7 +198,7 @@ function parseCommandNode(
     return {
       type: "scienceFact",
       identionLevel,
-      choiceLevel,
+      choicePath,
       command: trimmedLine.substring(20).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -209,7 +209,7 @@ function parseCommandNode(
 function parseActionNode(
   trimmedLine: string,
   identionLevel: number,
-  choiceLevel: number[],
+  choicePath: number[],
   currentBlockTitle: string,
   currentLineIndex: number,
 ): ActionNode | null {
@@ -217,7 +217,7 @@ function parseActionNode(
     return {
       type: "jump",
       identionLevel,
-      choiceLevel,
+      choicePath,
       jumpTarget: trimmedLine.substring(7).split(">>")[0].trim(),
     } as ActionNode
   }
@@ -226,7 +226,7 @@ function parseActionNode(
     return {
       type: "detour",
       identionLevel,
-      choiceLevel,
+      choicePath,
       jumpTarget: trimmedLine.substring(9).split(">>")[0].trim(),
       returnTargetLine: {
         title: currentBlockTitle,
@@ -241,7 +241,7 @@ function parseActionNode(
 function parseConditionNode(
   trimmedLine: string,
   identionLevel: number,
-  choiceLevel: number[],
+  choicePath: number[],
   lines: string[],
   currentIndex: number,
   filePath: string,
@@ -256,7 +256,7 @@ function parseConditionNode(
     return {
       type: "if",
       identionLevel,
-      choiceLevel,
+      choicePath,
       condition: trimmedLine.substring(5).split(">>")[0].trim(),
       skipLines,
     } as ConditionNode
@@ -272,7 +272,7 @@ function parseConditionNode(
     return {
       type: "elseif",
       identionLevel,
-      choiceLevel,
+      choicePath,
       condition: trimmedLine.substring(9).split(">>")[0].trim(),
       skipLines,
     } as ConditionNode
@@ -288,7 +288,7 @@ function parseConditionNode(
     return {
       type: "else",
       identionLevel,
-      choiceLevel,
+      choicePath,
       skipLines,
     } as ConditionNode
   }
@@ -297,7 +297,7 @@ function parseConditionNode(
     return {
       type: "endif",
       identionLevel,
-      choiceLevel,
+      choicePath,
       skipLines: 1,
     } as ConditionNode
   }
@@ -312,7 +312,7 @@ function parseConditionNode(
     return {
       type: "once",
       identionLevel,
-      choiceLevel,
+      choicePath,
       skipLines,
     } as ConditionNode
   }
@@ -322,7 +322,7 @@ function parseConditionNode(
       type: "endonce",
       skipLines: 1,
       identionLevel,
-      choiceLevel,
+      choicePath,
     } as ConditionNode
   }
 
@@ -332,45 +332,46 @@ function parseConditionNode(
 function parseChoiceNode(
   trimmedLine: string,
   identionLevel: number,
-  choiceLevel: number[],
+  choicePath: number[],
 ): [ContentNode | null, number[]] {
-  let newChoiceLevel = (choiceLevel[identionLevel] || 0) + 1
+  let newChoiceLevel = (choicePath[identionLevel] || 0) + 1
 
   // get the choice level for the next choice on the same indentation level and check if there are older siblings, then you are next
-  if (choiceLevel[identionLevel + 1] !== undefined) {
-    newChoiceLevel = choiceLevel[identionLevel + 1] + 1
+  if (choicePath[identionLevel + 1] !== undefined) {
+    newChoiceLevel = choicePath[identionLevel + 1] + 1
+  }
+
+  if (choicePath.length > identionLevel + 1) {
+    // reset choice levels for deeper indentation levels, because they are independent of the choices on the current level
+    choicePath.splice(identionLevel + 1)
   }
 
   const choiceNode = {
     type: "choice",
     identionLevel,
-    choiceLevel,
+    choicePath: [...choicePath], // inherit choice path from parent levels
     myChoiceLevel: newChoiceLevel, // track the choice level for this specific choice node
     text: trimmedLine.substring(3).split(">>")[0].split("//")[0].trim(),
   } as ActionNode
 
-  if (choiceLevel[identionLevel + 1] === undefined) {
-    choiceLevel.push(newChoiceLevel)
+  if (choicePath[identionLevel + 1] === undefined) {
+    choicePath.push(newChoiceLevel)
   } else {
-    if (choiceLevel.length > identionLevel + 1) {
-      // reset choice levels for deeper indentation levels, because they are independent of the choices on the current level
-      choiceLevel.splice(identionLevel + 1)
-    }
-    choiceLevel[identionLevel + 1] = newChoiceLevel
+    choicePath[identionLevel + 1] = newChoiceLevel
   }
 
-  return [choiceNode, choiceLevel]
+  return [choiceNode, choicePath]
 }
 
 function parseChatNode(
   trimmedLine: string,
   identionLevel: number,
-  choiceLevel: number[],
+  choicePath: number[],
 ): TextNode | null {
   return {
     type: "chat",
     identionLevel,
-    choiceLevel,
+    choicePath,
     speaker: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
     text: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
   } as TextNode
@@ -379,12 +380,12 @@ function parseChatNode(
 function parseTextNode(
   trimmedLine: string,
   identionLevel: number,
-  choiceLevel: number[],
+  choicePath: number[],
 ): TextNode {
   return {
     type: "text",
     identionLevel,
-    choiceLevel,
+    choicePath,
     text: trimmedLine.split("//")[0].trim(),
   } as TextNode
 }
@@ -418,7 +419,7 @@ export async function parseStory(filePath: string): Promise<Story> {
   } as Block
 
   const lines = fileContent.split("\n")
-  let choiceLevel = [0]
+  let choicePath = [0]
   let prevIndentionLevel = 0
 
   for (const [index, line] of lines.entries()) {
@@ -433,7 +434,7 @@ export async function parseStory(filePath: string): Promise<Story> {
         visited: false,
         contentNodes: [] as ContentNode[],
       } as Block
-      choiceLevel = [0]
+      choicePath = [0]
       continue
     }
 
@@ -463,7 +464,7 @@ export async function parseStory(filePath: string): Promise<Story> {
     if (indentionLevel < prevIndentionLevel) {
       // if we go back to a higher level, reset choice level to 0, because choices on higher levels are independent of the previous choices on lower levels
       if (!trimmedLine.startsWith("-> ")) {
-        choiceLevel = [0] // reset choice level when going back to a higher level
+        choicePath = [0] // reset choice level when going back to a higher level
       }
     }
     prevIndentionLevel = indentionLevel
@@ -472,19 +473,18 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     // Try parsing different node types in order
     if (trimmedLine.startsWith("<<")) {
-      contentNode =
-        parseCommandNode(trimmedLine, indentionLevel, choiceLevel) ||
+      contentNode = parseCommandNode(trimmedLine, indentionLevel, choicePath) ||
         parseActionNode(
           trimmedLine,
           indentionLevel,
-          choiceLevel,
+          choicePath,
           currentBlock.title,
           index,
         ) ||
         parseConditionNode(
           trimmedLine,
           indentionLevel,
-          choiceLevel,
+          choicePath,
           lines,
           index,
           filePath,
@@ -493,19 +493,19 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     if (!contentNode) {
       if (trimmedLine.startsWith("-> ")) {
-        ;[contentNode, choiceLevel] = parseChoiceNode(
+        ;[contentNode, choicePath] = parseChoiceNode(
           trimmedLine,
           indentionLevel,
-          JSON.parse(JSON.stringify(choiceLevel)),
+          JSON.parse(JSON.stringify(choicePath)),
         )
       } else if (trimmedLine.match(/^([^:]+):\s*(.*)$/)) {
-        contentNode = parseChatNode(trimmedLine, indentionLevel, choiceLevel)
+        contentNode = parseChatNode(trimmedLine, indentionLevel, choicePath)
       }
     }
 
     // Default to text node if nothing matched
     if (!contentNode) {
-      contentNode = parseTextNode(trimmedLine, indentionLevel, choiceLevel)
+      contentNode = parseTextNode(trimmedLine, indentionLevel, choicePath)
     }
 
     currentBlock.contentNodes.push(contentNode)

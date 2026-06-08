@@ -28,40 +28,22 @@ export interface RenderConfig {
  */
 export function filterVisibleNodes(
   contentNodes: ContentNode[],
-  indentionLevel: number,
   choices: number[],
 ): ContentNode[] {
   const visible: ContentNode[] = []
   for (let i = 0; i < contentNodes.length; i++) {
     const node = contentNodes[i]
 
-    // Skip nodes at deeper indentation levels
-    if (node.identionLevel > indentionLevel) {
-      continue
-    }
-
-    console.log(choices)
-    console.log(indentionLevel)
-    console.log(node)
-
-    // If this choice hasn't been selected, only show available choices
     if (
-      node.choiceLevel.every((level) => {
-        console.log(choices.includes(level))
-        return choices.includes(level)
-      })
+      node.choicePath.every((myChoices) => choices.includes(myChoices))
     ) {
-      visible.push(node)
-
-      if (node.type === "choice" && !choices.includes(node.myChoiceLevel!)) {
-        console.log("pushing choice node", node)
-        visible.push(node)
+      if (
+        node.type === "choice" &&
+        choices.length > node.identionLevel + 1 &&
+        choices[node.identionLevel + 1] !== node.myChoiceLevel!
+      ) {
+        continue
       }
-      continue
-    }
-
-    // Node's choice is selected, include it
-    if (node.identionLevel <= indentionLevel) {
       visible.push(node)
     }
   }

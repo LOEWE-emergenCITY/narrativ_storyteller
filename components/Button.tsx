@@ -22,7 +22,7 @@ export function Button(props: ButtonProps) {
         class={clsx(
           "px-2 py-4 text-start flex items-center",
           "border-[#b3c6c6] border-2 rounded-sm bg-white w-full shadow-sm",
-          !props.disabled && "hover:bg-gray-200 transition-colors",
+          props.disabled ? "opacity-60" : "hover:bg-gray-200 transition-colors",
         )}
       >
         <div

@@ -431,7 +431,12 @@ Angela seufzt. "Nein." Sie <i>muss</i> <b>nicht</b>. Aber wenn Kathrin sie nicht
 //<<Mood angela_annoyed>>
 "Willst du wissen, was in den Nachrichten steht?", fragt Kathrin. Es klingt nach einem Ablenkungsmanöver.
 -> Angela entscheidet sich, das Thema MEIS vorerst ruhen zu lassen. Es gibt andere in ihrem Team, die sich damit befassen können. "Sag schon. Was Wichtiges?"
-    <<jump UeberblickNachrichten>>
+    //<<jump UeberblickNachrichten>>
+    -> Angela sieht von ihrem Smartphone auf. "Hat sich da was Neues ergeben oder sagst du das nur, um aus mir rauszukriegen, was mit mir los ist?"
+        <<jump Backdoor>>
+    -> "Gibt es denn da was Neues?", fragt Angela, ohne aufzusehen.
+        Tim: Wir brauchen einfach mehr Geld für Security.
+        <<jump Entgruenung>>
 -> Angela hat wenig Lust, sich ausgerechnet jetzt mit Kathrins Themen zu befassen. Ihr Kopf ist ohnehin mit dieser Geschichte um MEIS beschäftigt. "Nur, wenn es wichtig ist."
     "Wichtig für dich oder für mich?"
     Angela antwortet nicht. Ihr Kollege Tim hat gerade eine Nachricht geschickt.

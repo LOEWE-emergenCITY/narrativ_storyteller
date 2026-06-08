@@ -22,7 +22,7 @@ export type ContentNode = TextNode | ActionNode | CommandNode | ConditionNode
 export interface ActionNode {
   type: "choice" | "jump" | "detour"
   identionLevel: number
-  choiceLevel: [number]
+  choicePath: [number]
   myChoiceLevel?: number // only for "choice" to track which choice was selected
   jumpTarget?: string // for "jump" and "detour"
   //   choice?: { text: string; nextLine: number; siblingLine: number } // for "choice"
@@ -33,7 +33,7 @@ export interface ActionNode {
 export interface CommandNode {
   type: "set" | "mood" | "scienceFact" | "scene"
   identionLevel: number
-  choiceLevel: [number]
+  choicePath: [number]
   command: string // e.g., "set mood=tense" or "mood KathrinBrowsesOnPhone"
 }
 
@@ -41,7 +41,7 @@ export interface CommandNode {
 export interface ConditionNode {
   type: "if" | "else" | "elseif" | "endif" | "once" | "endonce"
   identionLevel: number
-  choiceLevel: [number]
+  choicePath: [number]
   condition?: string // e.g., "if mood == tense" || if condition == null => jump to next line
   skipLines: number
 }
@@ -49,7 +49,7 @@ export interface ConditionNode {
 export interface TextNode {
   type: "text" | "chat"
   identionLevel: number
-  choiceLevel: [number]
+  choicePath: [number]
   speaker?: string // e.g., "Kathrin"
   text: string // e.g., "What a boring day..."
 }

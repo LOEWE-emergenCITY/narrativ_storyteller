@@ -197,7 +197,7 @@ function renderNode(
 
     case "choice": {
       const choiceNode = node as ActionNode
-      console.log(config.choices.includes(choiceNode.myChoiceLevel!))
+
       result.push(
         <Button
           choiceId={String(choiceNode.myChoiceLevel)}
@@ -213,8 +213,9 @@ function renderNode(
             )
           }}
           html={choiceNode.text || ""}
-          disabled={node.identionLevel === config.indentionLevel &&
-            config.choices.includes(choiceNode.myChoiceLevel!)}
+          disabled={config.choices.length > choiceNode.identionLevel + 1 &&
+            config.choices[choiceNode.identionLevel + 1] ===
+              choiceNode.myChoiceLevel!}
         />,
       )
       break
@@ -330,7 +331,6 @@ function StoryViewer({ initialStory }: StoryViewerProps) {
 
   const visibleNodes = filterVisibleNodes(
     renderConfig.contentNodes,
-    renderConfig.indentionLevel,
     renderConfig.choices,
   )
 

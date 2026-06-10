@@ -123,7 +123,12 @@ function renderNode(
 
   switch (getNodeType(node)) {
     case "text":
-      result.push(<Text html={(node as TextNode).text} />)
+      result.push(
+        <Text
+          html={(node as TextNode).text}
+          variables={config.context.variables}
+        />,
+      )
       break
 
     case "chat": {

@@ -1,21 +1,26 @@
 import type { ComponentChildren } from "preact"
 import clsx from "clsx"
-import { useHTMLRenderer } from "@/utils/customHooks.ts"
+import { interpolateVariables, useHTMLRenderer } from "@/utils/customHooks.ts"
 
 export interface TextProps {
   children?: ComponentChildren
   className?: string
   html?: string
+  variables?: Map<string, string | number | boolean>
 }
 
 export function Text(props: TextProps) {
   const sanitized = useHTMLRenderer(props.html ? props.html : "")
 
+  const preparedText = props.html
+    ? interpolateVariables(sanitized, props.variables)
+    : interpolateVariables(String(props.children), props.variables)
+
   if (props.html) {
     return (
       <div
         // deno-lint-ignore react-no-danger
-        dangerouslySetInnerHTML={{ __html: sanitized }}
+        dangerouslySetInnerHTML={{ __html: preparedText }}
         class={clsx("text-lg text-left py-2 px-4", props.className)}
       />
     )
@@ -23,7 +28,7 @@ export function Text(props: TextProps) {
 
   return (
     <p class={clsx("text-lg text-left py-2 px-4", props.className)}>
-      props.children
+      {preparedText}
     </p>
   )
 }

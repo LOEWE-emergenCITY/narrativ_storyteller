@@ -1,22 +1,45 @@
-import { useState } from "preact/hooks"
+import { useEffect, useState } from "preact/hooks"
 import { Story } from "@/utils/storyTypes.tsx"
 import StoryViewer from "@/islands/StoryViewer.tsx"
+import {
+  isLoggedIn,
+  loadStory,
+  persistStore,
+  resetProgress,
+} from "@/utils/storyStore.ts"
 
 function Login({ initialStory }: { initialStory: Story }) {
   const [password, setPassword] = useState("")
-  const [successfullLogin, setSuccessfullLogin] = useState(false)
 
-  const handleSubmit = (e) => {
-    e.preventDefault() // Prevent default form submission
+  // FIX 1 (blank screen for returning users): always call loadStory on mount
+  // so storyBlocks is populated and saved variables are merged from the yarn
+  // file. isLoggedIn may already be true from localStorage, which would render
+  // StoryViewer immediately — loadStory ensures it has a consistent store state.
+  useEffect(() => {
+    loadStory(initialStory)
+  }, [])
 
-    if (password === "razupaltuf") {
-      setSuccessfullLogin(true)
+  const handleSubmit = (e: Event) => {
+    e.preventDefault()
+
+    if (
+      (e.target as HTMLFormElement).querySelector("input")?.value ===
+        "razupaltuf"
+    ) {
+      loadStory(initialStory)
+      isLoggedIn.value = true
+      persistStore()
     } else {
-      setPassword("") // Clear input on wrong password
+      setPassword("")
     }
   }
 
-  if (!successfullLogin) {
+  const handleReset = () => {
+    resetProgress()
+    loadStory(initialStory)
+  }
+
+  if (!isLoggedIn.value) {
     return (
       <div class="w-screen h-screen flex items-center justify-center">
         <form
@@ -43,7 +66,7 @@ function Login({ initialStory }: { initialStory: Story }) {
 
   return (
     <>
-      <StoryViewer initialStory={initialStory} />
+      <StoryViewer initialStory={initialStory} onReset={handleReset} />
     </>
   )
 }

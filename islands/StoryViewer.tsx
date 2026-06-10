@@ -1,10 +1,8 @@
 import { useEffect } from "preact/hooks"
 import {
   ActionNode,
-  Block,
   CommandNode,
   ContentNode,
-  Story,
   TextNode,
 } from "@/utils/storyTypes.tsx"
 import {
@@ -32,6 +30,7 @@ import {
   currentIndentionLevel,
   navigateToBlock,
   selectChoice,
+  storyBlocks,
   storyVariables,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
@@ -39,9 +38,9 @@ import {
 // ===== SET COMMAND HELPERS =====
 
 /**
- * Compute variable updates from a list of <<set>> command strings without
- * writing to any signal. Called outside of the render pass to avoid
- * triggering re-renders mid-render.
+ * Compute variable updates from <<set>> command strings without touching any
+ * signal. Runs in a useEffect after render to avoid mutating signals mid-render
+ * (which would cause an infinite render loop on blocks with <<set>> nodes).
  */
 function computeSetUpdates(
   commands: string[],
@@ -78,8 +77,8 @@ function computeSetUpdates(
 // ===== CHOICE HANDLER =====
 
 /**
- * Handle a choice node click via a single batched store action.
- * Resolves whether the choice leads to a jump or simply opens nested content.
+ * Handle a choice click as a single batched store action.
+ * Checks if the next node is a jump to resolve the navigation target.
  */
 function handleChoiceClick(
   contentNodes: ContentNode[],
@@ -106,7 +105,6 @@ function handleChoiceClick(
     ? (nextNode as ActionNode).jumpTarget
     : undefined
 
-  // Single batched action — no separate addChoice + increaseIndentionLevel calls
   selectChoice(choiceNode.myChoiceLevel, jumpTarget)
 }
 
@@ -121,9 +119,7 @@ function renderNode(
 ): JSX.Element[] {
   const result: JSX.Element[] = []
 
-  if (!isNodeVisible(node, visibleNodes)) {
-    return result
-  }
+  if (!isNodeVisible(node, visibleNodes)) return result
 
   switch (getNodeType(node)) {
     case "text":
@@ -148,9 +144,7 @@ function renderNode(
       break
 
     case "set":
-      // <<set>> nodes are intentionally NOT executed during render.
-      // They are collected and applied in a useEffect after the render pass
-      // to avoid mutating signals mid-render (which would cause render loops).
+      // Handled in useEffect after render — intentionally skipped here.
       break
 
     case "detour":
@@ -216,64 +210,43 @@ function renderNode(
 
 // ===== COMPONENT =====
 
-interface StoryViewerProps {
-  initialStory: Story
-  onReset: () => void
-}
+function StoryViewer() {
+  const blockTitle = currentBlockTitle.value
+  const indentionLevel = currentIndentionLevel.value
+  const currentChoices = choices.value
 
-function StoryViewer({ initialStory, onReset }: StoryViewerProps) {
-  // Read navigation state from signals — subscribes this component to changes
-  const blockTitle: string = currentBlockTitle.value
-  const indentionLevel: number = currentIndentionLevel.value
-  const currentChoices: number[] = choices.value
+  // storyBlocks is populated by loadStory() before isLoggedIn is set to true,
+  // so it is always available on the first render of this component.
+  const block = storyBlocks.value.get(blockTitle)
 
-  // FIX 1 (blank screen): use initialStory.blocks directly — always available
-  // on first render without waiting for a useEffect to populate storyBlocks.
-  const block: Block | undefined = initialStory.blocks.get(blockTitle)
-
-  // Build render context
   const context: RenderContext = {
     visitedBlocks: visitedBlocks.value,
     variables: storyVariables.value,
   }
 
   const contentNodes = block?.contentNodes || []
-
   const visibleNodes = filterVisibleNodes(contentNodes, currentChoices, context)
 
-  // FIX 3 (render-loop): execute <<set>> commands AFTER render via useEffect,
-  // not during the render pass. Signal writes during render cause immediate
-  // re-renders which produce an infinite render loop for any block with <<set>>.
+  // Execute <<set>> commands after render to avoid signal writes mid-render.
   useEffect(() => {
     if (!block) return
-
     const setCommands = visibleNodes
       .filter((n) => n.type === "set")
       .map((n) => (n as CommandNode).command)
-
     if (setCommands.length === 0) return
+    applyVariables(computeSetUpdates(setCommands, storyVariables.value))
+  }, [blockTitle])
 
-    const updates = computeSetUpdates(setCommands, storyVariables.value)
-    applyVariables(updates)
-  }, [blockTitle]) // re-run only when the block changes, not on every render
-
-  // Create render handlers (still needed for RenderConfig shape)
   const handlers: RenderHandlers = {
     onChoiceClick: (index: number) => handleChoiceClick(contentNodes, index),
     onJumpClick: navigateToBlock,
-    onSetNode: (_command: string) => {
-      // intentionally empty — set commands are handled in the useEffect above
-    },
-    setCurrentIndentionLevel: (
-      updater: number | ((prev: number) => number),
-    ) => {
+    onSetNode: (_command: string) => {},
+    setCurrentIndentionLevel: (updater) => {
       currentIndentionLevel.value = typeof updater === "function"
         ? updater(currentIndentionLevel.value)
         : updater
     },
-    setChoices: (
-      updater: number[] | ((prev: number[]) => number[]),
-    ) => {
+    setChoices: (updater) => {
       choices.value = typeof updater === "function"
         ? updater(choices.value)
         : updater
@@ -298,13 +271,6 @@ function StoryViewer({ initialStory, onReset }: StoryViewerProps) {
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
       <div class="max-w-3xl mx-auto flex flex-col">
         {renderedNodes}
-        <button
-          type="button"
-          onClick={onReset}
-          class="mt-12 self-end text-xs text-gray-400 hover:text-red-400 transition-colors"
-        >
-          Reset progress
-        </button>
       </div>
     </div>
   )

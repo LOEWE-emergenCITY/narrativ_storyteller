@@ -14,9 +14,19 @@ export const currentIndentionLevel = signal<number>(0)
 export const choices = signal<number[]>([])
 export const isLoggedIn = signal<boolean>(false)
 
+/**
+ * Ordered list of completed blocks. Each entry captures the block title and
+ * the final choices array at the moment the reader navigated away, so the
+ * block can be re-rendered read-only with the exact state it was left in.
+ */
+export const blockHistory = signal<Array<{ title: string; choices: number[] }>>(
+  [],
+)
+
 export const currentBlock = computed<Block | undefined>(() =>
   storyBlocks.value.get(currentBlockTitle.value)
 )
+
 
 // ===== ACTIONS =====
 
@@ -46,14 +56,21 @@ export function loadStory(story: Story): void {
     currentBlockTitle.value = "Start"
     currentIndentionLevel.value = 0
     choices.value = []
+    blockHistory.value = []
   })
 }
 
 /**
  * Advance to a new block, mark it visited, and reset per-block navigation.
+ * Snapshots the leaving block into blockHistory so it can be rendered
+ * read-only as part of the accumulated story view.
  */
 export function navigateToBlock(title: string): void {
   batch(() => {
+    blockHistory.value = [
+      ...blockHistory.value,
+      { title: currentBlockTitle.value, choices: choices.value },
+    ]
     visitedBlocks.value = new Set([...visitedBlocks.value, title])
     currentBlockTitle.value = title
     currentIndentionLevel.value = 0
@@ -65,6 +82,8 @@ export function navigateToBlock(title: string): void {
  * Record a choice and advance navigation in one batched update.
  * Jumps to jumpTarget block when the choice is immediately followed by a jump,
  * otherwise opens the nested indention level.
+ * When navigating away, snapshots the leaving block (with the final choices
+ * that include the just-made selection) into blockHistory.
  */
 export function selectChoice(
   choiceLevel: number,
@@ -72,8 +91,13 @@ export function selectChoice(
 ): void {
   batch(() => {
     if (jumpTarget) {
+      const finalChoices = [...choices.value, choiceLevel]
+      blockHistory.value = [
+        ...blockHistory.value,
+        { title: currentBlockTitle.value, choices: finalChoices },
+      ]
       visitedBlocks.value = new Set([...visitedBlocks.value, jumpTarget])
-      choices.value = [...choices.value, choiceLevel]
+      choices.value = []
       currentIndentionLevel.value = 0
       currentBlockTitle.value = jumpTarget
     } else {
@@ -105,6 +129,7 @@ export function resetGame(): void {
     storyBlocks.value = new Map()
     storyVariables.value = new Map()
     visitedBlocks.value = new Set()
+    blockHistory.value = []
     currentBlockTitle.value = "Start"
     currentIndentionLevel.value = 0
     choices.value = []

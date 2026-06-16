@@ -22,6 +22,9 @@ export interface RenderConfig {
   choices: number[]
   handlers: RenderHandlers
   context: RenderContext
+  /** When true, the block is read-only history — choices render as transcripts
+   *  and jump buttons are suppressed. */
+  isHistorical?: boolean
 }
 
 /**

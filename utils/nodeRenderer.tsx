@@ -16,6 +16,7 @@ import {
 
 import { Text } from "@/components/Text.tsx"
 import { Button } from "@/components/Button.tsx"
+import { ChoiceTranscript } from "@/components/ChoiceTranscript.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { clsx } from "clsx"
@@ -69,6 +70,19 @@ export function renderNode(
 
     case "choice": {
       const choiceNode = node as ActionNode
+
+      // Historical block: render the chosen option as a styled read-only
+      // transcript instead of an interactive button.
+      if (config.isHistorical) {
+        result.push(
+          <ChoiceTranscript
+            html={choiceNode.text || ""}
+            variables={config.context.variables}
+          />,
+        )
+        break
+      }
+
       result.push(
         <Button
           choiceId={String(choiceNode.myChoiceLevel)}
@@ -83,6 +97,9 @@ export function renderNode(
     }
 
     case "jump": {
+      // Historical block: the jump was already taken — suppress the button.
+      if (config.isHistorical) break
+
       const jumpNode = node as ActionNode
       if (!jumpNode.jumpTarget) {
         console.error("Jump node missing jumpTarget", jumpNode)

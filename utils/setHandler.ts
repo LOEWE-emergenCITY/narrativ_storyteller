@@ -23,10 +23,26 @@ export function computeSetUpdates(
 
     const parts = setCommand.split(" ")
 
+    if (parts[0].includes("random")) {
+      const randomMatch = setCommand.match(/random\((\d+),\s*(\d+)\)/)
+      if (randomMatch) {
+        const min = parseInt(randomMatch[1], 10)
+        const max = parseInt(randomMatch[2], 10)
+        if (!isNaN(min) && !isNaN(max) && max > min) {
+          const randomValue = Math.floor(Math.random() * (max - min + 1)) + min
+          updated.set(variableName, randomValue)
+        }
+      }
+      continue
+    }
+
     if (parts.length === 1) {
       const value = parseSetValue(parts[0], updated, reporter)
       if (value !== null) updated.set(variableName, value)
-    } else if (parts.length === 3) {
+      continue
+    }
+
+    if (parts.length === 3) {
       const [leftRaw, operator, rightRaw] = parts
       const left = parseSetValue(leftRaw, updated, reporter) as number
       const right = parseSetValue(rightRaw, updated, reporter) as number
@@ -34,6 +50,7 @@ export function computeSetUpdates(
         if (operator === "+") updated.set(variableName, left + right)
         else if (operator === "-") updated.set(variableName, left - right)
       }
+      continue
     }
   }
 

@@ -65,11 +65,20 @@ export function computeSetUpdates(
  * Each <<set>> node advances the running state for all nodes that follow it,
  * so text nodes see exactly the variables that are in effect at their position
  * in the block — not the pre-block baseline and not the post-block final state.
+ *
+ * Also returns `finalVariables` — the variable state after ALL set nodes in the
+ * visible list have been applied. This is the same computation that happens
+ * during the walk, returned as a free byproduct, so callers can apply the final
+ * state to the store without calling computeSetUpdates a second time (which
+ * would re-roll random()).
  */
 export function buildNodeVariables(
   visibleNodes: ContentNode[],
   baseVariables: Map<string, string | number | boolean>,
-): WeakMap<ContentNode, Map<string, string | number | boolean>> {
+): {
+  nodeVars: WeakMap<ContentNode, Map<string, string | number | boolean>>
+  finalVariables: Map<string, string | number | boolean>
+} {
   const nodeVars = new WeakMap<
     ContentNode,
     Map<string, string | number | boolean>
@@ -90,5 +99,5 @@ export function buildNodeVariables(
     }
   }
 
-  return nodeVars
+  return { nodeVars, finalVariables: current }
 }

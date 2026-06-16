@@ -1,5 +1,5 @@
 import { useEffect } from "preact/hooks"
-import { CommandNode } from "@/utils/storyTypes.tsx"
+import { ContentNode } from "@/utils/storyTypes.tsx"
 import {
   filterVisibleNodes,
   RenderConfig,
@@ -9,6 +9,7 @@ import {
 } from "@/utils/nodeRenderer.tsx"
 import {
   applyVariables,
+  blockEntryVariables,
   blockHistory,
   choices,
   currentBlockTitle,
@@ -18,8 +19,39 @@ import {
   storyVariables,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
-import { buildNodeVariables, computeSetUpdates } from "@/utils/setHandler.ts"
+import { buildNodeVariables } from "@/utils/setHandler.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
+
+// ── Module-level caches ───────────────────────────────────────────────────────
+
+/**
+ * Active-block cache: stores the node-variable snapshots and the post-all-sets
+ * final variable state computed on the first render for each block title.
+ * Keyed by block title so it resets automatically when the block changes, but
+ * survives re-renders within the same block.
+ * This prevents random() from being re-rolled on every re-render.
+ */
+const activeNodeVarsCache: {
+  key: string
+  vars: WeakMap<ContentNode, Map<string, string | number | boolean>>
+  finalVars: Map<string, string | number | boolean>
+} = { key: "", vars: new WeakMap(), finalVars: new Map() }
+
+/**
+ * Historical-block cache: keyed on the snapshot object reference (stable,
+ * created once in navigateToBlock/selectChoice). Entries are GC-eligible once
+ * the snapshot is removed from blockHistory (e.g. on resetGame).
+ */
+type HistorySnapshot = {
+  title: string
+  choices: number[]
+  variables: Map<string, string | number | boolean>
+  visitedBlocks: Set<string>
+}
+const historicNodeVarsCache = new WeakMap<
+  HistorySnapshot,
+  WeakMap<ContentNode, Map<string, string | number | boolean>>
+>()
 
 function StoryViewer() {
   const blockTitle = currentBlockTitle.value
@@ -38,16 +70,34 @@ function StoryViewer() {
 
   const contentNodes = block?.contentNodes || []
   const visibleNodes = filterVisibleNodes(contentNodes, currentChoices, context)
-  const nodeVariables = buildNodeVariables(visibleNodes, storyVariables.value)
 
-  // Execute <<set>> commands after render to avoid signal writes mid-render.
+  // Capture the previous active block's computed vars BEFORE potentially
+  // overwriting the cache. These are needed when that block first enters
+  // history later in this same render (history.map runs after this point).
+  const prevActiveKey = activeNodeVarsCache.key
+  const prevActiveVars = activeNodeVarsCache.vars
+
+  // Compute per-node variable snapshots exactly once per block entry.
+  // blockEntryVariables holds the pre-block state (set in the same batch as
+  // currentBlockTitle), so random() and arithmetic are always evaluated from
+  // the correct baseline and never re-rolled on subsequent re-renders.
+  if (activeNodeVarsCache.key !== blockTitle) {
+    const { nodeVars, finalVariables } = buildNodeVariables(
+      visibleNodes,
+      blockEntryVariables.value,
+    )
+    activeNodeVarsCache.key = blockTitle
+    activeNodeVarsCache.vars = nodeVars
+    activeNodeVarsCache.finalVars = finalVariables
+  }
+  const nodeVariables = activeNodeVarsCache.vars
+
+  // Apply <<set>> results to storyVariables after render using the final
+  // variable state already computed by buildNodeVariables — no second call to
+  // computeSetUpdates, so random() is never re-rolled.
   useEffect(() => {
     if (!block) return
-    const setCommands = visibleNodes
-      .filter((n) => n.type === "set")
-      .map((n) => (n as CommandNode).command)
-    if (setCommands.length === 0) return
-    applyVariables(computeSetUpdates(setCommands, storyVariables.value))
+    applyVariables(activeNodeVarsCache.finalVars)
   }, [blockTitle])
 
   // Scroll to the newly appended block each time the active block changes.
@@ -97,10 +147,19 @@ function StoryViewer() {
       snapshot.choices,
       frozenContext,
     )
-    const frozenNodeVariables = buildNodeVariables(
-      frozenVisible,
-      snapshot.variables,
-    )
+
+    // Compute per-node variable snapshots once per snapshot object.
+    // If this block just transitioned from active to historical in this render,
+    // reuse the vars already computed while it was active — avoids re-rolling
+    // random(). For older snapshots already in history, replay from
+    // snapshot.variables (pre-block state, set via blockEntryVariables).
+    let frozenNodeVariables = historicNodeVarsCache.get(snapshot)
+    if (!frozenNodeVariables) {
+      frozenNodeVariables = prevActiveKey === snapshot.title
+        ? prevActiveVars
+        : buildNodeVariables(frozenVisible, snapshot.variables).nodeVars
+      historicNodeVarsCache.set(snapshot, frozenNodeVariables)
+    }
 
     const historicConfig: RenderConfig = {
       contentNodes: frozenNodes,

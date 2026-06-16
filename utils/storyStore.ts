@@ -15,6 +15,16 @@ export const choices = signal<number[]>([])
 export const isLoggedIn = signal<boolean>(false)
 
 /**
+ * Variable state at the moment the current block was entered — i.e. before any
+ * <<set>> commands in this block have run. Used as the baseline for
+ * buildNodeVariables so set-command replays always start from the correct
+ * pre-block values (avoids double-applying arithmetic and re-rolling random()).
+ */
+export const blockEntryVariables = signal<Map<string, string | number | boolean>>(
+  new Map(),
+)
+
+/**
  * Ordered list of completed blocks. Each entry captures the block title,
  * the final choices array, and a frozen snapshot of variables and visitedBlocks
  * at the moment the reader navigated away, so the block can be re-rendered
@@ -58,6 +68,7 @@ export function loadStory(story: Story): void {
     storyFile.value = story.file
     storyBlocks.value = blocks
     storyVariables.value = variables
+    blockEntryVariables.value = new Map(variables)
     visitedBlocks.value = new Set(["Start"])
     currentBlockTitle.value = "Start"
     currentIndentionLevel.value = 0
@@ -78,10 +89,12 @@ export function navigateToBlock(title: string): void {
       {
         title: currentBlockTitle.value,
         choices: choices.value,
-        variables: new Map(storyVariables.value),
+        variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
       },
     ]
+    // Post-current-block state becomes the pre-entry state for the new block.
+    blockEntryVariables.value = new Map(storyVariables.value)
     visitedBlocks.value = new Set([...visitedBlocks.value, title])
     currentBlockTitle.value = title
     currentIndentionLevel.value = 0
@@ -108,10 +121,12 @@ export function selectChoice(
         {
           title: currentBlockTitle.value,
           choices: finalChoices,
-          variables: new Map(storyVariables.value),
+          variables: new Map(blockEntryVariables.value),
           visitedBlocks: new Set(visitedBlocks.value),
         },
       ]
+      // Post-current-block state becomes the pre-entry state for the new block.
+      blockEntryVariables.value = new Map(storyVariables.value)
       visitedBlocks.value = new Set([...visitedBlocks.value, jumpTarget])
       choices.value = []
       currentIndentionLevel.value = 0
@@ -144,6 +159,7 @@ export function resetGame(): void {
   batch(() => {
     storyBlocks.value = new Map()
     storyVariables.value = new Map()
+    blockEntryVariables.value = new Map()
     visitedBlocks.value = new Set()
     blockHistory.value = []
     currentBlockTitle.value = "Start"

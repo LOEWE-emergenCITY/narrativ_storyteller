@@ -22,6 +22,13 @@ export interface RenderConfig {
   choices: number[]
   handlers: RenderHandlers
   context: RenderContext
+  /**
+   * Per-node variable snapshots computed by buildNodeVariables(). When present,
+   * each text/choice node reads its own snapshot instead of context.variables,
+   * so multiple <<set>> commands within a block produce the correct intermediate
+   * display values at each position.
+   */
+  nodeVariables?: WeakMap<ContentNode, Map<string, string | number | boolean>>
   /** When true, the block is read-only history — choices render as transcripts
    *  and jump buttons are suppressed. */
   isHistorical?: boolean

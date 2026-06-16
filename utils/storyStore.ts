@@ -15,13 +15,19 @@ export const choices = signal<number[]>([])
 export const isLoggedIn = signal<boolean>(false)
 
 /**
- * Ordered list of completed blocks. Each entry captures the block title and
- * the final choices array at the moment the reader navigated away, so the
- * block can be re-rendered read-only with the exact state it was left in.
+ * Ordered list of completed blocks. Each entry captures the block title,
+ * the final choices array, and a frozen snapshot of variables and visitedBlocks
+ * at the moment the reader navigated away, so the block can be re-rendered
+ * read-only with the exact state it was left in.
  */
-export const blockHistory = signal<Array<{ title: string; choices: number[] }>>(
-  [],
-)
+export const blockHistory = signal<
+  Array<{
+    title: string
+    choices: number[]
+    variables: Map<string, string | number | boolean>
+    visitedBlocks: Set<string>
+  }>
+>([])
 
 export const currentBlock = computed<Block | undefined>(() =>
   storyBlocks.value.get(currentBlockTitle.value)
@@ -69,7 +75,12 @@ export function navigateToBlock(title: string): void {
   batch(() => {
     blockHistory.value = [
       ...blockHistory.value,
-      { title: currentBlockTitle.value, choices: choices.value },
+      {
+        title: currentBlockTitle.value,
+        choices: choices.value,
+        variables: new Map(storyVariables.value),
+        visitedBlocks: new Set(visitedBlocks.value),
+      },
     ]
     visitedBlocks.value = new Set([...visitedBlocks.value, title])
     currentBlockTitle.value = title
@@ -94,7 +105,12 @@ export function selectChoice(
       const finalChoices = [...choices.value, choiceLevel]
       blockHistory.value = [
         ...blockHistory.value,
-        { title: currentBlockTitle.value, choices: finalChoices },
+        {
+          title: currentBlockTitle.value,
+          choices: finalChoices,
+          variables: new Map(storyVariables.value),
+          visitedBlocks: new Set(visitedBlocks.value),
+        },
       ]
       visitedBlocks.value = new Set([...visitedBlocks.value, jumpTarget])
       choices.value = []

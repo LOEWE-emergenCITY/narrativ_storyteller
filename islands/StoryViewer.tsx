@@ -17,7 +17,7 @@ import {
   storyVariables,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
-import { computeSetUpdates } from "@/utils/setHandler.ts"
+import { computeSetUpdates, buildNodeVariables } from "@/utils/setHandler.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 import { renderNode } from "@/utils/nodeRenderer.tsx"
 
@@ -38,6 +38,7 @@ function StoryViewer() {
 
   const contentNodes = block?.contentNodes || []
   const visibleNodes = filterVisibleNodes(contentNodes, currentChoices, context)
+  const nodeVariables = buildNodeVariables(visibleNodes, storyVariables.value)
 
   // Execute <<set>> commands after render to avoid signal writes mid-render.
   useEffect(() => {
@@ -76,6 +77,7 @@ function StoryViewer() {
     choices: currentChoices,
     handlers,
     context,
+    nodeVariables,
   }
 
   // ── Render historical blocks (read-only, frozen choices) ─────────────────
@@ -84,19 +86,26 @@ function StoryViewer() {
     const historicBlock = storyBlocks.value.get(snapshot.title)
     if (!historicBlock) return null
 
+    const frozenContext: RenderContext = {
+      visitedBlocks: snapshot.visitedBlocks,
+      variables: snapshot.variables,
+    }
+
     const frozenNodes = historicBlock.contentNodes
     const frozenVisible = filterVisibleNodes(
       frozenNodes,
       snapshot.choices,
-      context,
+      frozenContext,
     )
+    const frozenNodeVariables = buildNodeVariables(frozenVisible, snapshot.variables)
 
     const historicConfig: RenderConfig = {
       contentNodes: frozenNodes,
       indentionLevel: 0,
       choices: snapshot.choices,
       handlers,
-      context,
+      context: frozenContext,
+      nodeVariables: frozenNodeVariables,
       isHistorical: true,
     }
 

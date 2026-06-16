@@ -2,6 +2,7 @@
 
 import { ErrorReporter } from "@/utils/errorReporter.ts"
 import { parseSetValue } from "@/utils/valueParser.ts"
+import { CommandNode, ContentNode } from "@/utils/storyTypes.tsx"
 
 /**
  * Compute variable updates from <<set>> command strings without touching any
@@ -55,4 +56,39 @@ export function computeSetUpdates(
   }
 
   return updated
+}
+
+/**
+ * Walk visible nodes in order and build a per-node snapshot of the variable
+ * state as it exists at the moment each node is rendered.
+ *
+ * Each <<set>> node advances the running state for all nodes that follow it,
+ * so text nodes see exactly the variables that are in effect at their position
+ * in the block — not the pre-block baseline and not the post-block final state.
+ */
+export function buildNodeVariables(
+  visibleNodes: ContentNode[],
+  baseVariables: Map<string, string | number | boolean>,
+): WeakMap<ContentNode, Map<string, string | number | boolean>> {
+  const nodeVars = new WeakMap<
+    ContentNode,
+    Map<string, string | number | boolean>
+  >()
+  let current = new Map(baseVariables)
+
+  for (const node of visibleNodes) {
+    // Snapshot the running state BEFORE this node so the node sees the result
+    // of all preceding <<set>> commands but not its own (if it is a set node).
+    nodeVars.set(node, new Map(current))
+
+    if (node.type === "set") {
+      const updates = computeSetUpdates(
+        [(node as CommandNode).command],
+        current,
+      )
+      updates.forEach((v, k) => current.set(k, v))
+    }
+  }
+
+  return nodeVars
 }

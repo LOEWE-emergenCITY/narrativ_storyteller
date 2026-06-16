@@ -38,7 +38,7 @@ export function renderNode(
       result.push(
         <Text
           html={(node as TextNode).text}
-          variables={config.context.variables}
+          variables={config.nodeVariables?.get(node) ?? config.context.variables}
         />,
       )
       break
@@ -77,7 +77,7 @@ export function renderNode(
         result.push(
           <ChoiceTranscript
             html={choiceNode.text || ""}
-            variables={config.context.variables}
+            variables={config.nodeVariables?.get(node) ?? config.context.variables}
           />,
         )
         break

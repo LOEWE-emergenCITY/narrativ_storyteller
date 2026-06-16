@@ -5,7 +5,8 @@ import {
   RenderConfig,
   RenderContext,
   RenderHandlers,
-} from "@/utils/nodeRenderers.ts"
+  renderNode,
+} from "@/utils/nodeRenderer.tsx"
 import {
   applyVariables,
   blockHistory,
@@ -17,9 +18,8 @@ import {
   storyVariables,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
-import { computeSetUpdates, buildNodeVariables } from "@/utils/setHandler.ts"
+import { buildNodeVariables, computeSetUpdates } from "@/utils/setHandler.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
-import { renderNode } from "@/utils/nodeRenderer.tsx"
 
 function StoryViewer() {
   const blockTitle = currentBlockTitle.value
@@ -97,7 +97,10 @@ function StoryViewer() {
       snapshot.choices,
       frozenContext,
     )
-    const frozenNodeVariables = buildNodeVariables(frozenVisible, snapshot.variables)
+    const frozenNodeVariables = buildNodeVariables(
+      frozenVisible,
+      snapshot.variables,
+    )
 
     const historicConfig: RenderConfig = {
       contentNodes: frozenNodes,

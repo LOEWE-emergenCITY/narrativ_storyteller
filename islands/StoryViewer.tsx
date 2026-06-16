@@ -1,273 +1,203 @@
-import { Dispatch, StateUpdater, useEffect, useState } from "preact/hooks"
-import { ActionNode, Block, ContentNode, Story } from "@/utils/StoryTypes.tsx"
-import { Text } from "@/components/Text.tsx"
-import { Button } from "@/components/Button.tsx"
-import { MoodImage } from "@/components/MoodImage.tsx"
-import { clsx } from "clsx"
-import { Chat } from "@/components/Chat.tsx"
+import { useEffect } from "preact/hooks"
+import { ContentNode } from "@/utils/storyTypes.tsx"
+import {
+  filterVisibleNodes,
+  RenderConfig,
+  RenderContext,
+  RenderHandlers,
+  renderNode,
+} from "@/utils/nodeRenderer.tsx"
+import {
+  applyVariables,
+  blockEntryVariables,
+  blockHistory,
+  choices,
+  currentBlockTitle,
+  currentIndentionLevel,
+  navigateToBlock,
+  storyBlocks,
+  storyVariables,
+  visitedBlocks,
+} from "@/utils/storyStore.ts"
+import { buildNodeVariables } from "@/utils/setHandler.ts"
+import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 
-function buttonChoiceHandler(
-  choiceNode: ContentNode[],
-  currentIndex: number,
-  setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
-  currentIdentionLevel: number,
-  setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
-  choices: number[],
-  setChoices: Dispatch<StateUpdater<number[]>>,
-) {
-  if (choiceNode[currentIndex].type !== "choice") {
-    console.error(
-      `Expected a choice node, but got a ${choiceNode[currentIndex].type} node`,
-    )
-    return
-  }
+// ── Module-level caches ───────────────────────────────────────────────────────
 
-  setChoices([...choices, choiceNode[currentIndex].choiceLevel])
+/**
+ * Active-block cache: stores the node-variable snapshots and the post-all-sets
+ * final variable state computed on the first render for each block title.
+ * Keyed by block title so it resets automatically when the block changes, but
+ * survives re-renders within the same block.
+ * This prevents random() from being re-rolled on every re-render.
+ */
+const activeNodeVarsCache: {
+  key: string
+  vars: WeakMap<ContentNode, Map<string, string | number | boolean>>
+  finalVars: Map<string, string | number | boolean>
+} = { key: "", vars: new WeakMap(), finalVars: new Map() }
 
-  if (choiceNode[currentIndex + 1].type === "jump") {
-    // handle jump, should set the current block to the jump target
-    setCurrentBlockTitle(
-      (choiceNode[currentIndex + 1] as ActionNode).jumpTarget || "",
-    )
-    return
-  }
-
-  setCurrentIndentionLevel(currentIdentionLevel + 1)
+/**
+ * Historical-block cache: keyed on the snapshot object reference (stable,
+ * created once in navigateToBlock/selectChoice). Entries are GC-eligible once
+ * the snapshot is removed from blockHistory (e.g. on resetGame).
+ */
+type HistorySnapshot = {
+  title: string
+  choices: number[]
+  variables: Map<string, string | number | boolean>
+  visitedBlocks: Set<string>
 }
+const historicNodeVarsCache = new WeakMap<
+  HistorySnapshot,
+  WeakMap<ContentNode, Map<string, string | number | boolean>>
+>()
 
-function contentNodesRenderer(
-  contentNodes: ContentNode[],
-  setCurrentBlockTitle: Dispatch<StateUpdater<string>>,
-  identionLevel: number,
-  setCurrentIndentionLevel: Dispatch<StateUpdater<number>>,
-  choices: number[],
-  setChoices: Dispatch<StateUpdater<number[]>>,
-  handleSetNode: (command: string) => void,
-) {
-  const renderedNodes = []
+function StoryViewer() {
+  const blockTitle = currentBlockTitle.value
+  const indentionLevel = currentIndentionLevel.value
+  const currentChoices = choices.value
+  const history = blockHistory.value
 
-  // console.log(contentNodes)
+  // storyBlocks is populated by loadStory() before isLoggedIn is set to true,
+  // so it is always available on the first render of this component.
+  const block = storyBlocks.value.get(blockTitle)
 
-  for (let i = 0; i < contentNodes.length; i++) {
-    const node = contentNodes[i]
-
-    if (node.identionLevel > identionLevel) {
-      continue
-    }
-
-    if (!choices.includes(node.choiceLevel)) {
-      console.log(node)
-      if (node.type === "choice" && node.identionLevel === identionLevel) {
-        renderedNodes.push(
-          <Button
-            choiceId={String(node.choiceLevel)}
-            onClick={() =>
-              buttonChoiceHandler(
-                contentNodes,
-                i,
-                setCurrentBlockTitle,
-                identionLevel,
-                setCurrentIndentionLevel,
-                choices,
-                setChoices,
-              )}
-          >
-            {node.text}
-          </Button>,
-        )
-      }
-
-      continue
-    }
-
-    if (node.identionLevel === identionLevel) {
-      if (node.type === "jump") {
-        if (node.jumpTarget === undefined) {
-          console.error("Jump node missing jumpTarget", node)
-          continue
-        }
-        renderedNodes.push(
-          <Button
-            choiceId=">"
-            onClick={() => {
-              setCurrentBlockTitle(node.jumpTarget || "")
-            }}
-          >
-            {`Continue ${node.jumpTarget ? `to ${node.jumpTarget}` : ""}`}
-          </Button>,
-        )
-      } else if (node.type === "detour") {
-        renderedNodes.push(<>DETOUR</>)
-        continue
-      }
-    }
-
-    if (node.type === "text") {
-      renderedNodes.push(
-        <Text>{node.text}</Text>,
-      )
-      continue
-    }
-
-    if (node.type === "chat") {
-      renderedNodes.push(
-        <Chat
-          isAngela={node.speaker === "Angela"}
-          sender={String(node.speaker)}
-        >
-          {node.text}
-        </Chat>,
-      )
-      continue
-    }
-
-    if (
-      node.type === "mood"
-    ) {
-      renderedNodes.push(
-        <MoodImage name={node.command} />,
-      )
-      continue
-    }
-
-    if (
-      node.type === "set"
-    ) {
-      handleSetNode(node.command)
-    }
-
-    if (node.type === "scienceFact") {
-      renderedNodes.push(
-        <div
-          class={clsx(
-            "w-full py-2 px-4 rounded-sm border bg-green-100 border-green-300",
-          )}
-        >
-          NodeCommand: {node.command}
-          <br />
-          IdentionLevel: {node.identionLevel}
-        </div>,
-      )
-      continue
-    }
-
-    if (
-      node.type === "if" || node.type === "elseif" || node.type === "else" ||
-      node.type === "endif"
-    ) {
-      renderedNodes.push(
-        <div
-          class={clsx(
-            "bg-yellow-100 border-yellow-300",
-            "w-full py-2 px-4 rounded-sm border",
-          )}
-        >
-          NodeCondition: {node.condition}
-          <br />
-          IdentionLevel: {node.identionLevel}
-          <br />
-          SkipLines: {node.skipLines}
-        </div>,
-      )
-      continue
-    }
-
-    if (node.type === "once" || node.type === "endonce") {
-      renderedNodes.push(
-        <div
-          class={clsx(
-            "bg-red-100 border-red-300",
-            "w-full py-2 px-4 rounded-sm border",
-          )}
-        >
-          NodeCondition: {node.condition}
-          <br />
-          IdentionLevel: {node.identionLevel}
-          <br />
-          SkipLines: {node.skipLines}
-        </div>,
-      )
-      continue
-    }
+  const context: RenderContext = {
+    visitedBlocks: visitedBlocks.value,
+    variables: storyVariables.value,
   }
 
-  return renderedNodes
-}
+  const contentNodes = block?.contentNodes || []
+  const visibleNodes = filterVisibleNodes(contentNodes, currentChoices, context)
 
-function StoryViewer({ initialStory }: { initialStory: Story }) {
-  const [currentBlock, setCurrentBlock] = useState<Block | undefined>(
-    initialStory.blocks.get("Start"),
-  )
-  const [currentBlockTitle, setCurrentBlockTitle] = useState("Start")
-  const [currentIndentionLevel, setCurrentIndentionLevel] = useState(0)
-  const [choices, setChoices] = useState<number[]>([0])
+  // Capture the previous active block's computed vars BEFORE potentially
+  // overwriting the cache. These are needed when that block first enters
+  // history later in this same render (history.map runs after this point).
+  const prevActiveKey = activeNodeVarsCache.key
+  const prevActiveVars = activeNodeVarsCache.vars
 
+  // Compute per-node variable snapshots exactly once per block entry.
+  // blockEntryVariables holds the pre-block state (set in the same batch as
+  // currentBlockTitle), so random() and arithmetic are always evaluated from
+  // the correct baseline and never re-rolled on subsequent re-renders.
+  if (activeNodeVarsCache.key !== blockTitle) {
+    const { nodeVars, finalVariables } = buildNodeVariables(
+      visibleNodes,
+      blockEntryVariables.value,
+    )
+    activeNodeVarsCache.key = blockTitle
+    activeNodeVarsCache.vars = nodeVars
+    activeNodeVarsCache.finalVars = finalVariables
+  }
+  const nodeVariables = activeNodeVarsCache.vars
+
+  // Apply <<set>> results to storyVariables after render using the final
+  // variable state already computed by buildNodeVariables — no second call to
+  // computeSetUpdates, so random() is never re-rolled.
   useEffect(() => {
-    setCurrentBlock(initialStory.blocks.get(currentBlockTitle))
-    setCurrentIndentionLevel(0)
-    setChoices([0])
-  }, [currentBlockTitle])
+    if (!block) return
+    applyVariables(activeNodeVarsCache.finalVars)
+  }, [blockTitle])
 
-  function handleSetNode(command: string) {
-    const [variableName, setCommand] = command.split("to").map((part) =>
-      part.trim()
-    )
-    const commands = setCommand.split(" ")
+  // Scroll to the newly appended block each time the active block changes.
+  useEffect(() => {
+    globalThis.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
+  }, [blockTitle])
 
-    // if it's a simple set command like "set mood=tense"
-    if (commands.length === 1) {
-      if (
-        initialStory.variables.has(variableName) &&
-        initialStory.variables.has(commands[0])
-      ) {
-        // set variable to value of another variable
-        initialStory.variables.set(
-          variableName,
-          initialStory.variables.get(commands[0])!,
-        )
-      } else if (commands[0] === "true" || commands[0] === "false") {
-        // set boolean
-        initialStory.variables.set(variableName, commands[0] === "true")
-      } else if (commands[0].startsWith('"') && commands[0].endsWith('"')) {
-        // set string
-        initialStory.variables.set(variableName, commands[0].slice(1, -1))
-      } else {
-        console.error(`Invalid set command: ${command}`)
-      }
-
-      return
-    }
-
-    if (commands.length === 3) {
-      const leftValue = initialStory.variables.get(commands[0]) as number
-      const rightValue = Number(commands[2])
-
-      if (commands[1] === "+") {
-        initialStory.variables.set(variableName, leftValue + rightValue)
-        return
-      }
-
-      if (commands[1] === "-") {
-        initialStory.variables.set(variableName, leftValue - rightValue)
-        return
-      }
-
-      console.error(`Invalid set command: ${command}`)
-    }
+  const handlers: RenderHandlers = {
+    onChoiceClick: (index: number) => handleChoiceClick(contentNodes, index),
+    onJumpClick: navigateToBlock,
+    onSetNode: (_command: string) => {},
+    setCurrentIndentionLevel: (updater) => {
+      currentIndentionLevel.value = typeof updater === "function"
+        ? updater(currentIndentionLevel.value)
+        : updater
+    },
+    setChoices: (updater) => {
+      choices.value = typeof updater === "function"
+        ? updater(choices.value)
+        : updater
+    },
   }
+
+  const activeRenderConfig: RenderConfig = {
+    contentNodes,
+    indentionLevel,
+    choices: currentChoices,
+    handlers,
+    context,
+    nodeVariables,
+  }
+
+  // ── Render historical blocks (read-only, frozen choices) ─────────────────
+
+  const historicalSections = history.map((snapshot, sectionIndex) => {
+    const historicBlock = storyBlocks.value.get(snapshot.title)
+    if (!historicBlock) return null
+
+    const frozenContext: RenderContext = {
+      visitedBlocks: snapshot.visitedBlocks,
+      variables: snapshot.variables,
+    }
+
+    const frozenNodes = historicBlock.contentNodes
+    const frozenVisible = filterVisibleNodes(
+      frozenNodes,
+      snapshot.choices,
+      frozenContext,
+    )
+
+    // Compute per-node variable snapshots once per snapshot object.
+    // If this block just transitioned from active to historical in this render,
+    // reuse the vars already computed while it was active — avoids re-rolling
+    // random(). For older snapshots already in history, replay from
+    // snapshot.variables (pre-block state, set via blockEntryVariables).
+    let frozenNodeVariables = historicNodeVarsCache.get(snapshot)
+    if (!frozenNodeVariables) {
+      frozenNodeVariables = prevActiveKey === snapshot.title
+        ? prevActiveVars
+        : buildNodeVariables(frozenVisible, snapshot.variables).nodeVars
+      historicNodeVarsCache.set(snapshot, frozenNodeVariables)
+    }
+
+    const historicConfig: RenderConfig = {
+      contentNodes: frozenNodes,
+      indentionLevel: 0,
+      choices: snapshot.choices,
+      handlers,
+      context: frozenContext,
+      nodeVariables: frozenNodeVariables,
+      isHistorical: true,
+    }
+
+    const renderedHistoric = frozenNodes
+      .map((node, i) =>
+        renderNode(node, i, frozenNodes, historicConfig, frozenVisible)
+      )
+      .flat()
+
+    return (
+      <div key={`history-${sectionIndex}-${snapshot.title}`}>
+        {renderedHistoric}
+        <hr class="my-6 border-gray-200" />
+      </div>
+    )
+  })
+
+  // ── Render active block ──────────────────────────────────────────────────
+
+  const renderedNodes = contentNodes
+    .map((node, i) =>
+      renderNode(node, i, contentNodes, activeRenderConfig, visibleNodes)
+    )
+    .flat()
 
   return (
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
       <div class="max-w-3xl mx-auto flex flex-col">
-        {contentNodesRenderer(
-          currentBlock?.contentNodes || [],
-          setCurrentBlockTitle,
-          currentIndentionLevel,
-          setCurrentIndentionLevel,
-          choices,
-          setChoices,
-          handleSetNode,
-        )}
+        {historicalSections}
+        {renderedNodes}
       </div>
     </div>
   )

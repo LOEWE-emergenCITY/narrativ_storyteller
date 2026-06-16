@@ -1306,6 +1306,10 @@
       "integrity": "sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g=="
     }
   },
+  "remote": {
+    "https://esm.sh/dompurify@3.0.6": "837c0f84b7bdcd75e231a75184b5ac4aa79c2204e2d11b79dc5acf37987d34f8",
+    "https://esm.sh/dompurify@3.0.6/denonext/dompurify.mjs": "964abddf592cff061e07672896dfc8ae9ab96cbab42cd623462664c1cb4f8ece"
+  },
   "workspace": {
     "dependencies": [
       "jsr:@fresh/core@2",

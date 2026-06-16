@@ -83,7 +83,7 @@ export function buildNodeVariables(
     ContentNode,
     Map<string, string | number | boolean>
   >()
-  let current = new Map(baseVariables)
+  const current = new Map(baseVariables)
 
   for (const node of visibleNodes) {
     // Snapshot the running state BEFORE this node so the node sees the result

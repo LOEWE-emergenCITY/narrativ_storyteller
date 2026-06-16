@@ -410,6 +410,24 @@ tags: scene:sittingAtTableWithCoffeeBrowsingOnPhones
 position: -123,-904
 ---
 // Angela und Kathrin sitzen mit einer Tasse Kaffee am Frühstückstisch und browsen in ihren Smartphones
+{$new_random}
+<<set $new_random to random(5,10)>> 
+{$new_random}
+<<set $new_random to random(5,10)>> 
+{$new_random}
+<<set $new_random to random(5,10)>> 
+{$new_random}
+<<set $new_random to $new_random +1>> 
+{$new_random}
+
+{$mental_health_angela}
+    <<set $mental_health_angela to $mental_health_angela - 1>>
+{$mental_health_angela}
+    <<set $mental_health_angela to $mental_health_angela - 1>>
+{$mental_health_angela}
+    <<set $mental_health_angela to $mental_health_angela - 1>>
+{$mental_health_angela}
+
 <<Scene breakfast>>
 Das grelle Licht der Morgensonne hätte keinen stärkeren Kontrast zu Angelas düsterem Gesicht schaffen können. Die Nachrichten sind aber auch genau das Richtige, um ihr hyperaktives Gehirn dazu zu bringen, sich in Katastrophenszenarien zu verlieren.
 <<Mood angela_angry>>
@@ -589,6 +607,8 @@ group: Gameintro
 tags: scene:sittingAtTableWithCoffeeBrowsingOnPhones
 position: 182,-409
 ---
+<<set $new_random to random(5,10)>> 
+{$new_random}
 <<if visited("UeberblickNachrichten") == false>>
     "Wie man es nimmt."
     <<Mood angela_distrusting>>

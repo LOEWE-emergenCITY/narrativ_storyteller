@@ -43,7 +43,6 @@ export const currentBlock = computed<Block | undefined>(() =>
   storyBlocks.value.get(currentBlockTitle.value)
 )
 
-
 // ===== ACTIONS =====
 
 /**

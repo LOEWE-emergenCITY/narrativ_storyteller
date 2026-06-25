@@ -6,6 +6,7 @@ import { Block, Story } from "@/utils/storyTypes.tsx"
 export const storyFile = signal<string>("")
 export const storyBlocks = signal<Map<string, Block>>(new Map())
 export const visitedBlocks = signal<Set<string>>(new Set())
+export const scienceFacts = signal<Record<string, string>>({})
 export const storyVariables = signal<Map<string, string | number | boolean>>(
   new Map(),
 )
@@ -20,7 +21,9 @@ export const isLoggedIn = signal<boolean>(false)
  * buildNodeVariables so set-command replays always start from the correct
  * pre-block values (avoids double-applying arithmetic and re-rolling random()).
  */
-export const blockEntryVariables = signal<Map<string, string | number | boolean>>(
+export const blockEntryVariables = signal<
+  Map<string, string | number | boolean>
+>(
   new Map(),
 )
 
@@ -74,6 +77,10 @@ export function loadStory(story: Story): void {
     choices.value = []
     blockHistory.value = []
   })
+}
+
+export function loadScienceFacts(facts: Record<string, string>): void {
+  scienceFacts.value = { ...facts }
 }
 
 /**
@@ -157,6 +164,7 @@ export function applyVariables(
 export function resetGame(): void {
   batch(() => {
     storyBlocks.value = new Map()
+    scienceFacts.value = {}
     storyVariables.value = new Map()
     blockEntryVariables.value = new Map()
     visitedBlocks.value = new Set()

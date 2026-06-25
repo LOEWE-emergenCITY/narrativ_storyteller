@@ -4,10 +4,11 @@ import {
   ConditionNode,
   ContentNode,
   TextNode,
-} from "@/utils/storyParser.ts"
+} from "@/utils/storyTypes.tsx"
 import { Text } from "@/components/Text.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
+import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 
 interface LineRendererProps {
   line: ContentNode
@@ -99,11 +100,7 @@ export function LineRenderer({ line, index }: LineRendererProps) {
     }
 
     if (line.type === "scienceFact") {
-      return (
-        <Text key={index} className="bg-green-100 px-2 py-1 rounded">
-          [FACT] {line.command}
-        </Text>
-      )
+      return <ScienceFactBadge key={index} name={line.command.trim()} />
     }
   }
 

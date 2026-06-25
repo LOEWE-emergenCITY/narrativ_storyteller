@@ -14,6 +14,7 @@ import { Button } from "@/components/Button.tsx"
 import { ChoiceTranscript } from "@/components/ChoiceTranscript.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
 import { Chat } from "@/components/Chat.tsx"
+import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 import { clsx } from "clsx"
 import { JSX } from "preact/jsx-runtime"
 
@@ -210,13 +211,23 @@ export function isNodeVisible(
  */
 export function getNodeType(
   node: ContentNode,
-): "text" | "chat" | "choice" | "jump" | "mood" | "set" | "debug" | "detour" {
+):
+  | "text"
+  | "chat"
+  | "choice"
+  | "jump"
+  | "mood"
+  | "set"
+  | "scienceFact"
+  | "debug"
+  | "detour" {
   if (node.type === "text") return "text"
   if (node.type === "chat") return "chat"
   if (node.type === "choice") return "choice"
   if (node.type === "jump") return "jump"
   if (node.type === "mood") return "mood"
   if (node.type === "set") return "set"
+  if (node.type === "scienceFact") return "scienceFact"
   if (node.type === "detour") return "detour"
   return "debug" // once/endonce and any unhandled condition nodes
 }
@@ -287,6 +298,12 @@ export function renderNode(
 
     case "set":
       // Handled in useEffect after render — intentionally skipped here.
+      break
+
+    case "scienceFact":
+      result.push(
+        <ScienceFactBadge name={(node as CommandNode).command.trim()} />,
+      )
       break
 
     case "detour":

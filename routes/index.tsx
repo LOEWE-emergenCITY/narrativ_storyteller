@@ -9,17 +9,7 @@ export default define.page(function Home() {
     <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
       <div class="max-w-3xl mx-auto flex flex-col items-center justify-center">
         <h1 class="text-4xl font-bold">Storyteller</h1>
-        <Text>
-          Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
-          nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat,
-          sed diam voluptua. At vero eos et accusam et justo duo dolores et ea
-          rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem
-          ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur
-          sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et
-          dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam
-          et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea
-          takimata sanctus est Lorem ipsum dolor sit amet.
-        </Text>
+        <Text html="Lorem <b>ipsum</b> dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod <i>tempor</i> invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet." />
         <Text>
           Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
           nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat,
@@ -50,6 +40,8 @@ export default define.page(function Home() {
         <Button className="justify-end" choiceId="3">
           orem ipsum dolor sit amet, consetetur sadipscing elitr
         </Button>
+
+        <Text html="<i>italic</i> <b>bold</b> <br /> not italic not bold" />
       </div>
     </div>
   )

@@ -10,10 +10,8 @@ export interface TextProps {
 }
 
 export function Text(props: TextProps) {
-  const sanitized = useHTMLRenderer(props.html ? props.html : "")
-
   const preparedText = props.html
-    ? interpolateVariables(sanitized, props.variables)
+    ? useHTMLRenderer(props.html, props.variables)
     : interpolateVariables(String(props.children), props.variables)
 
   if (props.html) {

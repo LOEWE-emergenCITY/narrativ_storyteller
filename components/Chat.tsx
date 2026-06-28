@@ -20,21 +20,22 @@ export function Chat(props: ChatProps) {
         class={clsx(
           "flex flex-col",
           props.isAngela ? "items-end" : "items-start",
+          "max-w-[70%]",
         )}
       >
         <div
           class={clsx(
-            "py-1 border rounded-md px-2 border-gray-300 max-w-[70%] bg-opacity-60 shadow-sm",
+            "inline-block py-1 border rounded-md px-2 border-gray-300 bg-opacity-60 shadow-sm wrap-break-words",
             props.isAngela ? "bg-[#f2f2f2]" : "bg-[#5f2869] text-white ",
           )}
         >
           {props.children}
           <div
             class={clsx(
-              "text-sm font-serif -mt-4 text-right pe-1",
+              "text-sm font-serif",
               props.isAngela
-                ? "text-right pe-1 text-gray-500"
-                : "text-left ps-1 text-white/70",
+                ? "text-right text-gray-500"
+                : "text-left text-white/70",
             )}
           >
             {`${props.sender}`}

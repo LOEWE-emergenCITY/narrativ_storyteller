@@ -35,7 +35,15 @@ export default define.page(async function Home() {
         </Chat>
         <Chat isAngela={true} sender="Angela">
           Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
-          dolor sit amet.
+          dolor sit amet. Stet clita kasd gubergren, no sea takimata sanctus est
+          Lorem ipsum dolor sit amet.
+        </Chat>
+
+        <Chat isAngela={true} sender="Angela">
+          NVM MEIS.
+        </Chat>
+        <Chat isAngela={false} sender="Angela">
+          bla bla.
         </Chat>
         <MoodImage name="kathrin_regular" />
         <MoodImage name="angela_annoyed" />

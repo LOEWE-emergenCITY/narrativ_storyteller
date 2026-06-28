@@ -6,6 +6,8 @@ import { Block, Story } from "@/utils/storyTypes.tsx"
 export const storyFile = signal<string>("")
 export const storyBlocks = signal<Map<string, Block>>(new Map())
 export const visitedBlocks = signal<Set<string>>(new Set())
+export const seenOnceSections = signal<Set<string>>(new Set())
+export const visibleOnceSections = signal<Set<string>>(new Set())
 export const scienceFacts = signal<Record<string, string>>({})
 export const storyVariables = signal<Map<string, string | number | boolean>>(
   new Map(),
@@ -39,6 +41,7 @@ export const blockHistory = signal<
     choices: number[]
     variables: Map<string, string | number | boolean>
     visitedBlocks: Set<string>
+    seenOnceSections: Set<string>
   }>
 >([])
 
@@ -72,6 +75,8 @@ export function loadStory(story: Story): void {
     storyVariables.value = variables
     blockEntryVariables.value = new Map(variables)
     visitedBlocks.value = new Set(["Start"])
+    seenOnceSections.value = new Set()
+    visibleOnceSections.value = new Set()
     currentBlockTitle.value = "Start"
     currentIndentionLevel.value = 0
     choices.value = []
@@ -90,6 +95,10 @@ export function loadScienceFacts(facts: Record<string, string>): void {
  */
 export function navigateToBlock(title: string): void {
   batch(() => {
+    const consumedOnceSections = new Set([
+      ...seenOnceSections.value,
+      ...visibleOnceSections.value,
+    ])
     blockHistory.value = [
       ...blockHistory.value,
       {
@@ -97,10 +106,13 @@ export function navigateToBlock(title: string): void {
         choices: choices.value,
         variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
+        seenOnceSections: new Set(seenOnceSections.value),
       },
     ]
     // Post-current-block state becomes the pre-entry state for the new block.
     blockEntryVariables.value = new Map(storyVariables.value)
+    seenOnceSections.value = consumedOnceSections
+    visibleOnceSections.value = new Set()
     visitedBlocks.value = new Set([...visitedBlocks.value, title])
     currentBlockTitle.value = title
     currentIndentionLevel.value = 0
@@ -122,6 +134,10 @@ export function selectChoice(
   batch(() => {
     if (jumpTarget) {
       const finalChoices = [...choices.value, choiceLevel]
+      const consumedOnceSections = new Set([
+        ...seenOnceSections.value,
+        ...visibleOnceSections.value,
+      ])
       blockHistory.value = [
         ...blockHistory.value,
         {
@@ -129,10 +145,13 @@ export function selectChoice(
           choices: finalChoices,
           variables: new Map(blockEntryVariables.value),
           visitedBlocks: new Set(visitedBlocks.value),
+          seenOnceSections: new Set(seenOnceSections.value),
         },
       ]
       // Post-current-block state becomes the pre-entry state for the new block.
       blockEntryVariables.value = new Map(storyVariables.value)
+      seenOnceSections.value = consumedOnceSections
+      visibleOnceSections.value = new Set()
       visitedBlocks.value = new Set([...visitedBlocks.value, jumpTarget])
       choices.value = []
       currentIndentionLevel.value = 0
@@ -168,6 +187,8 @@ export function resetGame(): void {
     storyVariables.value = new Map()
     blockEntryVariables.value = new Map()
     visitedBlocks.value = new Set()
+    seenOnceSections.value = new Set()
+    visibleOnceSections.value = new Set()
     blockHistory.value = []
     currentBlockTitle.value = "Start"
     currentIndentionLevel.value = 0

@@ -52,6 +52,36 @@ function shouldSkipLine(trimmedLine: string): boolean {
   )
 }
 
+function stripTrailingComment(line: string): string {
+  return line.split("//")[0].trimEnd()
+}
+
+function getOnceKey(blockTitle: string, lineIndex: number): string {
+  return `${blockTitle}:${lineIndex}`
+}
+
+function extractInlineOnce(
+  trimmedLine: string,
+  currentBlockTitle: string,
+  lineIndex: number,
+): { line: string; onceKey?: string } {
+  const lineWithoutComment = stripTrailingComment(trimmedLine).trim()
+
+  if (lineWithoutComment.startsWith("<<once")) {
+    return { line: lineWithoutComment }
+  }
+
+  const match = lineWithoutComment.match(/^(.*?)(?:\s*<<once>>)$/)
+  if (!match) {
+    return { line: lineWithoutComment }
+  }
+
+  return {
+    line: match[1].trimEnd(),
+    onceKey: getOnceKey(currentBlockTitle, lineIndex),
+  }
+}
+
 function findConditionBlockEnd(
   lines: string[],
   startIndex: number,
@@ -166,12 +196,14 @@ function parseCommandNode(
   trimmedLine: string,
   identionLevel: number,
   choicePath: number[],
+  onceKey?: string,
 ): CommandNode | null {
   if (trimmedLine.startsWith("<<set ")) {
     return {
       type: "set",
       identionLevel,
       choicePath,
+      onceKey,
       command: trimmedLine.substring(5).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -181,6 +213,7 @@ function parseCommandNode(
       type: "mood",
       identionLevel,
       choicePath,
+      onceKey,
       command: trimmedLine.substring(7).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -190,6 +223,7 @@ function parseCommandNode(
       type: "scene",
       identionLevel,
       choicePath,
+      onceKey,
       command: trimmedLine.substring(8).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -199,6 +233,7 @@ function parseCommandNode(
       type: "scienceFact",
       identionLevel,
       choicePath,
+      onceKey,
       command: trimmedLine.substring(20).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -212,12 +247,14 @@ function parseActionNode(
   choicePath: number[],
   currentBlockTitle: string,
   currentLineIndex: number,
+  onceKey?: string,
 ): ActionNode | null {
   if (trimmedLine.startsWith("<<jump ")) {
     return {
       type: "jump",
       identionLevel,
       choicePath,
+      onceKey,
       jumpTarget: trimmedLine.substring(7).split(">>")[0].trim(),
     } as ActionNode
   }
@@ -227,6 +264,7 @@ function parseActionNode(
       type: "detour",
       identionLevel,
       choicePath,
+      onceKey,
       jumpTarget: trimmedLine.substring(9).split(">>")[0].trim(),
       returnTargetLine: {
         title: currentBlockTitle,
@@ -245,6 +283,8 @@ function parseConditionNode(
   lines: string[],
   currentIndex: number,
   filePath: string,
+  currentBlockTitle: string,
+  onceKey?: string,
 ): ConditionNode | null {
   if (trimmedLine.startsWith("<<if ")) {
     const skipLines = findConditionBlockEnd(
@@ -313,6 +353,7 @@ function parseConditionNode(
       type: "once",
       identionLevel,
       choicePath,
+      onceKey: onceKey ?? getOnceKey(currentBlockTitle, currentIndex),
       skipLines,
     } as ConditionNode
   }
@@ -334,6 +375,7 @@ function parseChoiceNode(
   identionLevel: number,
   effectiveLevel: number,
   choicePath: number[],
+  onceKey?: string,
 ): [ContentNode | null, number[]] {
   // Read parent's sibling counter (one level up) to seed myChoiceLevel
   let newChoiceLevel = (choicePath[effectiveLevel - 1] ?? 0) + 1
@@ -352,8 +394,9 @@ function parseChoiceNode(
     type: "choice",
     identionLevel,
     choicePath: [...choicePath], // ancestor sibling counters (depth = choicePath.length)
+    onceKey,
     myChoiceLevel: newChoiceLevel,
-    text: trimmedLine.substring(3).split(">>")[0].split("//")[0].trim(),
+    text: stripTrailingComment(trimmedLine.substring(3)).trim(),
   } as ActionNode
 
   // Store sibling counter at effectiveLevel (direct assignment avoids sparse-array push bugs)
@@ -366,13 +409,16 @@ function parseChatNode(
   trimmedLine: string,
   identionLevel: number,
   choicePath: number[],
+  onceKey?: string,
 ): TextNode | null {
+  const sanitizedLine = stripTrailingComment(trimmedLine).trim()
   return {
     type: "chat",
     identionLevel,
     choicePath,
-    speaker: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
-    text: trimmedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
+    onceKey,
+    speaker: sanitizedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
+    text: sanitizedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
   } as TextNode
 }
 
@@ -380,12 +426,14 @@ function parseTextNode(
   trimmedLine: string,
   identionLevel: number,
   choicePath: number[],
+  onceKey?: string,
 ): TextNode {
   return {
     type: "text",
     identionLevel,
     choicePath,
-    text: trimmedLine.split("//")[0].trim(),
+    onceKey,
+    text: stripTrailingComment(trimmedLine).trim(),
   } as TextNode
 }
 
@@ -471,46 +519,68 @@ export async function parseStory(filePath: string): Promise<Story> {
     }
     prevIndentionLevel = indentionLevel
 
+    const inlineOnce = extractInlineOnce(trimmedLine, currentBlock.title, index)
+    const sanitizedLine = inlineOnce.line
+
     let contentNode: ContentNode | null = null
 
     // Try parsing different node types in order
-    if (trimmedLine.startsWith("<<")) {
-      contentNode = parseCommandNode(trimmedLine, indentionLevel, choicePath) ||
+    if (sanitizedLine.startsWith("<<")) {
+      contentNode = parseCommandNode(
+        sanitizedLine,
+        indentionLevel,
+        choicePath,
+        inlineOnce.onceKey,
+      ) ||
         parseActionNode(
-          trimmedLine,
+          sanitizedLine,
           indentionLevel,
           choicePath,
           currentBlock.title,
           index,
+          inlineOnce.onceKey,
         ) ||
         parseConditionNode(
-          trimmedLine,
+          sanitizedLine,
           indentionLevel,
           choicePath,
           lines,
           index,
           filePath,
+          currentBlock.title,
+          inlineOnce.onceKey,
         )
     }
 
     if (!contentNode) {
-      if (trimmedLine.startsWith("-> ")) {
+      if (sanitizedLine.startsWith("-> ")) {
         if (baseChoiceIndent === -1) baseChoiceIndent = indentionLevel
         const effectiveLevel = indentionLevel - baseChoiceIndent
         ;[contentNode, choicePath] = parseChoiceNode(
-          trimmedLine,
+          sanitizedLine,
           indentionLevel,
           effectiveLevel,
           JSON.parse(JSON.stringify(choicePath)),
+          inlineOnce.onceKey,
         )
-      } else if (trimmedLine.match(/^([^:]+):\s*(.*)$/)) {
-        contentNode = parseChatNode(trimmedLine, indentionLevel, choicePath)
+      } else if (sanitizedLine.match(/^([^:]+):\s*(.*)$/)) {
+        contentNode = parseChatNode(
+          sanitizedLine,
+          indentionLevel,
+          choicePath,
+          inlineOnce.onceKey,
+        )
       }
     }
 
     // Default to text node if nothing matched
     if (!contentNode) {
-      contentNode = parseTextNode(trimmedLine, indentionLevel, choicePath)
+      contentNode = parseTextNode(
+        sanitizedLine,
+        indentionLevel,
+        choicePath,
+        inlineOnce.onceKey,
+      )
     }
 
     currentBlock.contentNodes.push(contentNode)

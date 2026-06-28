@@ -33,7 +33,7 @@ Last updated: 2026-06-15
 | Variable side effects (`<<set>>`)                           | Done            |
 | Block navigation (`<<jump>>`)                               | Done            |
 | `<<detour>>` — returnable jump with return stack            | Not implemented |
-| `<<once>>` / `<<endonce>>` — hide content after first visit | Not implemented |
+| `<<once>>` / `<<endonce>>` — hide content after first visit | Done            |
 | `<<GatherScienceFact>>` — trigger variable state change     | Not implemented |
 | `<<Scene>>` — trigger scene change                          | Not implemented |
 
@@ -50,7 +50,7 @@ Last updated: 2026-06-15
 | Jump buttons                              | Done                                                  |
 | Mood images (`<<Mood …>>`)                | Done                                                  |
 | `<<detour>>` button + return navigation   | Not implemented                                       |
-| `<<once>>` content gating                 | Not implemented                                       |
+| `<<once>>` content gating                 | Done                                                  |
 | `<<GatherScienceFact>>` component         | Not implemented (TBD — info link placeholder planned) |
 | `<<Scene>>` component                     | Not implemented (TBD)                                 |
 

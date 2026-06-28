@@ -15,8 +15,10 @@ import {
   currentBlockTitle,
   currentIndentionLevel,
   navigateToBlock,
+  seenOnceSections,
   storyBlocks,
   storyVariables,
+  visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
@@ -47,6 +49,7 @@ type HistorySnapshot = {
   choices: number[]
   variables: Map<string, string | number | boolean>
   visitedBlocks: Set<string>
+  seenOnceSections: Set<string>
 }
 const historicNodeVarsCache = new WeakMap<
   HistorySnapshot,
@@ -65,11 +68,19 @@ function StoryViewer() {
 
   const context: RenderContext = {
     visitedBlocks: visitedBlocks.value,
+    seenOnceSections: seenOnceSections.value,
     variables: storyVariables.value,
   }
 
   const contentNodes = block?.contentNodes || []
-  const visibleNodes = filterVisibleNodes(contentNodes, currentChoices, context)
+  const { visibleNodes, visibleOnceKeys } = filterVisibleNodes(
+    contentNodes,
+    currentChoices,
+    context,
+  )
+  const visibleOnceSignature = `${blockTitle}:${
+    [...visibleOnceKeys].sort().join("|")
+  }`
 
   // Capture the previous active block's computed vars BEFORE potentially
   // overwriting the cache. These are needed when that block first enters
@@ -99,6 +110,10 @@ function StoryViewer() {
     if (!block) return
     applyVariables(activeNodeVarsCache.finalVars)
   }, [blockTitle])
+
+  useEffect(() => {
+    visibleOnceSections.value = new Set(visibleOnceKeys)
+  }, [visibleOnceSignature])
 
   // Scroll to the newly appended block each time the active block changes.
   useEffect(() => {
@@ -138,11 +153,12 @@ function StoryViewer() {
 
     const frozenContext: RenderContext = {
       visitedBlocks: snapshot.visitedBlocks,
+      seenOnceSections: snapshot.seenOnceSections,
       variables: snapshot.variables,
     }
 
     const frozenNodes = historicBlock.contentNodes
-    const frozenVisible = filterVisibleNodes(
+    const { visibleNodes: frozenVisible } = filterVisibleNodes(
       frozenNodes,
       snapshot.choices,
       frozenContext,

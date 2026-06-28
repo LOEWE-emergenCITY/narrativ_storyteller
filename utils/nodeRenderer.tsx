@@ -30,7 +30,13 @@ export interface RenderHandlers {
 
 export interface RenderContext {
   visitedBlocks: Set<string>
+  seenOnceSections: Set<string>
   variables: Map<string, string | number | boolean>
+}
+
+export interface VisibleNodesResult {
+  visibleNodes: ContentNode[]
+  visibleOnceKeys: Set<string>
 }
 
 export interface RenderConfig {
@@ -84,15 +90,18 @@ export function filterVisibleNodes(
   contentNodes: ContentNode[],
   choices: number[],
   context: RenderContext,
-): ContentNode[] {
+): VisibleNodesResult {
   const visible: ContentNode[] = []
+  const visibleOnceKeys = new Set<string>()
 
   // Stack entry: whether this branch body is active, and whether a true branch
   // has already been taken in this if-chain (done prevents later elseif/else).
   const conditionStack: Array<{ active: boolean; done: boolean }> = []
+  const onceStack: Array<{ active: boolean }> = []
 
   const allConditionsActive = (): boolean =>
     conditionStack.every((c) => c.active)
+  const allOnceActive = (): boolean => onceStack.every((o) => o.active)
 
   let i = 0
   while (i < contentNodes.length) {
@@ -164,14 +173,30 @@ export function filterVisibleNodes(
     }
 
     // ── once / endonce ────────────────────────────────────────────────────────
-    // Not yet evaluated — skip silently (handled in a separate task).
-    if (node.type === "once" || node.type === "endonce") {
+    if (node.type === "once") {
+      const isActive = allConditionsActive() && allOnceActive() &&
+        (!node.onceKey || !context.seenOnceSections.has(node.onceKey))
+      if (isActive && node.onceKey) {
+        visibleOnceKeys.add(node.onceKey)
+      }
+      onceStack.push({ active: isActive })
+      i++
+      continue
+    }
+
+    if (node.type === "endonce") {
+      onceStack.pop()
       i++
       continue
     }
 
     // ── all other nodes ───────────────────────────────────────────────────────
-    if (allConditionsActive()) {
+    if (allConditionsActive() && allOnceActive()) {
+      if (node.onceKey && context.seenOnceSections.has(node.onceKey)) {
+        i++
+        continue
+      }
+
       // Choice-path ancestor check: every value in the node's choicePath must
       // appear in the currently selected choices.
       if (node.choicePath.every((v) => choices.includes(v))) {
@@ -186,6 +211,9 @@ export function filterVisibleNodes(
           i++
           continue
         }
+        if (node.onceKey) {
+          visibleOnceKeys.add(node.onceKey)
+        }
         visible.push(node)
       }
     }
@@ -193,7 +221,7 @@ export function filterVisibleNodes(
     i++
   }
 
-  return visible
+  return { visibleNodes: visible, visibleOnceKeys }
 }
 
 /**

@@ -34,6 +34,7 @@ Last updated: 2026-06-30
 | Condition evaluation (`<<if>>` / `<<elseif>>` / `<<else>>`) | Done                              |
 | Condition evaluation (inline `<<if>>`)                      | Not implemented                   |
 | Variable side effects (`<<set>>`)                           | Done                              |
+| update variables within buttons / choices (`<<set>>`)       | Not implemented                   |
 | Block navigation (`<<jump>>`)                               | Done                              |
 | `<<detour>>` — returnable jump with return stack            | Not implemented                   |
 | `<<once>>` / `<<endonce>>` — hide content after first visit | Done                              |

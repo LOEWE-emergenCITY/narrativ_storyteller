@@ -7,6 +7,8 @@ export function MoodImage(props: MoodImageProps) {
     props.name.split("_")[0]
   }/eHub_Moods_${props.name}.jpg`
 
+  console.log(imgPath)
+
   return (
     <div class="w-full py-2 px-4">
       <img

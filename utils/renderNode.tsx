@@ -1,4 +1,4 @@
-import { Button } from "@/components/Button.tsx"
+import { Button, ContinueButton } from "@/components/Button.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { ChoiceTranscript } from "@/components/ChoiceTranscript.tsx"
 import { MoodImage } from "@/components/MoodImage.tsx"
@@ -106,9 +106,9 @@ function renderJumpNode(
   }
 
   return (
-    <Button onClick={() => navigateToBlock(node.jumpTarget || "")}>
-      Continue
-    </Button>
+    <ContinueButton
+      onClick={() => navigateToBlock(node.jumpTarget || "")}
+    />
   )
 }
 

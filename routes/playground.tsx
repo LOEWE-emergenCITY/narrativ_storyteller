@@ -1,6 +1,6 @@
 import { define } from "@/utils.ts"
 import { Text } from "@/components/Text.tsx"
-import { Button } from "@/components/Button.tsx"
+import { Button, ContinueButton } from "@/components/Button.tsx"
 import { Chat } from "../components/Chat.tsx"
 import { MoodImage } from "../components/MoodImage.tsx"
 import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
@@ -56,9 +56,7 @@ export default define.page(async function Home() {
         <Button className="justify-end" choiceId="3">
           orem ipsum dolor sit amet, consetetur sadipscing elitr
         </Button>
-        <Button className="justify-end">
-          next
-        </Button>
+        <ContinueButton />
         <Text html="<i>italic</i> <b>bold</b> <br /> now a break <br /> not italic not bold" />
 
         <ScienceFactBadge name="LoraWAN" />

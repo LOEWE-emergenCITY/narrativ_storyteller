@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact"
 import { clsx } from "clsx"
 import { useHTMLRenderer } from "@/utils/customHooks.ts"
+import { ArrowBigRightDash } from "lucide-preact"
 
 export interface ButtonProps {
   id?: string
@@ -32,7 +33,11 @@ export function Button(props: ButtonProps) {
             "items-center justify-center size-9 me-4 px-2",
           )}
         >
-          {props.choiceId}
+          {props.choiceId ? props.choiceId : (
+            <div class="size-6">
+              <ArrowBigRightDash />
+            </div>
+          )}
         </div>
         {props.html
           // deno-lint-ignore react-no-danger

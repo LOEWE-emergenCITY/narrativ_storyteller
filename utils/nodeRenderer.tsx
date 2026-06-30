@@ -378,10 +378,9 @@ export function renderNode(
       }
       result.push(
         <Button
-          choiceId=">"
           onClick={() => navigateToBlock(jumpNode.jumpTarget || "")}
         >
-          {`Continue ${jumpNode.jumpTarget ? `to ${jumpNode.jumpTarget}` : ""}`}
+          Continue
         </Button>,
       )
       break

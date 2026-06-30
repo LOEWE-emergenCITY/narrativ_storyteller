@@ -18,7 +18,7 @@ function escapeHtml(html: string): string {
     .replaceAll("'", "&#39;")
 }
 
-export function sanitizeLimitedHtml(htmlString: string): string {
+function sanitizeLimitedHtml(htmlString: string): string {
   return escapeHtml(htmlString)
     .replaceAll("&lt;i&gt;", "<i>")
     .replaceAll("&lt;/i&gt;", "</i>")

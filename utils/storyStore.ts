@@ -1,9 +1,8 @@
-import { batch, computed, signal } from "@preact/signals"
+import { batch, signal } from "@preact/signals"
 import { Block, Story } from "@/utils/storyTypes.tsx"
 
 // ===== SIGNALS =====
 
-export const storyFile = signal<string>("")
 export const storyBlocks = signal<Map<string, Block>>(new Map())
 export const visitedBlocks = signal<Set<string>>(new Set())
 export const seenOnceSections = signal<Set<string>>(new Set())
@@ -45,10 +44,6 @@ export const blockHistory = signal<
   }>
 >([])
 
-export const currentBlock = computed<Block | undefined>(() =>
-  storyBlocks.value.get(currentBlockTitle.value)
-)
-
 // ===== ACTIONS =====
 
 /**
@@ -70,7 +65,6 @@ export function loadStory(story: Story): void {
     )
 
   batch(() => {
-    storyFile.value = story.file
     storyBlocks.value = blocks
     storyVariables.value = variables
     blockEntryVariables.value = new Map(variables)
@@ -175,24 +169,4 @@ export function applyVariables(
   const merged = new Map(storyVariables.value)
   updates.forEach((v, k) => merged.set(k, v))
   storyVariables.value = merged
-}
-
-/**
- * Reset all game state back to the initial defaults.
- */
-export function resetGame(): void {
-  batch(() => {
-    storyBlocks.value = new Map()
-    scienceFacts.value = {}
-    storyVariables.value = new Map()
-    blockEntryVariables.value = new Map()
-    visitedBlocks.value = new Set()
-    seenOnceSections.value = new Set()
-    visibleOnceSections.value = new Set()
-    blockHistory.value = []
-    currentBlockTitle.value = "Start"
-    currentIndentionLevel.value = 0
-    choices.value = []
-    isLoggedIn.value = false
-  })
 }

@@ -57,28 +57,3 @@ export interface TextNode {
   speaker?: string // e.g., "Kathrin"
   text: string // e.g., "What a boring day..."
 }
-
-//-------------------------------------------------------------------------------------------------------
-
-function isActionNode(node: ContentNode): node is ActionNode {
-  return node &&
-    (node.type === "choice" || node.type === "jump" || node.type === "detour")
-}
-
-function isConditionNode(node: ContentNode): node is ConditionNode {
-  return node &&
-    (node.type === "if" || node.type === "elseif" || node.type === "else" ||
-      node.type === "endif" || node.type === "once" || node.type === "endonce")
-}
-
-function isCommandNode(node: ContentNode): node is CommandNode {
-  return node &&
-    (node.type === "set" || node.type === "mood" ||
-      node.type === "scienceFact" || node.type === "scene")
-}
-
-function isTextNode(node: ContentNode): node is TextNode {
-  return node && (node.type === "text" || node.type === "chat")
-}
-
-export { isActionNode, isCommandNode, isConditionNode, isTextNode }

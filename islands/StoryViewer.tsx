@@ -1,20 +1,13 @@
 import { useEffect } from "preact/hooks"
 import { ContentNode } from "@/utils/storyTypes.tsx"
-import {
-  filterVisibleNodes,
-  RenderConfig,
-  RenderContext,
-  RenderHandlers,
-  renderNode,
-} from "@/utils/nodeRenderer.tsx"
+import { filterVisibleNodes, RenderContext } from "@/utils/nodeVisibility.ts"
+import { RenderConfig, renderNode } from "@/utils/renderNode.tsx"
 import {
   applyVariables,
   blockEntryVariables,
   blockHistory,
   choices,
   currentBlockTitle,
-  currentIndentionLevel,
-  navigateToBlock,
   seenOnceSections,
   storyBlocks,
   storyVariables,
@@ -22,7 +15,6 @@ import {
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
-import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 
 // ── Module-level caches ───────────────────────────────────────────────────────
 
@@ -58,7 +50,6 @@ const historicNodeVarsCache = new WeakMap<
 
 function StoryViewer() {
   const blockTitle = currentBlockTitle.value
-  const indentionLevel = currentIndentionLevel.value
   const currentChoices = choices.value
   const history = blockHistory.value
 
@@ -120,27 +111,8 @@ function StoryViewer() {
     globalThis.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
   }, [blockTitle])
 
-  const handlers: RenderHandlers = {
-    onChoiceClick: (index: number) => handleChoiceClick(contentNodes, index),
-    onJumpClick: navigateToBlock,
-    onSetNode: (_command: string) => {},
-    setCurrentIndentionLevel: (updater) => {
-      currentIndentionLevel.value = typeof updater === "function"
-        ? updater(currentIndentionLevel.value)
-        : updater
-    },
-    setChoices: (updater) => {
-      choices.value = typeof updater === "function"
-        ? updater(choices.value)
-        : updater
-    },
-  }
-
   const activeRenderConfig: RenderConfig = {
-    contentNodes,
-    indentionLevel,
     choices: currentChoices,
-    handlers,
     context,
     nodeVariables,
   }
@@ -178,10 +150,7 @@ function StoryViewer() {
     }
 
     const historicConfig: RenderConfig = {
-      contentNodes: frozenNodes,
-      indentionLevel: 0,
       choices: snapshot.choices,
-      handlers,
       context: frozenContext,
       nodeVariables: frozenNodeVariables,
       isHistorical: true,

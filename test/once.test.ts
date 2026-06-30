@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
-import { filterVisibleNodes } from "@/utils/nodeRenderer.tsx"
+import { filterVisibleNodes } from "@/utils/nodeVisibility.ts"
 import { parseStory } from "@/utils/storyParser.ts"
 import { ActionNode, ConditionNode, TextNode } from "@/utils/storyTypes.tsx"
 

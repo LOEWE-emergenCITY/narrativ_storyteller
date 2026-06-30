@@ -1,0 +1,15 @@
+{
+  "blackout": "https://ehubcities.de/krisenszenarien/#stromausfall",
+  "comm_down": "https://ehubcities.de/krisenszenarien/#telekommunikationsausfall",
+  "eHUB_idea": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#ehub",
+  "powerSharing": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#ehub",
+  "powerSharing_critical_infrastructures": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#ehub",
+  "CarBattery": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#ehub",
+  "LoraWAN": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#dtn",
+  "DTN": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#dtn",
+  "drones": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#fink",
+  "drones_can_deliver_medics": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#fink",
+  "litfasssaeulen_DTN": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#litfasssaeule",
+  "smartspeaker": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#smartspeaker",
+  "smartspeaker_interacts_with_eHUB": "https://ehubcities.de/krisenszenarien/forschungsaspekte/#smartspeaker"
+}

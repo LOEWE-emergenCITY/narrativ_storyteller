@@ -1,26 +1,20 @@
 import { useEffect } from "preact/hooks"
 import { ContentNode } from "@/utils/storyTypes.tsx"
-import {
-  filterVisibleNodes,
-  RenderConfig,
-  RenderContext,
-  RenderHandlers,
-  renderNode,
-} from "@/utils/nodeRenderer.tsx"
+import { filterVisibleNodes, RenderContext } from "@/utils/nodeVisibility.ts"
+import { RenderConfig, renderNode } from "@/utils/renderNode.tsx"
 import {
   applyVariables,
   blockEntryVariables,
   blockHistory,
   choices,
   currentBlockTitle,
-  currentIndentionLevel,
-  navigateToBlock,
+  seenOnceSections,
   storyBlocks,
   storyVariables,
+  visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
-import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 
 // ── Module-level caches ───────────────────────────────────────────────────────
 
@@ -47,6 +41,7 @@ type HistorySnapshot = {
   choices: number[]
   variables: Map<string, string | number | boolean>
   visitedBlocks: Set<string>
+  seenOnceSections: Set<string>
 }
 const historicNodeVarsCache = new WeakMap<
   HistorySnapshot,
@@ -55,7 +50,6 @@ const historicNodeVarsCache = new WeakMap<
 
 function StoryViewer() {
   const blockTitle = currentBlockTitle.value
-  const indentionLevel = currentIndentionLevel.value
   const currentChoices = choices.value
   const history = blockHistory.value
 
@@ -65,11 +59,19 @@ function StoryViewer() {
 
   const context: RenderContext = {
     visitedBlocks: visitedBlocks.value,
+    seenOnceSections: seenOnceSections.value,
     variables: storyVariables.value,
   }
 
   const contentNodes = block?.contentNodes || []
-  const visibleNodes = filterVisibleNodes(contentNodes, currentChoices, context)
+  const { visibleNodes, visibleOnceKeys } = filterVisibleNodes(
+    contentNodes,
+    currentChoices,
+    context,
+  )
+  const visibleOnceSignature = `${blockTitle}:${
+    [...visibleOnceKeys].sort().join("|")
+  }`
 
   // Capture the previous active block's computed vars BEFORE potentially
   // overwriting the cache. These are needed when that block first enters
@@ -100,32 +102,17 @@ function StoryViewer() {
     applyVariables(activeNodeVarsCache.finalVars)
   }, [blockTitle])
 
+  useEffect(() => {
+    visibleOnceSections.value = new Set(visibleOnceKeys)
+  }, [visibleOnceSignature])
+
   // Scroll to the newly appended block each time the active block changes.
   useEffect(() => {
     globalThis.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
   }, [blockTitle])
 
-  const handlers: RenderHandlers = {
-    onChoiceClick: (index: number) => handleChoiceClick(contentNodes, index),
-    onJumpClick: navigateToBlock,
-    onSetNode: (_command: string) => {},
-    setCurrentIndentionLevel: (updater) => {
-      currentIndentionLevel.value = typeof updater === "function"
-        ? updater(currentIndentionLevel.value)
-        : updater
-    },
-    setChoices: (updater) => {
-      choices.value = typeof updater === "function"
-        ? updater(choices.value)
-        : updater
-    },
-  }
-
   const activeRenderConfig: RenderConfig = {
-    contentNodes,
-    indentionLevel,
     choices: currentChoices,
-    handlers,
     context,
     nodeVariables,
   }
@@ -138,11 +125,12 @@ function StoryViewer() {
 
     const frozenContext: RenderContext = {
       visitedBlocks: snapshot.visitedBlocks,
+      seenOnceSections: snapshot.seenOnceSections,
       variables: snapshot.variables,
     }
 
     const frozenNodes = historicBlock.contentNodes
-    const frozenVisible = filterVisibleNodes(
+    const { visibleNodes: frozenVisible } = filterVisibleNodes(
       frozenNodes,
       snapshot.choices,
       frozenContext,
@@ -162,10 +150,7 @@ function StoryViewer() {
     }
 
     const historicConfig: RenderConfig = {
-      contentNodes: frozenNodes,
-      indentionLevel: 0,
       choices: snapshot.choices,
-      handlers,
       context: frozenContext,
       nodeVariables: frozenNodeVariables,
       isHistorical: true,

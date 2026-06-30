@@ -1,9 +1,14 @@
 import { useState } from "preact/hooks"
 import { Story } from "@/utils/storyTypes.tsx"
 import StoryViewer from "@/islands/StoryViewer.tsx"
-import { isLoggedIn, loadStory } from "@/utils/storyStore.ts"
+import { isLoggedIn, loadScienceFacts, loadStory } from "@/utils/storyStore.ts"
 
-function Login({ initialStory }: { initialStory: Story }) {
+function Login(
+  {
+    initialStory,
+    initialScienceFacts,
+  }: { initialStory: Story; initialScienceFacts: Record<string, string> },
+) {
   const [password, setPassword] = useState("")
 
   const handleSubmit = (e: SubmitEvent) => {
@@ -12,6 +17,7 @@ function Login({ initialStory }: { initialStory: Story }) {
     if (password === "razupaltuf") {
       // loadStory runs first — storyBlocks is populated before StoryViewer mounts
       loadStory(initialStory)
+      loadScienceFacts(initialScienceFacts)
       isLoggedIn.value = true
     } else {
       setPassword("")

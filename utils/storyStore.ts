@@ -1,11 +1,13 @@
-import { batch, computed, signal } from "@preact/signals"
+import { batch, signal } from "@preact/signals"
 import { Block, Story } from "@/utils/storyTypes.tsx"
 
 // ===== SIGNALS =====
 
-export const storyFile = signal<string>("")
 export const storyBlocks = signal<Map<string, Block>>(new Map())
 export const visitedBlocks = signal<Set<string>>(new Set())
+export const seenOnceSections = signal<Set<string>>(new Set())
+export const visibleOnceSections = signal<Set<string>>(new Set())
+export const scienceFacts = signal<Record<string, string>>({})
 export const storyVariables = signal<Map<string, string | number | boolean>>(
   new Map(),
 )
@@ -20,7 +22,9 @@ export const isLoggedIn = signal<boolean>(false)
  * buildNodeVariables so set-command replays always start from the correct
  * pre-block values (avoids double-applying arithmetic and re-rolling random()).
  */
-export const blockEntryVariables = signal<Map<string, string | number | boolean>>(
+export const blockEntryVariables = signal<
+  Map<string, string | number | boolean>
+>(
   new Map(),
 )
 
@@ -36,12 +40,9 @@ export const blockHistory = signal<
     choices: number[]
     variables: Map<string, string | number | boolean>
     visitedBlocks: Set<string>
+    seenOnceSections: Set<string>
   }>
 >([])
-
-export const currentBlock = computed<Block | undefined>(() =>
-  storyBlocks.value.get(currentBlockTitle.value)
-)
 
 // ===== ACTIONS =====
 
@@ -64,16 +65,21 @@ export function loadStory(story: Story): void {
     )
 
   batch(() => {
-    storyFile.value = story.file
     storyBlocks.value = blocks
     storyVariables.value = variables
     blockEntryVariables.value = new Map(variables)
     visitedBlocks.value = new Set(["Start"])
+    seenOnceSections.value = new Set()
+    visibleOnceSections.value = new Set()
     currentBlockTitle.value = "Start"
     currentIndentionLevel.value = 0
     choices.value = []
     blockHistory.value = []
   })
+}
+
+export function loadScienceFacts(facts: Record<string, string>): void {
+  scienceFacts.value = { ...facts }
 }
 
 /**
@@ -83,6 +89,10 @@ export function loadStory(story: Story): void {
  */
 export function navigateToBlock(title: string): void {
   batch(() => {
+    const consumedOnceSections = new Set([
+      ...seenOnceSections.value,
+      ...visibleOnceSections.value,
+    ])
     blockHistory.value = [
       ...blockHistory.value,
       {
@@ -90,10 +100,13 @@ export function navigateToBlock(title: string): void {
         choices: choices.value,
         variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
+        seenOnceSections: new Set(seenOnceSections.value),
       },
     ]
     // Post-current-block state becomes the pre-entry state for the new block.
     blockEntryVariables.value = new Map(storyVariables.value)
+    seenOnceSections.value = consumedOnceSections
+    visibleOnceSections.value = new Set()
     visitedBlocks.value = new Set([...visitedBlocks.value, title])
     currentBlockTitle.value = title
     currentIndentionLevel.value = 0
@@ -115,6 +128,10 @@ export function selectChoice(
   batch(() => {
     if (jumpTarget) {
       const finalChoices = [...choices.value, choiceLevel]
+      const consumedOnceSections = new Set([
+        ...seenOnceSections.value,
+        ...visibleOnceSections.value,
+      ])
       blockHistory.value = [
         ...blockHistory.value,
         {
@@ -122,10 +139,13 @@ export function selectChoice(
           choices: finalChoices,
           variables: new Map(blockEntryVariables.value),
           visitedBlocks: new Set(visitedBlocks.value),
+          seenOnceSections: new Set(seenOnceSections.value),
         },
       ]
       // Post-current-block state becomes the pre-entry state for the new block.
       blockEntryVariables.value = new Map(storyVariables.value)
+      seenOnceSections.value = consumedOnceSections
+      visibleOnceSections.value = new Set()
       visitedBlocks.value = new Set([...visitedBlocks.value, jumpTarget])
       choices.value = []
       currentIndentionLevel.value = 0
@@ -149,21 +169,4 @@ export function applyVariables(
   const merged = new Map(storyVariables.value)
   updates.forEach((v, k) => merged.set(k, v))
   storyVariables.value = merged
-}
-
-/**
- * Reset all game state back to the initial defaults.
- */
-export function resetGame(): void {
-  batch(() => {
-    storyBlocks.value = new Map()
-    storyVariables.value = new Map()
-    blockEntryVariables.value = new Map()
-    visitedBlocks.value = new Set()
-    blockHistory.value = []
-    currentBlockTitle.value = "Start"
-    currentIndentionLevel.value = 0
-    choices.value = []
-    isLoggedIn.value = false
-  })
 }

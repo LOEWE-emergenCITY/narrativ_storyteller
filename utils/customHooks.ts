@@ -1,5 +1,3 @@
-import DOMPurify from "https://esm.sh/dompurify@3.0.6"
-
 export function interpolateVariables(
   html: string,
   variables?: Map<string, string | number | boolean>,
@@ -11,11 +9,29 @@ export function interpolateVariables(
   })
 }
 
-export function useHTMLRenderer(htmlString: string): string {
-  const allowedTags = ["i", "b", "br"]
+function escapeHtml(html: string): string {
+  return html
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
 
-  return DOMPurify.sanitize(htmlString, {
-    ALLOWED_TAGS: allowedTags,
-    ALLOWED_ATTR: [],
-  })
+function sanitizeLimitedHtml(htmlString: string): string {
+  return escapeHtml(htmlString)
+    .replaceAll("&lt;i&gt;", "<i>")
+    .replaceAll("&lt;/i&gt;", "</i>")
+    .replaceAll("&lt;b&gt;", "<b>")
+    .replaceAll("&lt;/b&gt;", "</b>")
+    .replaceAll("&lt;br&gt;", "<br>")
+    .replaceAll("&lt;br/&gt;", "<br>")
+    .replaceAll("&lt;br /&gt;", "<br>")
+}
+
+export function renderHTML(
+  htmlString: string,
+  variables?: Map<string, string | number | boolean>,
+): string {
+  return sanitizeLimitedHtml(interpolateVariables(htmlString, variables))
 }

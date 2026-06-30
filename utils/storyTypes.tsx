@@ -23,6 +23,7 @@ export interface ActionNode {
   type: "choice" | "jump" | "detour"
   identionLevel: number
   choicePath: [number]
+  onceKey?: string
   myChoiceLevel?: number // only for "choice" to track which choice was selected
   jumpTarget?: string // for "jump" and "detour"
   //   choice?: { text: string; nextLine: number; siblingLine: number } // for "choice"
@@ -34,6 +35,7 @@ export interface CommandNode {
   type: "set" | "mood" | "scienceFact" | "scene"
   identionLevel: number
   choicePath: [number]
+  onceKey?: string
   command: string // e.g., "set mood=tense" or "mood KathrinBrowsesOnPhone"
 }
 
@@ -42,6 +44,7 @@ export interface ConditionNode {
   type: "if" | "else" | "elseif" | "endif" | "once" | "endonce"
   identionLevel: number
   choicePath: [number]
+  onceKey?: string
   condition?: string // e.g., "if mood == tense" || if condition == null => jump to next line
   skipLines: number
 }
@@ -50,31 +53,7 @@ export interface TextNode {
   type: "text" | "chat"
   identionLevel: number
   choicePath: [number]
+  onceKey?: string
   speaker?: string // e.g., "Kathrin"
   text: string // e.g., "What a boring day..."
 }
-
-//-------------------------------------------------------------------------------------------------------
-
-function isActionNode(node: ContentNode): node is ActionNode {
-  return node &&
-    (node.type === "choice" || node.type === "jump" || node.type === "detour")
-}
-
-function isConditionNode(node: ContentNode): node is ConditionNode {
-  return node &&
-    (node.type === "if" || node.type === "elseif" || node.type === "else" ||
-      node.type === "endif" || node.type === "once" || node.type === "endonce")
-}
-
-function isCommandNode(node: ContentNode): node is CommandNode {
-  return node &&
-    (node.type === "set" || node.type === "mood" ||
-      node.type === "scienceFact" || node.type === "scene")
-}
-
-function isTextNode(node: ContentNode): node is TextNode {
-  return node && (node.type === "text" || node.type === "chat")
-}
-
-export { isActionNode, isCommandNode, isConditionNode, isTextNode }

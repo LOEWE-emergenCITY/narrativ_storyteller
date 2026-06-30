@@ -4,6 +4,23 @@ Last updated: 2026-06-30
 
 ---
 
+## Progress Snapshot
+
+Scoring:
+- Done = 1
+- Partial = 0.5
+- Not implemented = 0
+
+- Step 1 / MVP progress: 81% done, 19% remaining
+- Complete package progress: 56% done, 44% remaining
+
+Assumptions:
+- Step 1 / MVP progress tracks core gameplay only.
+- Complete package progress tracks all sections below, including session state,
+  product UI, legal pages, testing, and CI/CD.
+
+---
+
 ## Parsing (`utils/storyParser.ts`)
 
 | Feature                                                                  | Status          |
@@ -36,10 +53,11 @@ Last updated: 2026-06-30
 | Variable side effects (`<<set>>`)                           | Done                              |
 | update variables within buttons / choices (`<<set>>`)       | Not implemented                   |
 | Block navigation (`<<jump>>`)                               | Done                              |
+| Pause on choices until explicit user selection              | Partial                           |
 | `<<detour>>` — returnable jump with return stack            | Not implemented                   |
 | `<<once>>` / `<<endonce>>` — hide content after first visit | Done                              |
 | Inline `<<once>>` gating                                    | Done                              |
-| `<<GatherScienceFact>>` runtime side effect                 | Partial - renders badge/link only |
+| `<<GatherScienceFact>>` runtime side effect                 | Done - renders badge/link only    |
 | `<<Scene>>` — trigger scene change                          | Not implemented                   |
 
 ---
@@ -53,6 +71,7 @@ Last updated: 2026-06-30
 | Chat bubbles (`Speaker: text`)            | Done                             |
 | Choice buttons (`->`)                     | Done                             |
 | Jump buttons                              | Done                             |
+| Continue after choice into the selected branch             | Partial                          |
 | Mood images (`<<Mood …>>`)                | Done                             |
 | `<<detour>>` button + return navigation   | Not implemented                  |
 | `<<once>>` content gating                 | Done                             |
@@ -67,17 +86,32 @@ Last updated: 2026-06-30
 
 ## State Management (`utils/storyStore.ts`)
 
-| Feature                     | Status          |
-| --------------------------- | --------------- |
-| Track visited blocks        | Done            |
-| Live variable state         | Done            |
-| Block navigation            | Done            |
-| Choice path tracking        | Done            |
-| Once visibility tracking    | Done            |
-| Block history snapshots     | Done            |
-| Detour return stack         | Not implemented |
-| Active scene state          | Not implemented |
-| Gathered science fact state | Done            |
+| Feature                                | Status          |
+| -------------------------------------- | --------------- |
+| Track visited blocks                   | Done            |
+| Live variable state                    | Done            |
+| Block navigation                       | Done            |
+| Choice path tracking                   | Done            |
+| Once visibility tracking               | Done            |
+| Block history snapshots                | Done            |
+| Detour return stack                    | Not implemented |
+| Active scene state                     | Not implemented |
+| Science fact catalog loaded            | Done            |
+| Browser session restore on load        | Not implemented |
+| Browser session auto-save              | Not implemented |
+| Restart story and clear saved session  | Not implemented |
+
+---
+
+## Product UI / Site Shell
+
+| Feature                          | Status          |
+| -------------------------------- | --------------- |
+| Shared header                    | Not implemented |
+| Shared footer                    | Not implemented |
+| Impressum page                   | Not implemented |
+| Data security / privacy page     | Not implemented |
+| Logos / branding                 | Not implemented |
 
 ---
 
@@ -131,19 +165,38 @@ Last updated: 2026-06-30
 
 ---
 
-## MVP Todo
+## Implementation Roadmap
 
-1. Implement `<<detour>>` end-to-end.
-2. Implement a minimal `<<Scene>>` behavior beyond the current debug
+### Step 1: Basic Gameplay
+
+1. Adjust choice and continue-button flow.
+   When a choice is presented, story progression must pause until the user
+   selects one option. After selection, continue with the next visible line or
+   action from that branch.
+2. Implement `<<detour>>` end-to-end.
+3. Implement a minimal `<<Scene>>` behavior beyond the current debug
    placeholder.
-3. Clarify whether `<<GatherScienceFact>>` should also write collected-fact
-   state.
-4. Add automated tests for conditions, `<<set>>`, choices, jumps, once-gating,
-   detours, and scenes.
-5. Add CI to run `deno task check`, `deno test -A`, and `deno task build`.
-6. Choose a deployment target and commit provider-specific deployment
+4. Manually verify key story branches to catch broken transitions or dead ends.
+
+### Step 2: Product UI And Session State Management
+
+1. Add browser session restore on load.
+2. Add browser session auto-save after progress changes.
+3. Add restart behavior that clears saved browser state and returns to `Start`.
+4. Add a shared header and footer.
+5. Add Impressum and data security / privacy pages.
+6. Add logos and branding.
+7. Improve the reader UI for clearer hierarchy and better mobile behavior.
+8. Add a localization foundation for static UI copy and legal content.
+
+### Step 3: Quality, Testing, CI/CD
+
+1. Add automated tests for conditions, `<<set>>`, choices, jumps, once-gating,
+   detours, scenes, and session state management.
+2. Add CI to run `deno task check`, `deno test -A`, and `deno task build`.
+3. Choose a deployment target and commit provider-specific deployment
    configuration.
-7. Replace the boilerplate `README.md` with project-specific setup, testing,
+4. Replace the boilerplate `README.md` with project-specific setup, testing,
    build, and deployment instructions.
 
 ---

@@ -43,8 +43,7 @@ export function filterVisibleNodes(
 
   const allConditionsActive = (): boolean =>
     conditionStack.every((condition) => condition.active)
-  const allOnceActive = (): boolean =>
-    onceStack.every((once) => once.active)
+  const allOnceActive = (): boolean => onceStack.every((once) => once.active)
 
   let i = 0
   while (i < contentNodes.length) {
@@ -133,7 +132,8 @@ export function filterVisibleNodes(
         if (
           node.type === "choice" &&
           choices.length > node.choicePath.length &&
-          choices[node.choicePath.length] !== (node as ActionNode).myChoiceLevel!
+          choices[node.choicePath.length] !==
+            (node as ActionNode).myChoiceLevel!
         ) {
           i++
           continue

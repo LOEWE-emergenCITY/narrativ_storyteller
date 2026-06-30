@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact"
 import clsx from "clsx"
-import { interpolateVariables, useHTMLRenderer } from "@/utils/customHooks.ts"
+import { interpolateVariables, renderHTML } from "@/utils/customHooks.ts"
 
 export interface TextProps {
   children?: ComponentChildren
@@ -10,8 +10,9 @@ export interface TextProps {
 }
 
 export function Text(props: TextProps) {
+  const renderedHtml = renderHTML(props.html ?? "", props.variables)
   const preparedText = props.html
-    ? useHTMLRenderer(props.html, props.variables)
+    ? renderedHtml
     : interpolateVariables(String(props.children), props.variables)
 
   if (props.html) {

@@ -29,7 +29,7 @@ function sanitizeLimitedHtml(htmlString: string): string {
     .replaceAll("&lt;br /&gt;", "<br>")
 }
 
-export function useHTMLRenderer(
+export function renderHTML(
   htmlString: string,
   variables?: Map<string, string | number | boolean>,
 ): string {

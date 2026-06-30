@@ -33,13 +33,13 @@ export default define.page(async function Home() {
           Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
           dolor sit amet.
         </Chat>
-        <Chat isAngela={true} sender="Angela">
+        <Chat isAngela sender="Angela">
           Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
           dolor sit amet. Stet clita kasd gubergren, no sea takimata sanctus est
           Lorem ipsum dolor sit amet.
         </Chat>
 
-        <Chat isAngela={true} sender="Angela">
+        <Chat isAngela sender="Angela">
           NVM MEIS.
         </Chat>
         <Chat isAngela={false} sender="Angela">

@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact"
 import { clsx } from "clsx"
-import { useHTMLRenderer } from "@/utils/customHooks.ts"
+import { renderHTML } from "@/utils/customHooks.ts"
 import { ArrowBigRightDash } from "lucide-preact"
 
 export interface ButtonProps {
@@ -14,7 +14,7 @@ export interface ButtonProps {
 }
 
 export function Button(props: ButtonProps) {
-  const sanitized = useHTMLRenderer(props.html ? props.html : "")
+  const sanitized = renderHTML(props.html ? props.html : "")
 
   return (
     <div class={clsx("w-full py-1 px-4 justify-start flex", props.className)}>

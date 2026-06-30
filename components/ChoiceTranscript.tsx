@@ -1,4 +1,4 @@
-import { useHTMLRenderer } from "@/utils/customHooks.ts"
+import { renderHTML } from "@/utils/customHooks.ts"
 
 export interface ChoiceTranscriptProps {
   html?: string
@@ -11,7 +11,7 @@ export interface ChoiceTranscriptProps {
  * plain narration text while being clearly non-interactive.
  */
 export function ChoiceTranscript(props: ChoiceTranscriptProps) {
-  const preparedText = useHTMLRenderer(props.html ?? "", props.variables)
+  const preparedText = renderHTML(props.html ?? "", props.variables)
 
   return (
     <div class="w-full py-1 px-4">

@@ -59,6 +59,8 @@ Last updated: 2026-06-30
 | `<<Scene>>` component                     | Partial - debug placeholder only |
 | Historical block rendering                | Done                             |
 | Selected choice transcript in history     | Done                             |
+| Localization                              | Not implemented                  |
+| Dark Mode                                 | Not implemented                  |
 
 ---
 

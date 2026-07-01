@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks"
+import { useEffect, useRef } from "preact/hooks"
 import { ContentNode } from "@/utils/storyTypes.tsx"
 import { filterVisibleNodes, RenderContext } from "@/utils/nodeVisibility.ts"
 import { RenderConfig, renderNode } from "@/utils/renderNode.tsx"
@@ -49,6 +49,7 @@ const historicNodeVarsCache = new WeakMap<
 >()
 
 function StoryViewer() {
+  const activeBlockSeparatorRef = useRef<HTMLHRElement | null>(null)
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
   const history = blockHistory.value
@@ -108,8 +109,12 @@ function StoryViewer() {
 
   // Scroll to the newly appended block each time the active block changes.
   useEffect(() => {
-    globalThis.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
-  }, [blockTitle])
+    if (history.length === 0) return
+    activeBlockSeparatorRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }, [blockTitle, history.length])
 
   const activeRenderConfig: RenderConfig = {
     choices: currentChoices,
@@ -162,10 +167,15 @@ function StoryViewer() {
       )
       .flat()
 
+    const isLastHistoricalSection = sectionIndex === history.length - 1
+
     return (
       <div key={`history-${sectionIndex}-${snapshot.title}`}>
         {renderedHistoric}
-        <hr class="my-6 border-gray-200" />
+        <hr
+          ref={isLastHistoricalSection ? activeBlockSeparatorRef : null}
+          class="my-6 border-gray-200"
+        />
       </div>
     )
   })

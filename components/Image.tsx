@@ -16,8 +16,6 @@ export function Image(props: ImageProps) {
     return null
   }
 
-  console.log(imgPath)
-
   return (
     <div class="w-full py-2 px-4">
       <img

@@ -226,7 +226,6 @@ position: -120,-1118
 // Alternativ kommt Angela mit und alle sind glücklich.
 // Bei Beziehungskrisen und Angela bleibt nicht zuhause: Düstere Aussichten für die Zukunft.
 
-<<scene restlicht_title>>
 <<jump Fruehstueck>>
 ===
 

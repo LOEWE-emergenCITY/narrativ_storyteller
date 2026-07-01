@@ -1,7 +1,7 @@
 import { Button, ContinueButton } from "@/components/Button.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { ChoiceTranscript } from "@/components/ChoiceTranscript.tsx"
-import { MoodImage } from "@/components/MoodImage.tsx"
+import { Image } from "@/components/Image.tsx"
 import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 import { Text } from "@/components/Text.tsx"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
@@ -13,7 +13,6 @@ import {
   ContentNode,
   TextNode,
 } from "@/utils/storyTypes.tsx"
-import { clsx } from "clsx"
 import { JSX } from "preact/jsx-runtime"
 
 export interface RenderConfig {
@@ -48,9 +47,14 @@ function getNodeType(
   return "debug"
 }
 
-function renderTextNode(node: TextNode, config: RenderConfig): JSX.Element {
+function renderTextNode(
+  node: TextNode,
+  config: RenderConfig,
+  index: number,
+): JSX.Element {
   return (
     <Text
+      key={`TEXT_${index}`}
       html={node.text}
       variables={config.nodeVariables?.get(node) ?? config.context.variables}
     />
@@ -60,6 +64,7 @@ function renderTextNode(node: TextNode, config: RenderConfig): JSX.Element {
 function renderChatNode(node: TextNode): JSX.Element {
   return (
     <Chat
+      key={`CHAT_${node.speaker}_${node.text}`}
       isAngela={node.speaker === "Angela"}
       sender={String(node.speaker)}
     >
@@ -112,22 +117,32 @@ function renderJumpNode(
   )
 }
 
-function renderSceneNode(node: ContentNode): JSX.Element | null {
-  if (node.type !== "scene") return null
-
+function renderMoodNode(node: CommandNode): JSX.Element {
   return (
-    <div
-      class={clsx(
-        "w-full py-2 px-4 rounded-sm border",
-        "bg-green-100 border-green-300",
-      )}
-    >
-      Type: {node.type}
-      <br />
-      {`NodeCommand: ${(node as CommandNode).command}`}
-      <br />
-      IdentionLevel: {node.identionLevel}
-    </div>
+    <Image
+      key={`MOOD_${node.command}`}
+      name={node.command}
+      type="mood"
+    />
+  )
+}
+
+function renderSceneNode(node: CommandNode): JSX.Element {
+  return (
+    <Image
+      key={`SCENE_${node.command}`}
+      name={node.command}
+      type="scene"
+    />
+  )
+}
+
+function renderScienceFactNode(node: CommandNode): JSX.Element {
+  return (
+    <ScienceFactBadge
+      key={`SCIENCE_FACT_${node.command.trim()}`}
+      name={node.command.trim()}
+    />
   )
 }
 
@@ -142,17 +157,16 @@ export function renderNode(
 
   switch (getNodeType(node)) {
     case "text":
-      return [renderTextNode(node as TextNode, config)]
+      return [
+        renderTextNode(node as TextNode, config, index),
+      ]
 
     case "chat":
       return [renderChatNode(node as TextNode)]
 
     case "mood":
       return [
-        <MoodImage
-          key={(node as CommandNode).command}
-          name={(node as CommandNode).command}
-        />,
+        renderMoodNode(node as CommandNode),
       ]
 
     case "set":
@@ -160,10 +174,7 @@ export function renderNode(
 
     case "scienceFact":
       return [
-        <ScienceFactBadge
-          key={(node as CommandNode).command.trim()}
-          name={(node as CommandNode).command.trim()}
-        />,
+        renderScienceFactNode(node as CommandNode),
       ]
 
     case "detour":
@@ -180,8 +191,9 @@ export function renderNode(
     }
 
     case "scene": {
-      const scene = renderSceneNode(node)
-      return scene ? [scene] : []
+      return [
+        renderSceneNode(node as CommandNode),
+      ]
     }
 
     case "debug":

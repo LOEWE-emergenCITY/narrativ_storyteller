@@ -2,7 +2,7 @@ import { define } from "@/utils.ts"
 import { Text } from "@/components/Text.tsx"
 import { Button, ContinueButton } from "@/components/Button.tsx"
 import { Chat } from "../components/Chat.tsx"
-import { MoodImage } from "../components/MoodImage.tsx"
+import { Image } from "@/components/Image.tsx"
 import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 import { loadScienceFacts } from "@/utils/storyStore.ts"
 
@@ -45,8 +45,9 @@ export default define.page(async function Home() {
         <Chat isAngela={false} sender="Angela">
           bla bla.
         </Chat>
-        <MoodImage name="kathrin_regular" />
-        <MoodImage name="angela_annoyed" />
+        <Image name="kathrin_regular" type="mood" />
+        <Image name="angela_annoyed" type="mood" />
+        <Image name="breakfast" type="scene" />
         <Button choiceId="1">
           orem ipsum dolor sit amet, consetetur sadipscing elitr
         </Button>

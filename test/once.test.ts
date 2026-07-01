@@ -2,6 +2,13 @@ import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import { filterVisibleNodes } from "@/utils/nodeVisibility.ts"
 import { parseStory } from "@/utils/storyParser.ts"
+import {
+  blockEntryVariables,
+  currentBlockTitle,
+  loadStory,
+  storyVariables,
+  visitedBlocks,
+} from "@/utils/storyStore.ts"
 import { ActionNode, ConditionNode, TextNode } from "@/utils/storyTypes.tsx"
 
 async function withTempStory(
@@ -104,5 +111,30 @@ Inline once text <<once>>
 
     assertEquals(revisitTexts, ["Always visible"])
     assertEquals(revisit.visibleOnceKeys.size, 0)
+  })
+})
+
+Deno.test("loadStory skips bootstrap Start block and applies startup sets", async () => {
+  const storyText = `title: Start
+---
+<<declare $counter = 1>>
+<<set $counter to $counter + 2>>
+<<jump Next>>
+===
+title: Next
+---
+Ready
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+
+    loadStory(story)
+
+    assertEquals(currentBlockTitle.value, "Next")
+    assertEquals(storyVariables.value.get("$counter"), 3)
+    assertEquals(blockEntryVariables.value.get("$counter"), 3)
+    assertEquals(Array.from(visitedBlocks.value), ["Start", "Next"])
   })
 })

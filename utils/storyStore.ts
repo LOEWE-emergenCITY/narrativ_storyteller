@@ -1,5 +1,6 @@
 import { batch, signal } from "@preact/signals"
-import { Block, Story } from "@/utils/storyTypes.tsx"
+import { applySetCommands } from "@/utils/setHandler.ts"
+import { ActionNode, Block, CommandNode, Story } from "@/utils/storyTypes.tsx"
 
 // ===== SIGNALS =====
 
@@ -46,6 +47,57 @@ export const blockHistory = signal<
 
 // ===== ACTIONS =====
 
+function resolveInitialStoryState(story: Story): {
+  initialBlockTitle: string
+  initialVariables: Map<string, string | number | boolean>
+  initialVisitedBlocks: Set<string>
+} {
+  const baseVariables = new Map(story.variables)
+  const startBlock = story.blocks.get("Start")
+
+  if (!startBlock) {
+    return {
+      initialBlockTitle: "Start",
+      initialVariables: baseVariables,
+      initialVisitedBlocks: new Set(["Start"]),
+    }
+  }
+
+  const bootstrapOnly = startBlock.contentNodes.every((node) =>
+    node.type === "set" || node.type === "jump"
+  )
+
+  if (!bootstrapOnly) {
+    return {
+      initialBlockTitle: "Start",
+      initialVariables: baseVariables,
+      initialVisitedBlocks: new Set(["Start"]),
+    }
+  }
+
+  const jumpNode = startBlock.contentNodes.find((node) => node.type === "jump") as
+    | ActionNode
+    | undefined
+
+  if (!jumpNode?.jumpTarget) {
+    return {
+      initialBlockTitle: "Start",
+      initialVariables: baseVariables,
+      initialVisitedBlocks: new Set(["Start"]),
+    }
+  }
+
+  const startupCommands = startBlock.contentNodes
+    .filter((node): node is CommandNode => node.type === "set")
+    .map((node) => node.command)
+
+  return {
+    initialBlockTitle: jumpNode.jumpTarget,
+    initialVariables: applySetCommands(startupCommands, baseVariables),
+    initialVisitedBlocks: new Set(["Start", jumpNode.jumpTarget]),
+  }
+}
+
 /**
  * Seed the store from a server-parsed Story.
  * Reconstructs Map/Set defensively — Fresh island serialization can convert
@@ -64,14 +116,20 @@ export function loadStory(story: Story): void {
       ),
     )
 
+  const initialStory = resolveInitialStoryState({
+    ...story,
+    blocks,
+    variables,
+  })
+
   batch(() => {
     storyBlocks.value = blocks
-    storyVariables.value = variables
-    blockEntryVariables.value = new Map(variables)
-    visitedBlocks.value = new Set(["Start"])
+    storyVariables.value = initialStory.initialVariables
+    blockEntryVariables.value = new Map(initialStory.initialVariables)
+    visitedBlocks.value = initialStory.initialVisitedBlocks
     seenOnceSections.value = new Set()
     visibleOnceSections.value = new Set()
-    currentBlockTitle.value = "Start"
+    currentBlockTitle.value = initialStory.initialBlockTitle
     currentIndentionLevel.value = 0
     choices.value = []
     blockHistory.value = []

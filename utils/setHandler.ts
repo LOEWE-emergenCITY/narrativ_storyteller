@@ -9,7 +9,7 @@ import { CommandNode, ContentNode } from "@/utils/storyTypes.tsx"
  * signal. Runs in a useEffect after render to avoid mutating signals mid-render
  * (which would cause an infinite render loop on blocks with <<set>> nodes).
  */
-function computeSetUpdates(
+export function applySetCommands(
   commands: string[],
   variables: Map<string, string | number | boolean>,
 ): Map<string, string | number | boolean> {
@@ -91,7 +91,7 @@ export function buildNodeVariables(
     nodeVars.set(node, new Map(current))
 
     if (node.type === "set") {
-      const updates = computeSetUpdates(
+      const updates = applySetCommands(
         [(node as CommandNode).command],
         current,
       )

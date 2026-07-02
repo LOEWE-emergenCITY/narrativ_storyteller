@@ -12,6 +12,24 @@ export interface VisibleNodesResult {
   visibleOnceKeys: Set<string>
 }
 
+export type ActiveBlockStatus =
+  | "waiting_for_choice"
+  | "auto_jump_now"
+  | "resolving_branch"
+  | "ready_to_continue"
+  | "complete_without_continue"
+
+export interface ActiveBlockProgress {
+  status: ActiveBlockStatus
+  continueTarget: string | null
+  blockingChoicePathLength: number | null
+}
+
+function isRenderableNode(node: ContentNode): boolean {
+  return node.type === "text" || node.type === "chat" || node.type === "mood" ||
+    node.type === "scene" || node.type === "scienceFact"
+}
+
 function getNextBranchIndex(
   nodes: ContentNode[],
   fromIndex: number,
@@ -151,4 +169,88 @@ export function filterVisibleNodes(
   }
 
   return { visibleNodes: visible, visibleOnceKeys }
+}
+
+export function evaluateActiveBlockProgress(
+  contentNodes: ContentNode[],
+  visibleNodes: ContentNode[],
+  choices: number[],
+): ActiveBlockProgress {
+  const visibleSet = new Set(visibleNodes)
+  let latestSelectedChoiceIndex = -1
+
+  if (choices.length > 0) {
+    for (const [index, node] of contentNodes.entries()) {
+      if (!visibleSet.has(node) || node.type !== "choice") continue
+
+      const choiceNode = node as ActionNode
+      if (
+        node.choicePath.length === choices.length - 1 &&
+        choices[node.choicePath.length] === choiceNode.myChoiceLevel
+      ) {
+        latestSelectedChoiceIndex = index
+      }
+    }
+  }
+
+  let sawRenderableContent = false
+  const scanStartIndex = latestSelectedChoiceIndex >= 0
+    ? latestSelectedChoiceIndex + 1
+    : 0
+
+  for (let index = scanStartIndex; index < contentNodes.length; index++) {
+    const node = contentNodes[index]
+    if (!visibleSet.has(node)) continue
+
+    if (isRenderableNode(node)) {
+      sawRenderableContent = true
+      continue
+    }
+
+    if (node.type === "choice") {
+      const choiceNode = node as ActionNode
+      const selectedLevel = choices[node.choicePath.length]
+
+      if (selectedLevel === undefined) {
+        return {
+          status: "waiting_for_choice",
+          continueTarget: null,
+          blockingChoicePathLength: node.choicePath.length,
+        }
+      }
+
+      if (selectedLevel !== choiceNode.myChoiceLevel) {
+        continue
+      }
+
+      continue
+    }
+
+    if (node.type === "jump") {
+      const jumpNode = node as ActionNode
+      const jumpTarget = jumpNode.jumpTarget ?? null
+
+      if (!jumpTarget) {
+        return {
+          status: "complete_without_continue",
+          continueTarget: null,
+          blockingChoicePathLength: null,
+        }
+      }
+
+      return {
+        status: choices.length > 0 && !sawRenderableContent
+          ? "auto_jump_now"
+          : "ready_to_continue",
+        continueTarget: jumpTarget,
+        blockingChoicePathLength: null,
+      }
+    }
+  }
+
+  return {
+    status: "complete_without_continue",
+    continueTarget: null,
+    blockingChoicePathLength: null,
+  }
 }

@@ -7,6 +7,7 @@ Last updated: 2026-06-30
 ## Progress Snapshot
 
 Scoring:
+
 - Done = 1
 - Partial = 0.5
 - Not implemented = 0
@@ -15,6 +16,7 @@ Scoring:
 - Complete package progress: 56% done, 44% remaining
 
 Assumptions:
+
 - Step 1 / MVP progress tracks core gameplay only.
 - Complete package progress tracks all sections below, including session state,
   product UI, legal pages, testing, and CI/CD.
@@ -46,72 +48,72 @@ Assumptions:
 
 ## Runtime Interpretation
 
-| Feature                                                     | Status                            |
-| ----------------------------------------------------------- | --------------------------------- |
-| Condition evaluation (`<<if>>` / `<<elseif>>` / `<<else>>`) | Done                              |
-| Condition evaluation (inline `<<if>>`)                      | Not implemented                   |
-| Variable side effects (`<<set>>`)                           | Done                              |
-| update variables within buttons / choices (`<<set>>`)       | Not implemented                   |
-| Block navigation (`<<jump>>`)                               | Done                              |
-| Pause on choices until explicit user selection              | Partial                           |
-| `<<detour>>` — returnable jump with return stack            | Not implemented                   |
-| `<<once>>` / `<<endonce>>` — hide content after first visit | Done                              |
-| Inline `<<once>>` gating                                    | Done                              |
-| `<<GatherScienceFact>>` runtime side effect                 | Done - renders badge/link only    |
-| `<<Scene>>` — trigger scene change                          | Not implemented                   |
+| Feature                                                     | Status                         |
+| ----------------------------------------------------------- | ------------------------------ |
+| Condition evaluation (`<<if>>` / `<<elseif>>` / `<<else>>`) | Done                           |
+| Condition evaluation (inline `<<if>>`)                      | Not implemented                |
+| Variable side effects (`<<set>>`)                           | Done                           |
+| update variables within buttons / choices (`<<set>>`)       | Not implemented                |
+| Block navigation (`<<jump>>`)                               | Done                           |
+| Pause on choices until explicit user selection              | Partial                        |
+| `<<detour>>` — returnable jump with return stack            | Not implemented                |
+| `<<once>>` / `<<endonce>>` — hide content after first visit | Done                           |
+| Inline `<<once>>` gating                                    | Done                           |
+| `<<GatherScienceFact>>` runtime side effect                 | Done - renders badge/link only |
+| `<<Scene>>` — trigger scene change                          | Not implemented                |
 
 ---
 
 ## Rendering
 
-| Feature                                   | Status                           |
-| ----------------------------------------- | -------------------------------- |
-| Plain text with `<i>`, `<b>`, `<br>`      | Done                             |
-| Variable interpolation in text (`{$var}`) | Done                             |
-| Chat bubbles (`Speaker: text`)            | Done                             |
-| Choice buttons (`->`)                     | Done                             |
-| Jump buttons                              | Done                             |
-| Continue after choice into the selected branch             | Partial                          |
-| Mood images (`<<Mood …>>`)                | Done                             |
-| `<<detour>>` button + return navigation   | Not implemented                  |
-| `<<once>>` content gating                 | Done                             |
-| `<<GatherScienceFact>>` component         | Done                             |
-| `<<Scene>>` component                     | Partial - debug placeholder only |
-| Historical block rendering                | Done                             |
-| Selected choice transcript in history     | Done                             |
-| Localization                              | Not implemented                  |
-| Dark Mode                                 | Not implemented                  |
+| Feature                                        | Status                           |
+| ---------------------------------------------- | -------------------------------- |
+| Plain text with `<i>`, `<b>`, `<br>`           | Done                             |
+| Variable interpolation in text (`{$var}`)      | Done                             |
+| Chat bubbles (`Speaker: text`)                 | Done                             |
+| Choice buttons (`->`)                          | Done                             |
+| Jump buttons                                   | Done                             |
+| Continue after choice into the selected branch | Partial                          |
+| Mood images (`<<Mood …>>`)                     | Done                             |
+| `<<detour>>` button + return navigation        | Not implemented                  |
+| `<<once>>` content gating                      | Done                             |
+| `<<GatherScienceFact>>` component              | Done                             |
+| `<<Scene>>` component                          | Partial - debug placeholder only |
+| Historical block rendering                     | Done                             |
+| Selected choice transcript in history          | Done                             |
+| Localization                                   | Not implemented                  |
+| Dark Mode                                      | Not implemented                  |
 
 ---
 
 ## State Management (`utils/storyStore.ts`)
 
-| Feature                                | Status          |
-| -------------------------------------- | --------------- |
-| Track visited blocks                   | Done            |
-| Live variable state                    | Done            |
-| Block navigation                       | Done            |
-| Choice path tracking                   | Done            |
-| Once visibility tracking               | Done            |
-| Block history snapshots                | Done            |
-| Detour return stack                    | Not implemented |
-| Active scene state                     | Not implemented |
-| Science fact catalog loaded            | Done            |
-| Browser session restore on load        | Not implemented |
-| Browser session auto-save              | Not implemented |
-| Restart story and clear saved session  | Not implemented |
+| Feature                               | Status          |
+| ------------------------------------- | --------------- |
+| Track visited blocks                  | Done            |
+| Live variable state                   | Done            |
+| Block navigation                      | Done            |
+| Choice path tracking                  | Done            |
+| Once visibility tracking              | Done            |
+| Block history snapshots               | Done            |
+| Detour return stack                   | Not implemented |
+| Active scene state                    | Not implemented |
+| Science fact catalog loaded           | Done            |
+| Browser session restore on load       | Not implemented |
+| Browser session auto-save             | Not implemented |
+| Restart story and clear saved session | Not implemented |
 
 ---
 
 ## Product UI / Site Shell
 
-| Feature                          | Status          |
-| -------------------------------- | --------------- |
-| Shared header                    | Not implemented |
-| Shared footer                    | Not implemented |
-| Impressum page                   | Not implemented |
-| Data security / privacy page     | Not implemented |
-| Logos / branding                 | Not implemented |
+| Feature                      | Status          |
+| ---------------------------- | --------------- |
+| Shared header                | Not implemented |
+| Shared footer                | Not implemented |
+| Impressum page               | Not implemented |
+| Data security / privacy page | Not implemented |
+| Logos / branding             | Not implemented |
 
 ---
 
@@ -169,10 +171,9 @@ Assumptions:
 
 ### Step 1: Basic Gameplay
 
-1. Adjust choice and continue-button flow.
-   When a choice is presented, story progression must pause until the user
-   selects one option. After selection, continue with the next visible line or
-   action from that branch.
+1. Adjust choice and continue-button flow. When a choice is presented, story
+   progression must pause until the user selects one option. After selection,
+   continue with the next visible line or action from that branch.
 2. Implement `<<detour>>` end-to-end.
 3. Implement a minimal `<<Scene>>` behavior beyond the current debug
    placeholder.

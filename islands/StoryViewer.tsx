@@ -1,16 +1,23 @@
 import { useEffect, useRef } from "preact/hooks"
+import { ContinueButton } from "@/components/Button.tsx"
 import { ContentNode } from "@/utils/storyTypes.tsx"
-import { filterVisibleNodes, RenderContext } from "@/utils/nodeVisibility.ts"
+import {
+  evaluateActiveBlockProgress,
+  filterVisibleNodes,
+  RenderContext,
+} from "@/utils/nodeVisibility.ts"
 import { RenderConfig, renderNode } from "@/utils/renderNode.tsx"
 import {
   applyVariables,
   blockEntryVariables,
   blockHistory,
   choices,
+  continueBranch,
   currentBlockTitle,
   seenOnceSections,
   storyBlocks,
   storyVariables,
+  updateActiveBlockState,
   visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
@@ -27,9 +34,15 @@ import { buildNodeVariables } from "@/utils/setHandler.ts"
  */
 const activeNodeVarsCache: {
   key: string
+  visibleSignature: string
   vars: WeakMap<ContentNode, Map<string, string | number | boolean>>
   finalVars: Map<string, string | number | boolean>
-} = { key: "", vars: new WeakMap(), finalVars: new Map() }
+} = {
+  key: "",
+  visibleSignature: "",
+  vars: new WeakMap(),
+  finalVars: new Map(),
+}
 
 /**
  * Historical-block cache: keyed on the snapshot object reference (stable,
@@ -70,9 +83,17 @@ function StoryViewer() {
     currentChoices,
     context,
   )
+  const visibleSignature = visibleNodes
+    .map((node) => `${node.type}:${contentNodes.indexOf(node)}`)
+    .join("|")
   const visibleOnceSignature = `${blockTitle}:${
     [...visibleOnceKeys].sort().join("|")
   }`
+  const activeBlockProgress = evaluateActiveBlockProgress(
+    contentNodes,
+    visibleNodes,
+    currentChoices,
+  )
 
   // Capture the previous active block's computed vars BEFORE potentially
   // overwriting the cache. These are needed when that block first enters
@@ -84,12 +105,16 @@ function StoryViewer() {
   // blockEntryVariables holds the pre-block state (set in the same batch as
   // currentBlockTitle), so random() and arithmetic are always evaluated from
   // the correct baseline and never re-rolled on subsequent re-renders.
-  if (activeNodeVarsCache.key !== blockTitle) {
+  if (
+    activeNodeVarsCache.key !== blockTitle ||
+    activeNodeVarsCache.visibleSignature !== visibleSignature
+  ) {
     const { nodeVars, finalVariables } = buildNodeVariables(
       visibleNodes,
       blockEntryVariables.value,
     )
     activeNodeVarsCache.key = blockTitle
+    activeNodeVarsCache.visibleSignature = visibleSignature
     activeNodeVarsCache.vars = nodeVars
     activeNodeVarsCache.finalVars = finalVariables
   }
@@ -101,7 +126,21 @@ function StoryViewer() {
   useEffect(() => {
     if (!block) return
     applyVariables(activeNodeVarsCache.finalVars)
-  }, [blockTitle])
+  }, [blockTitle, visibleSignature])
+
+  useEffect(() => {
+    if (activeBlockProgress.status === "auto_jump_now") {
+      return
+    }
+
+    updateActiveBlockState(
+      activeBlockProgress.status,
+      activeBlockProgress.continueTarget,
+    )
+  }, [
+    activeBlockProgress.status,
+    activeBlockProgress.continueTarget,
+  ])
 
   useEffect(() => {
     visibleOnceSections.value = new Set(visibleOnceKeys)
@@ -193,6 +232,10 @@ function StoryViewer() {
       <div class="max-w-3xl mx-auto flex flex-col">
         {historicalSections}
         {renderedNodes}
+        {activeBlockProgress.status === "ready_to_continue" &&
+          activeBlockProgress.continueTarget && (
+          <ContinueButton onClick={() => continueBranch()} />
+        )}
       </div>
     </div>
   )

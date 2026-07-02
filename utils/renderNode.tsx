@@ -1,4 +1,4 @@
-import { Button, ContinueButton } from "@/components/Button.tsx"
+import { Button } from "@/components/Button.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { ChoiceTranscript } from "@/components/ChoiceTranscript.tsx"
 import { Image } from "@/components/Image.tsx"
@@ -6,7 +6,6 @@ import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 import { Text } from "@/components/Text.tsx"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 import { RenderContext } from "@/utils/nodeVisibility.ts"
-import { navigateToBlock } from "@/utils/storyStore.ts"
 import {
   ActionNode,
   CommandNode,
@@ -100,21 +99,11 @@ function renderChoiceNode(
 }
 
 function renderJumpNode(
-  node: ActionNode,
+  _node: ActionNode,
   config: RenderConfig,
 ): JSX.Element | null {
-  if (config.isHistorical) return null
-
-  if (!node.jumpTarget) {
-    console.error("Jump node missing jumpTarget", node)
-    return null
-  }
-
-  return (
-    <ContinueButton
-      onClick={() => navigateToBlock(node.jumpTarget || "")}
-    />
-  )
+  if (!config.isHistorical) return null
+  return null
 }
 
 function renderMoodNode(node: CommandNode): JSX.Element {

@@ -1,11 +1,25 @@
 // ===== CHOICE HANDLER =====
 
-import { selectChoice } from "@/utils/storyStore.ts"
+import {
+  evaluateActiveBlockProgress,
+  filterVisibleNodes,
+} from "@/utils/nodeVisibility.ts"
+import { buildNodeVariables } from "@/utils/setHandler.ts"
+import {
+  applyVariables,
+  blockEntryVariables,
+  currentBlockTitle,
+  navigateToBlock,
+  seenOnceSections,
+  selectChoice,
+  storyBlocks,
+  storyVariables,
+  visitedBlocks,
+} from "@/utils/storyStore.ts"
 import { ActionNode, ContentNode } from "@/utils/storyTypes.tsx"
 
 /**
  * Handle a choice click as a single batched store action.
- * Checks if the next node is a jump to resolve the navigation target.
  */
 export function handleChoiceClick(
   contentNodes: ContentNode[],
@@ -27,10 +41,38 @@ export function handleChoiceClick(
     return
   }
 
-  const nextNode = contentNodes[currentIndex + 1]
-  const jumpTarget = nextNode?.type === "jump"
-    ? (nextNode as ActionNode).jumpTarget
-    : undefined
+  const nextChoices = [
+    ...contentNodes[currentIndex].choicePath,
+    choiceNode.myChoiceLevel,
+  ]
+  const activeBlock = storyBlocks.value.get(currentBlockTitle.value)
+  const resolvedContentNodes = activeBlock?.contentNodes ?? contentNodes
+  const context = {
+    visitedBlocks: visitedBlocks.value,
+    seenOnceSections: seenOnceSections.value,
+    variables: storyVariables.value,
+  }
+  const visibleResult = filterVisibleNodes(
+    resolvedContentNodes,
+    nextChoices,
+    context,
+  )
+  const progress = evaluateActiveBlockProgress(
+    resolvedContentNodes,
+    visibleResult.visibleNodes,
+    nextChoices,
+  )
 
-  selectChoice(choiceNode.myChoiceLevel, jumpTarget)
+  if (progress.status === "auto_jump_now" && progress.continueTarget) {
+    const { finalVariables } = buildNodeVariables(
+      visibleResult.visibleNodes,
+      blockEntryVariables.value,
+    )
+    applyVariables(finalVariables)
+    selectChoice(choiceNode.myChoiceLevel)
+    navigateToBlock(progress.continueTarget)
+    return
+  }
+
+  selectChoice(choiceNode.myChoiceLevel)
 }

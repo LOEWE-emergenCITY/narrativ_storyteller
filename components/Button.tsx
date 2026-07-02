@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact"
 import { clsx } from "clsx"
 import { renderHTML } from "@/utils/customHooks.ts"
-import { ArrowBigDownDash, ArrowBigRightDash } from "lucide-preact"
+import { ArrowBigDownDash } from "lucide-preact"
 
 export interface ButtonProps {
   onClick?: () => void

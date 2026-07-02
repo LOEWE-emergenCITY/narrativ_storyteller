@@ -1,6 +1,7 @@
 import { batch, signal } from "@preact/signals"
 import { applySetCommands } from "@/utils/setHandler.ts"
 import { ActionNode, Block, CommandNode, Story } from "@/utils/storyTypes.tsx"
+import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 // ===== SIGNALS =====
 
@@ -15,6 +16,10 @@ export const storyVariables = signal<Map<string, string | number | boolean>>(
 export const currentBlockTitle = signal<string>("Start")
 export const currentIndentionLevel = signal<number>(0)
 export const choices = signal<number[]>([])
+export const activeBlockStatus = signal<ActiveBlockStatus>(
+  "complete_without_continue",
+)
+export const pendingContinueTarget = signal<string | null>(null)
 export const isLoggedIn = signal<boolean>(false)
 
 /**
@@ -75,7 +80,9 @@ function resolveInitialStoryState(story: Story): {
     }
   }
 
-  const jumpNode = startBlock.contentNodes.find((node) => node.type === "jump") as
+  const jumpNode = startBlock.contentNodes.find((node) =>
+    node.type === "jump"
+  ) as
     | ActionNode
     | undefined
 
@@ -132,6 +139,8 @@ export function loadStory(story: Story): void {
     currentBlockTitle.value = initialStory.initialBlockTitle
     currentIndentionLevel.value = 0
     choices.value = []
+    activeBlockStatus.value = "complete_without_continue"
+    pendingContinueTarget.value = null
     blockHistory.value = []
   })
 }
@@ -169,50 +178,37 @@ export function navigateToBlock(title: string): void {
     currentBlockTitle.value = title
     currentIndentionLevel.value = 0
     choices.value = []
+    activeBlockStatus.value = "complete_without_continue"
+    pendingContinueTarget.value = null
   })
 }
 
 /**
- * Record a choice and advance navigation in one batched update.
- * Jumps to jumpTarget block when the choice is immediately followed by a jump,
- * otherwise opens the nested indention level.
- * When navigating away, snapshots the leaving block (with the final choices
- * that include the just-made selection) into blockHistory.
+ * Record a choice selection and stay within the current block.
  */
-export function selectChoice(
-  choiceLevel: number,
-  jumpTarget?: string,
+export function selectChoice(choiceLevel: number): void {
+  batch(() => {
+    choices.value = [...choices.value, choiceLevel]
+    currentIndentionLevel.value = currentIndentionLevel.value + 1
+    activeBlockStatus.value = "resolving_branch"
+    pendingContinueTarget.value = null
+  })
+}
+
+export function updateActiveBlockState(
+  status: ActiveBlockStatus,
+  continueTarget: string | null,
 ): void {
   batch(() => {
-    if (jumpTarget) {
-      const finalChoices = [...choices.value, choiceLevel]
-      const consumedOnceSections = new Set([
-        ...seenOnceSections.value,
-        ...visibleOnceSections.value,
-      ])
-      blockHistory.value = [
-        ...blockHistory.value,
-        {
-          title: currentBlockTitle.value,
-          choices: finalChoices,
-          variables: new Map(blockEntryVariables.value),
-          visitedBlocks: new Set(visitedBlocks.value),
-          seenOnceSections: new Set(seenOnceSections.value),
-        },
-      ]
-      // Post-current-block state becomes the pre-entry state for the new block.
-      blockEntryVariables.value = new Map(storyVariables.value)
-      seenOnceSections.value = consumedOnceSections
-      visibleOnceSections.value = new Set()
-      visitedBlocks.value = new Set([...visitedBlocks.value, jumpTarget])
-      choices.value = []
-      currentIndentionLevel.value = 0
-      currentBlockTitle.value = jumpTarget
-    } else {
-      choices.value = [...choices.value, choiceLevel]
-      currentIndentionLevel.value = currentIndentionLevel.value + 1
-    }
+    activeBlockStatus.value = status
+    pendingContinueTarget.value = continueTarget
   })
+}
+
+export function continueBranch(): void {
+  const target = pendingContinueTarget.value
+  if (!target) return
+  navigateToBlock(target)
 }
 
 /**

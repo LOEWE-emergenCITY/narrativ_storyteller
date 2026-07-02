@@ -373,36 +373,29 @@ function parseConditionNode(
 function parseChoiceNode(
   trimmedLine: string,
   identionLevel: number,
-  effectiveLevel: number,
-  choicePath: number[],
+  activeChoicePath: number[],
+  choiceCounters: number[],
   onceKey?: string,
-): [ContentNode | null, number[]] {
-  // Read parent's sibling counter (one level up) to seed myChoiceLevel
-  let newChoiceLevel = (choicePath[effectiveLevel - 1] ?? 0) + 1
-
-  // If a sibling at this effective level already exists, increment from it
-  if (choicePath[effectiveLevel] !== undefined) {
-    newChoiceLevel = choicePath[effectiveLevel] + 1
-  }
-
-  if (choicePath.length > effectiveLevel) {
-    // Reset sibling counters for this level and deeper — they are independent of the current choice
-    choicePath.splice(effectiveLevel)
-  }
+): [ContentNode | null, number[], number[]] {
+  const choiceDepth = activeChoicePath.length
+  const newChoiceLevel = choiceCounters[choiceDepth] !== undefined
+    ? choiceCounters[choiceDepth] + 1
+    : 1
 
   const choiceNode = {
     type: "choice",
     identionLevel,
-    choicePath: [...choicePath], // ancestor sibling counters (depth = choicePath.length)
+    choicePath: [...activeChoicePath],
     onceKey,
     myChoiceLevel: newChoiceLevel,
     text: stripTrailingComment(trimmedLine.substring(3)).trim(),
   } as ActionNode
 
-  // Store sibling counter at effectiveLevel (direct assignment avoids sparse-array push bugs)
-  choicePath[effectiveLevel] = newChoiceLevel
+  const nextActiveChoicePath = [...activeChoicePath, newChoiceLevel]
+  const nextChoiceCounters = choiceCounters.slice(0, choiceDepth + 1)
+  nextChoiceCounters[choiceDepth] = newChoiceLevel
 
-  return [choiceNode, choicePath]
+  return [choiceNode, nextActiveChoicePath, nextChoiceCounters]
 }
 
 function parseChatNode(
@@ -466,9 +459,9 @@ export async function parseStory(filePath: string): Promise<Story> {
   } as Block
 
   const lines = fileContent.split("\n")
-  let choicePath: number[] = []
-  let baseChoiceIndent = -1
-  let prevIndentionLevel = 0
+  let activeChoicePath: number[] = []
+  let activeChoiceIndents: number[] = []
+  let choiceCounters: number[] = []
 
   for (const [index, line] of lines.entries()) {
     // Handle block separator
@@ -482,8 +475,9 @@ export async function parseStory(filePath: string): Promise<Story> {
         visited: false,
         contentNodes: [] as ContentNode[],
       } as Block
-      choicePath = []
-      baseChoiceIndent = -1
+      activeChoicePath = []
+      activeChoiceIndents = []
+      choiceCounters = []
       continue
     }
 
@@ -510,32 +504,32 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     // Calculate nested level
     const indentionLevel = getNestedLevel(line, filePath, index)
-    if (indentionLevel < prevIndentionLevel) {
-      // if we go back to a higher level, reset choice level to 0, because choices on higher levels are independent of the previous choices on lower levels
-      if (!trimmedLine.startsWith("-> ")) {
-        choicePath = [] // reset choice level when going back to a higher level
-        baseChoiceIndent = -1
-      }
+    while (
+      activeChoiceIndents.length > 0 &&
+      activeChoiceIndents[activeChoiceIndents.length - 1] >= indentionLevel
+    ) {
+      activeChoiceIndents.pop()
+      activeChoicePath.pop()
     }
-    prevIndentionLevel = indentionLevel
 
     const inlineOnce = extractInlineOnce(trimmedLine, currentBlock.title, index)
     const sanitizedLine = inlineOnce.line
+    const currentChoicePath = [...activeChoicePath]
 
     let contentNode: ContentNode | null = null
 
     // Try parsing different node types in order
     if (sanitizedLine.startsWith("<<")) {
-      contentNode = parseCommandNode(
-        sanitizedLine,
-        indentionLevel,
-        choicePath,
-        inlineOnce.onceKey,
-      ) ||
+        contentNode = parseCommandNode(
+          sanitizedLine,
+          indentionLevel,
+          currentChoicePath,
+          inlineOnce.onceKey,
+        ) ||
         parseActionNode(
           sanitizedLine,
           indentionLevel,
-          choicePath,
+          currentChoicePath,
           currentBlock.title,
           index,
           inlineOnce.onceKey,
@@ -543,7 +537,7 @@ export async function parseStory(filePath: string): Promise<Story> {
         parseConditionNode(
           sanitizedLine,
           indentionLevel,
-          choicePath,
+          currentChoicePath,
           lines,
           index,
           filePath,
@@ -554,20 +548,19 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     if (!contentNode) {
       if (sanitizedLine.startsWith("-> ")) {
-        if (baseChoiceIndent === -1) baseChoiceIndent = indentionLevel
-        const effectiveLevel = indentionLevel - baseChoiceIndent
-        ;[contentNode, choicePath] = parseChoiceNode(
+        ;[contentNode, activeChoicePath, choiceCounters] = parseChoiceNode(
           sanitizedLine,
           indentionLevel,
-          effectiveLevel,
-          JSON.parse(JSON.stringify(choicePath)),
+          currentChoicePath,
+          choiceCounters,
           inlineOnce.onceKey,
         )
+        activeChoiceIndents = [...activeChoiceIndents, indentionLevel]
       } else if (sanitizedLine.match(/^([^:]+):\s*(.*)$/)) {
         contentNode = parseChatNode(
           sanitizedLine,
           indentionLevel,
-          choicePath,
+          currentChoicePath,
           inlineOnce.onceKey,
         )
       }
@@ -578,7 +571,7 @@ export async function parseStory(filePath: string): Promise<Story> {
       contentNode = parseTextNode(
         sanitizedLine,
         indentionLevel,
-        choicePath,
+        currentChoicePath,
         inlineOnce.onceKey,
       )
     }

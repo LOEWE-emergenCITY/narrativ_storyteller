@@ -36,6 +36,10 @@ function isRenderableNode(node: ContentNode): boolean {
     node.type === "scene" || node.type === "scienceFact"
 }
 
+function matchesSelectedChoicePath(nodeChoicePath: number[], choices: number[]): boolean {
+  return nodeChoicePath.every((value, index) => choices[index] === value)
+}
+
 function getNextBranchIndex(
   nodes: ContentNode[],
   fromIndex: number,
@@ -152,7 +156,7 @@ export function filterVisibleNodes(
         continue
       }
 
-      if (node.choicePath.every((value) => choices.includes(value))) {
+      if (matchesSelectedChoicePath(node.choicePath, choices)) {
         if (
           node.type === "choice" &&
           choices.length > node.choicePath.length &&
@@ -279,7 +283,7 @@ export function evaluateVisibleNodesSequentially(
         continue
       }
 
-      if (node.choicePath.every((value) => choices.includes(value))) {
+      if (matchesSelectedChoicePath(node.choicePath, choices)) {
         if (
           node.type === "choice" &&
           choices.length > node.choicePath.length &&

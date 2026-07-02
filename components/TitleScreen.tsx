@@ -18,26 +18,31 @@ export function TitleScreen(
           class="w-full h-auto block"
           onLoad={onImageLoad}
         />
-        {isReady
-          ? (
-            <div class="w-full flex gap-2">
-              <Button
-                onClick={onStart}
-                disabled={!isReady}
-              >
-                Start
-              </Button>
-              <Button disabled>
-                Continue
-              </Button>
-            </div>
-          )
-          : (
-            <div class="flex items-center gap-3 text-sm uppercase justify-center tracking-[0.3em]">
-              <span class="inline-block size-5 animate-spin rounded-full border-2" />
-              <span>Loading story</span>
-            </div>
-          )}
+        {
+          /* {isReady
+          ? ( */
+        }
+        <div class="w-full flex gap-2">
+          <Button
+            onClick={onStart}
+            // disabled={!isReady}
+          >
+            Start
+          </Button>
+          <Button disabled>
+            Continue
+          </Button>
+        </div>
+        {
+          /* // ) // : ( //{" "}
+        <div class="flex items-center gap-3 text-sm uppercase justify-center tracking-[0.3em]">
+          //{" "}
+          <span class="inline-block size-5 animate-spin rounded-full border-2" />
+          // <span>Loading story</span>
+          //
+        </div>
+        // )} */
+        }
       </div>
     </div>
   )

@@ -18,8 +18,19 @@ export function TitleScreen(
           class="w-full h-auto block"
           onLoad={onImageLoad}
         />
-
-        {isReady
+        <div class="w-full flex gap-2">
+          <Button
+            onClick={onStart}
+            // disabled={!isReady}
+          >
+            Start
+          </Button>
+          <Button disabled>
+            Continue
+          </Button>
+        </div>
+        {
+          /* {isReady
           ? (
             <div class="w-full flex gap-2">
               <Button
@@ -39,7 +50,8 @@ export function TitleScreen(
               <span class="inline-block size-5 animate-spin rounded-full border-2" />
               <span>Loading story</span>
             </div>
-          )}
+          )} */
+        }
       </div>
     </div>
   )

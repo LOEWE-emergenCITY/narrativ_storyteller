@@ -167,7 +167,16 @@ export function renderNode(
       ]
 
     case "detour":
-      return [<div key={`DETOUR_${index}`}>DETOUR</div>]
+      return [
+        <div
+          key={`DETOUR_${index}`}
+          class="w-full flex px-6 py-1"
+        >
+          <div class="flex w-full px-2 py-4 border-2 border-amber-500 bg-amber-200 text-amber-600 rounded-2xl justify-center">
+            DETOUR
+          </div>
+        </div>,
+      ]
 
     case "choice":
       return [

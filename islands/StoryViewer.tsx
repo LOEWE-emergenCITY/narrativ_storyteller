@@ -3,6 +3,7 @@ import { ContinueButton } from "@/components/Button.tsx"
 import { ContentNode } from "@/utils/storyTypes.tsx"
 import {
   evaluateActiveBlockProgress,
+  evaluateVisibleNodesSequentially,
   filterVisibleNodes,
   RenderContext,
 } from "@/utils/nodeVisibility.ts"
@@ -34,14 +35,24 @@ import { buildNodeVariables } from "@/utils/setHandler.ts"
  */
 const activeNodeVarsCache: {
   key: string
-  visibleSignature: string
+  evaluationSignature: string
   vars: WeakMap<ContentNode, Map<string, string | number | boolean>>
   finalVars: Map<string, string | number | boolean>
+  visibleNodes: ContentNode[]
+  visibleOnceKeys: Set<string>
+  progress: ReturnType<typeof evaluateActiveBlockProgress>
 } = {
   key: "",
-  visibleSignature: "",
+  evaluationSignature: "",
   vars: new WeakMap(),
   finalVars: new Map(),
+  visibleNodes: [],
+  visibleOnceKeys: new Set(),
+  progress: {
+    status: "complete_without_continue",
+    continueTarget: null,
+    blockingChoicePathLength: null,
+  },
 }
 
 /**
@@ -74,26 +85,10 @@ function StoryViewer() {
   const context: RenderContext = {
     visitedBlocks: visitedBlocks.value,
     seenOnceSections: seenOnceSections.value,
-    variables: storyVariables.value,
+    variables: blockEntryVariables.value,
   }
 
   const contentNodes = block?.contentNodes || []
-  const { visibleNodes, visibleOnceKeys } = filterVisibleNodes(
-    contentNodes,
-    currentChoices,
-    context,
-  )
-  const visibleSignature = visibleNodes
-    .map((node) => `${node.type}:${contentNodes.indexOf(node)}`)
-    .join("|")
-  const visibleOnceSignature = `${blockTitle}:${
-    [...visibleOnceKeys].sort().join("|")
-  }`
-  const activeBlockProgress = evaluateActiveBlockProgress(
-    contentNodes,
-    visibleNodes,
-    currentChoices,
-  )
 
   // Capture the previous active block's computed vars BEFORE potentially
   // overwriting the cache. These are needed when that block first enters
@@ -101,32 +96,53 @@ function StoryViewer() {
   const prevActiveKey = activeNodeVarsCache.key
   const prevActiveVars = activeNodeVarsCache.vars
 
-  // Compute per-node variable snapshots exactly once per block entry.
-  // blockEntryVariables holds the pre-block state (set in the same batch as
-  // currentBlockTitle), so random() and arithmetic are always evaluated from
-  // the correct baseline and never re-rolled on subsequent re-renders.
+  const evaluationSignature = JSON.stringify({
+    blockTitle,
+    choices: currentChoices,
+    visitedBlocks: [...visitedBlocks.value].sort(),
+    seenOnceSections: [...seenOnceSections.value].sort(),
+    variables: [...blockEntryVariables.value.entries()].sort(([a], [b]) =>
+      a.localeCompare(b)
+    ),
+  })
+
   if (
     activeNodeVarsCache.key !== blockTitle ||
-    activeNodeVarsCache.visibleSignature !== visibleSignature
+    activeNodeVarsCache.evaluationSignature !== evaluationSignature
   ) {
-    const { nodeVars, finalVariables } = buildNodeVariables(
-      visibleNodes,
-      blockEntryVariables.value,
+    const sequentialResult = evaluateVisibleNodesSequentially(
+      contentNodes,
+      currentChoices,
+      context,
     )
     activeNodeVarsCache.key = blockTitle
-    activeNodeVarsCache.visibleSignature = visibleSignature
-    activeNodeVarsCache.vars = nodeVars
-    activeNodeVarsCache.finalVars = finalVariables
+    activeNodeVarsCache.evaluationSignature = evaluationSignature
+    activeNodeVarsCache.vars = sequentialResult.nodeVariables
+    activeNodeVarsCache.finalVars = sequentialResult.finalVariables
+    activeNodeVarsCache.visibleNodes = sequentialResult.visibleNodes
+    activeNodeVarsCache.visibleOnceKeys = sequentialResult.visibleOnceKeys
+    activeNodeVarsCache.progress = evaluateActiveBlockProgress(
+      contentNodes,
+      sequentialResult.visibleNodes,
+      currentChoices,
+    )
   }
+
+  const visibleNodes = activeNodeVarsCache.visibleNodes
+  const visibleOnceKeys = activeNodeVarsCache.visibleOnceKeys
+  const visibleOnceSignature = `${blockTitle}:${
+    [...visibleOnceKeys].sort().join("|")
+  }`
+  const activeBlockProgress = activeNodeVarsCache.progress
+
   const nodeVariables = activeNodeVarsCache.vars
 
   // Apply <<set>> results to storyVariables after render using the final
-  // variable state already computed by buildNodeVariables — no second call to
-  // computeSetUpdates, so random() is never re-rolled.
+  // variable state already computed by the sequential evaluation pass.
   useEffect(() => {
     if (!block) return
     applyVariables(activeNodeVarsCache.finalVars)
-  }, [blockTitle, visibleSignature])
+  }, [blockTitle, evaluationSignature])
 
   useEffect(() => {
     if (activeBlockProgress.status === "auto_jump_now") {

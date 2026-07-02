@@ -2,10 +2,13 @@ import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import {
   evaluateActiveBlockProgress,
+  evaluateVisibleNodesSequentially,
   filterVisibleNodes,
 } from "@/utils/nodeVisibility.ts"
 import { parseStory } from "@/utils/storyParser.ts"
 import {
+  applyVariables,
+  blockEntryVariables,
   activeBlockStatus,
   choices,
   continueBranch,
@@ -14,6 +17,7 @@ import {
   pendingContinueTarget,
   selectChoice,
   storyVariables,
+  visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 import { TextNode } from "@/utils/storyTypes.tsx"
@@ -257,5 +261,107 @@ Done
     assertEquals(choices.value, [])
     assertEquals(pendingContinueTarget.value, null)
     assertEquals(activeBlockStatus.value, "complete_without_continue")
+  })
+})
+
+Deno.test("self-mutating else branch does not re-open earlier if, but later if sees updated value", async () => {
+  const storyText = `title: Start
+---
+<<declare $flag = false>>
+<<if $flag>>
+    First if true
+<<else>>
+    First else false
+    <<set $flag to true>>
+<<endif>>
+<<if $flag>>
+    Second if true
+<<endif>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map(story.variables),
+    }
+
+    const result = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [],
+      context,
+    )
+
+    const texts = result.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(texts, ["First else false", "Second if true"])
+    assertEquals(result.finalVariables.get("$flag"), true)
+    assert(!texts.includes("First if true"))
+  })
+})
+
+Deno.test("re-entered block re-evaluates first if from updated variable state", async () => {
+  const storyText = `title: Start
+---
+<<declare $flag = false>>
+<<if $flag>>
+    First if true
+<<else>>
+    First else false
+    <<set $flag to true>>
+<<endif>>
+<<jump Next>>
+===
+title: Next
+---
+<<jump Start>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+
+    loadStory(story)
+
+    const startBlock = story.blocks.get("Start")
+    assert(startBlock)
+
+    const firstPass = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [],
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: new Set<string>(),
+        variables: blockEntryVariables.value,
+      },
+    )
+
+    applyVariables(firstPass.finalVariables)
+
+    const reentryContext = {
+      visitedBlocks: new Set(["Start", "Next"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map(storyVariables.value),
+    }
+
+    const reentered = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [],
+      reentryContext,
+    )
+
+    const texts = reentered.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(texts, ["First if true"])
   })
 })

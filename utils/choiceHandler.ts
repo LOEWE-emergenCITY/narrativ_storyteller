@@ -2,9 +2,8 @@
 
 import {
   evaluateActiveBlockProgress,
-  filterVisibleNodes,
+  evaluateVisibleNodesSequentially,
 } from "@/utils/nodeVisibility.ts"
-import { buildNodeVariables } from "@/utils/setHandler.ts"
 import {
   applyVariables,
   blockEntryVariables,
@@ -13,7 +12,6 @@ import {
   seenOnceSections,
   selectChoice,
   storyBlocks,
-  storyVariables,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { ActionNode, ContentNode } from "@/utils/storyTypes.tsx"
@@ -50,9 +48,9 @@ export function handleChoiceClick(
   const context = {
     visitedBlocks: visitedBlocks.value,
     seenOnceSections: seenOnceSections.value,
-    variables: storyVariables.value,
+    variables: blockEntryVariables.value,
   }
-  const visibleResult = filterVisibleNodes(
+  const visibleResult = evaluateVisibleNodesSequentially(
     resolvedContentNodes,
     nextChoices,
     context,
@@ -64,11 +62,7 @@ export function handleChoiceClick(
   )
 
   if (progress.status === "auto_jump_now" && progress.continueTarget) {
-    const { finalVariables } = buildNodeVariables(
-      visibleResult.visibleNodes,
-      blockEntryVariables.value,
-    )
-    applyVariables(finalVariables)
+    applyVariables(visibleResult.finalVariables)
     selectChoice(choiceNode.myChoiceLevel)
     navigateToBlock(progress.continueTarget)
     return

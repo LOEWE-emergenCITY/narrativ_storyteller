@@ -26,7 +26,7 @@ export interface ActionNode {
   onceKey?: string
   myChoiceLevel?: number // only for "choice" to track which choice was selected
   jumpTarget?: string // for "jump" and "detour"
-  condition?: string // optional inline choice condition
+  condition?: string // optional line-level condition
   inlineSetCommands?: string[] // optional inline <<set>> commands for choice selection
   //   choice?: { text: string; nextLine: number; siblingLine: number } // for "choice"
   text?: string
@@ -38,6 +38,7 @@ export interface CommandNode {
   identionLevel: number
   choicePath: [number]
   onceKey?: string
+  condition?: string
   command: string // e.g., "set mood=tense" or "mood KathrinBrowsesOnPhone"
 }
 
@@ -56,6 +57,7 @@ export interface TextNode {
   identionLevel: number
   choicePath: [number]
   onceKey?: string
+  condition?: string
   speaker?: string // e.g., "Kathrin"
   text: string // e.g., "What a boring day..."
 }

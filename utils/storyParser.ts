@@ -82,6 +82,26 @@ function extractInlineOnce(
   }
 }
 
+function extractInlineCondition(
+  trimmedLine: string,
+): { line: string; condition?: string } {
+  const lineWithoutComment = stripTrailingComment(trimmedLine).trim()
+
+  if (lineWithoutComment.startsWith("<<if ")) {
+    return { line: lineWithoutComment }
+  }
+
+  const match = lineWithoutComment.match(/^(.*?)(?:\s*<<if\s+(.+)>>)$/)
+  if (!match) {
+    return { line: lineWithoutComment }
+  }
+
+  return {
+    line: match[1].trimEnd(),
+    condition: match[2].trim(),
+  }
+}
+
 interface InlineChoiceMetadata {
   text: string
   condition?: string
@@ -250,6 +270,7 @@ function parseCommandNode(
   identionLevel: number,
   choicePath: number[],
   onceKey?: string,
+  condition?: string,
 ): CommandNode | null {
   if (trimmedLine.startsWith("<<set ")) {
     return {
@@ -257,6 +278,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(5).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -267,6 +289,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(7).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -277,6 +300,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(8).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -287,6 +311,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(20).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -301,6 +326,7 @@ function parseActionNode(
   currentBlockTitle: string,
   currentLineIndex: number,
   onceKey?: string,
+  condition?: string,
 ): ActionNode | null {
   if (trimmedLine.startsWith("<<jump ")) {
     return {
@@ -308,6 +334,7 @@ function parseActionNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       jumpTarget: trimmedLine.substring(7).split(">>")[0].trim(),
     } as ActionNode
   }
@@ -318,6 +345,7 @@ function parseActionNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       jumpTarget: trimmedLine.substring(9).split(">>")[0].trim(),
       returnTargetLine: {
         title: currentBlockTitle,
@@ -465,6 +493,7 @@ function parseChatNode(
   identionLevel: number,
   choicePath: number[],
   onceKey?: string,
+  condition?: string,
 ): TextNode | null {
   const sanitizedLine = stripTrailingComment(trimmedLine).trim()
   return {
@@ -472,6 +501,7 @@ function parseChatNode(
     identionLevel,
     choicePath,
     onceKey,
+    condition,
     speaker: sanitizedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
     text: sanitizedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
   } as TextNode
@@ -482,12 +512,14 @@ function parseTextNode(
   identionLevel: number,
   choicePath: number[],
   onceKey?: string,
+  condition?: string,
 ): TextNode {
   return {
     type: "text",
     identionLevel,
     choicePath,
     onceKey,
+    condition,
     text: stripTrailingComment(trimmedLine).trim(),
   } as TextNode
 }
@@ -575,7 +607,10 @@ export async function parseStory(filePath: string): Promise<Story> {
     }
 
     const inlineOnce = extractInlineOnce(trimmedLine, currentBlock.title, index)
-    const sanitizedLine = inlineOnce.line
+    const inlineCondition = sanitizedLineStartsWithChoice(inlineOnce.line)
+      ? { line: inlineOnce.line }
+      : extractInlineCondition(inlineOnce.line)
+    const sanitizedLine = inlineCondition.line
     const currentChoicePath = [...activeChoicePath]
 
     let contentNode: ContentNode | null = null
@@ -587,6 +622,7 @@ export async function parseStory(filePath: string): Promise<Story> {
           indentionLevel,
           currentChoicePath,
           inlineOnce.onceKey,
+          inlineCondition.condition,
         ) ||
         parseActionNode(
           sanitizedLine,
@@ -595,6 +631,7 @@ export async function parseStory(filePath: string): Promise<Story> {
           currentBlock.title,
           index,
           inlineOnce.onceKey,
+          inlineCondition.condition,
         ) ||
         parseConditionNode(
           sanitizedLine,
@@ -626,6 +663,7 @@ export async function parseStory(filePath: string): Promise<Story> {
           indentionLevel,
           currentChoicePath,
           inlineOnce.onceKey,
+          inlineCondition.condition,
         )
       }
     }
@@ -637,6 +675,7 @@ export async function parseStory(filePath: string): Promise<Story> {
         indentionLevel,
         currentChoicePath,
         inlineOnce.onceKey,
+        inlineCondition.condition,
       )
     }
 
@@ -644,4 +683,8 @@ export async function parseStory(filePath: string): Promise<Story> {
   }
 
   return story
+}
+
+function sanitizedLineStartsWithChoice(line: string): boolean {
+  return line.startsWith("-> ")
 }

@@ -255,6 +255,73 @@ Deno.test("inline choice if can depend on earlier set nodes in sequence", async 
   })
 })
 
+Deno.test("inline if on text and jump nodes respects sequential variables", async () => {
+  const storyText = `title: Start
+---
+<<declare $flag = false>>
+<<set $flag to true>>
+Visible after set <<if $flag>>
+<<jump Next>> <<if $flag>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const result = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [],
+      {
+        visitedBlocks: new Set(["Start"]),
+        seenOnceSections: new Set<string>(),
+        variables: new Map(story.variables),
+      },
+    )
+
+    const texts = result.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+    const jumps = result.visibleNodes
+      .filter((node): node is ActionNode => node.type === "jump")
+      .map((node) => node.jumpTarget)
+
+    assertEquals(texts, ["Visible after set"])
+    assertEquals(jumps, ["Next"])
+  })
+})
+
+Deno.test("inline if gates set node side effects", async () => {
+  const storyText = `title: Start
+---
+<<declare $enabled = false>>
+<<declare $count = 0>>
+<<set $count to $count + 1>> <<if $enabled>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const result = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [],
+      {
+        visitedBlocks: new Set(["Start"]),
+        seenOnceSections: new Set<string>(),
+        variables: new Map(story.variables),
+      },
+    )
+
+    assertEquals(result.finalVariables.get("$count"), 0)
+  })
+})
+
 Deno.test("nested unresolved choice blocks continue", async () => {
   const storyText = `title: Start
 ---

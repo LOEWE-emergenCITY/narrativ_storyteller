@@ -65,6 +65,28 @@ Done
   })
 })
 
+Deno.test("inline if and inline once can coexist on a text line", async () => {
+  const storyText = `title: Start
+---
+Only once when enabled <<if $flag>> <<once>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const textNode = startBlock.contentNodes[0] as TextNode
+
+    assertEquals(textNode.type, "text")
+    assertEquals(textNode.text, "Only once when enabled")
+    assertEquals(textNode.condition, "$flag")
+    assert(textNode.onceKey)
+  })
+})
+
 Deno.test("filterVisibleNodes hides once content after revisit", async () => {
   const storyText = `title: Start
 ---

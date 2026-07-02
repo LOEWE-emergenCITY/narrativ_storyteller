@@ -40,17 +40,12 @@ function matchesSelectedChoicePath(nodeChoicePath: number[], choices: number[]):
   return nodeChoicePath.every((value, index) => choices[index] === value)
 }
 
-function isChoiceConditionMet(
+function isNodeConditionMet(
   node: ContentNode,
   visitedBlocks: Set<string>,
   variables: Map<string, string | number | boolean>,
 ): boolean {
-  if (node.type !== "choice") {
-    return true
-  }
-
-  const choiceNode = node as ActionNode
-  if (!choiceNode.condition) {
+  if (!("condition" in node) || !node.condition) {
     return true
   }
 
@@ -59,7 +54,7 @@ function isChoiceConditionMet(
       type: "if",
       identionLevel: node.identionLevel,
       choicePath: node.choicePath,
-      condition: choiceNode.condition,
+      condition: node.condition,
       skipLines: 0,
     },
     visitedBlocks,
@@ -194,7 +189,7 @@ export function filterVisibleNodes(
       }
 
       if (matchesSelectedChoicePath(node.choicePath, choices)) {
-        if (!isChoiceConditionMet(node, context.visitedBlocks, context.variables)) {
+        if (!isNodeConditionMet(node, context.visitedBlocks, context.variables)) {
           i++
           continue
         }
@@ -326,7 +321,7 @@ export function evaluateVisibleNodesSequentially(
       }
 
       if (matchesSelectedChoicePath(node.choicePath, choices)) {
-        if (!isChoiceConditionMet(node, context.visitedBlocks, currentVariables)) {
+        if (!isNodeConditionMet(node, context.visitedBlocks, currentVariables)) {
           i++
           continue
         }

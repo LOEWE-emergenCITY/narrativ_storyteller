@@ -2,7 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import { filterVisibleNodes } from "@/utils/nodeVisibility.ts"
 import { parseStory } from "@/utils/storyParser.ts"
-import { ActionNode, TextNode } from "@/utils/storyTypes.tsx"
+import { ActionNode, CommandNode, TextNode } from "@/utils/storyTypes.tsx"
 
 async function withTempStory(
   contents: string,
@@ -236,5 +236,41 @@ Deno.test("choice numbering remains stable with inline choice suffixes", async (
     assertEquals(choiceNodes.length, 2)
     assertEquals(choiceNodes[0].myChoiceLevel, 1)
     assertEquals(choiceNodes[1].myChoiceLevel, 2)
+  })
+})
+
+Deno.test("parser captures inline if metadata on text chat and command nodes", async () => {
+  const storyText = `title: Start
+---
+Narration line <<if $flag>>
+Angela: Hallo <<if visited(Intro)>>
+<<jump Next>> <<if $ready>>
+<<set $seen to true>> <<if $flag>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const [textNode, chatNode, jumpNode, setNode] = startBlock.contentNodes
+
+    assertEquals((textNode as TextNode).type, "text")
+    assertEquals((textNode as TextNode).text, "Narration line")
+    assertEquals((textNode as TextNode).condition, "$flag")
+
+    assertEquals((chatNode as TextNode).type, "chat")
+    assertEquals((chatNode as TextNode).text, "Hallo")
+    assertEquals((chatNode as TextNode).condition, "visited(Intro)")
+
+    assertEquals((jumpNode as ActionNode).type, "jump")
+    assertEquals((jumpNode as ActionNode).jumpTarget, "Next")
+    assertEquals((jumpNode as ActionNode).condition, "$ready")
+
+    assertEquals((setNode as CommandNode).type, "set")
+    assertEquals((setNode as CommandNode).command, "$seen to true")
+    assertEquals((setNode as CommandNode).condition, "$flag")
   })
 })

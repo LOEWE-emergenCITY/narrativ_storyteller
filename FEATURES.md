@@ -42,7 +42,7 @@ Assumptions:
 | Parse `-> choice` lines                                                  | Done            |
 | Parse `Speaker: text` chat lines                                         | Done            |
 | Parse plain text lines                                                   | Done            |
-| Parse inline `<<if>>` inside text                                        | Not implemented |
+| Parse inline `<<if>>` inside text                                        | Done            |
 
 ---
 

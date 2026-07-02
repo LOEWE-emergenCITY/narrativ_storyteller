@@ -114,6 +114,46 @@ Inline once text <<once>>
   })
 })
 
+Deno.test("inline once on choice hides the choice after revisit", async () => {
+  const storyText = `title: Start
+---
+-> Only once <<once>>
+-> Always there
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const firstPass = filterVisibleNodes(startBlock.contentNodes, [], {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map(),
+    })
+
+    const firstChoices = firstPass.visibleNodes
+      .filter((node): node is ActionNode => node.type === "choice")
+      .map((node) => node.text)
+
+    assertEquals(firstChoices, ["Only once", "Always there"])
+
+    const revisit = filterVisibleNodes(startBlock.contentNodes, [], {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: firstPass.visibleOnceKeys,
+      variables: new Map(),
+    })
+
+    const revisitChoices = revisit.visibleNodes
+      .filter((node): node is ActionNode => node.type === "choice")
+      .map((node) => node.text)
+
+    assertEquals(revisitChoices, ["Always there"])
+  })
+})
+
 Deno.test("loadStory skips bootstrap Start block and applies startup sets", async () => {
   const storyText = `title: Start
 ---

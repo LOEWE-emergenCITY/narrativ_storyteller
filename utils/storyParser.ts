@@ -82,6 +82,59 @@ function extractInlineOnce(
   }
 }
 
+interface InlineChoiceMetadata {
+  text: string
+  condition?: string
+  onceKey?: string
+  inlineSetCommands: string[]
+}
+
+function parseInlineChoiceMetadata(
+  trimmedLine: string,
+  currentBlockTitle: string,
+  lineIndex: number,
+): InlineChoiceMetadata {
+  const rawContent = stripTrailingComment(trimmedLine.substring(3)).trim()
+  const inlineSetCommands: string[] = []
+  let condition: string | undefined
+  let onceKey: string | undefined
+
+  const text = rawContent.replace(/\s*<<(if\s+.+?|once|set\s+.+?)>>/g, (
+    match,
+    command,
+  ) => {
+    const trimmedCommand = String(command).trim()
+
+    if (trimmedCommand.startsWith("if ")) {
+      if (!condition) {
+        condition = trimmedCommand.substring(3).trim()
+      }
+      return ""
+    }
+
+    if (trimmedCommand === "once") {
+      if (!onceKey) {
+        onceKey = getOnceKey(currentBlockTitle, lineIndex)
+      }
+      return ""
+    }
+
+    if (trimmedCommand.startsWith("set ")) {
+      inlineSetCommands.push(trimmedCommand.substring(4).trim())
+      return ""
+    }
+
+    return match
+  }).replace(/\s{2,}/g, " ").trim()
+
+  return {
+    text,
+    condition,
+    onceKey,
+    inlineSetCommands,
+  }
+}
+
 function findConditionBlockEnd(
   lines: string[],
   startIndex: number,
@@ -375,20 +428,29 @@ function parseChoiceNode(
   identionLevel: number,
   activeChoicePath: number[],
   choiceCounters: number[],
+  currentBlockTitle: string,
+  lineIndex: number,
   onceKey?: string,
 ): [ContentNode | null, number[], number[]] {
   const choiceDepth = activeChoicePath.length
   const newChoiceLevel = choiceCounters[choiceDepth] !== undefined
     ? choiceCounters[choiceDepth] + 1
     : 1
+  const inlineChoice = parseInlineChoiceMetadata(
+    trimmedLine,
+    currentBlockTitle,
+    lineIndex,
+  )
 
   const choiceNode = {
     type: "choice",
     identionLevel,
     choicePath: [...activeChoicePath],
-    onceKey,
+    onceKey: onceKey ?? inlineChoice.onceKey,
     myChoiceLevel: newChoiceLevel,
-    text: stripTrailingComment(trimmedLine.substring(3)).trim(),
+    text: inlineChoice.text,
+    condition: inlineChoice.condition,
+    inlineSetCommands: inlineChoice.inlineSetCommands,
   } as ActionNode
 
   const nextActiveChoicePath = [...activeChoicePath, newChoiceLevel]
@@ -553,6 +615,8 @@ export async function parseStory(filePath: string): Promise<Story> {
           indentionLevel,
           currentChoicePath,
           choiceCounters,
+          currentBlock.title,
+          index,
           inlineOnce.onceKey,
         )
         activeChoiceIndents = [...activeChoiceIndents, indentionLevel]

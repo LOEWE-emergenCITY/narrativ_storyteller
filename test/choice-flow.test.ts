@@ -20,7 +20,7 @@ import {
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
-import { TextNode } from "@/utils/storyTypes.tsx"
+import { ActionNode, TextNode } from "@/utils/storyTypes.tsx"
 
 async function withTempStory(
   contents: string,
@@ -143,6 +143,115 @@ Done
     assertEquals(currentBlockTitle.value, "Next")
     assertEquals(choices.value, [])
     assertEquals(storyVariables.value.get("$counter"), 2)
+  })
+})
+
+Deno.test("selected choice inline set updates branch visibility and final variables", async () => {
+  const storyText = `title: Start
+---
+<<declare $flag = false>>
+-> Activate <<set $flag to true>>
+    <<if $flag>>
+        Branch sees updated flag
+    <<endif>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const result = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [1],
+      {
+        visitedBlocks: new Set(["Start"]),
+        seenOnceSections: new Set<string>(),
+        variables: new Map(story.variables),
+      },
+    )
+
+    const texts = result.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(texts, ["Branch sees updated flag"])
+    assertEquals(result.finalVariables.get("$flag"), true)
+  })
+})
+
+Deno.test("choice click persists inline set effects within current block", async () => {
+  const storyText = `title: Start
+---
+<<declare $flag = false>>
+-> Activate <<set $flag to true>>
+    <<if $flag>>
+        Branch sees updated flag
+    <<endif>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    loadStory(story)
+    handleChoiceClick(startBlock.contentNodes, 0)
+
+    assertEquals(choices.value, [1])
+
+    const branchResult = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      choices.value,
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: new Set<string>(),
+        variables: blockEntryVariables.value,
+      },
+    )
+
+    const texts = branchResult.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(texts, ["Branch sees updated flag"])
+  })
+})
+
+Deno.test("inline choice if can depend on earlier set nodes in sequence", async () => {
+  const storyText = `title: Start
+---
+<<declare $flag = false>>
+<<set $flag to true>>
+-> Visible choice <<if $flag>>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const result = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      [],
+      {
+        visitedBlocks: new Set(["Start"]),
+        seenOnceSections: new Set<string>(),
+        variables: new Map(story.variables),
+      },
+    )
+
+    const visibleChoices = result.visibleNodes
+      .filter((node): node is ActionNode => node.type === "choice")
+      .map((node) => node.text)
+
+    assertEquals(visibleChoices, ["Visible choice"])
   })
 })
 

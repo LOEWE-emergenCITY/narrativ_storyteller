@@ -40,6 +40,43 @@ function matchesSelectedChoicePath(nodeChoicePath: number[], choices: number[]):
   return nodeChoicePath.every((value, index) => choices[index] === value)
 }
 
+function isChoiceConditionMet(
+  node: ContentNode,
+  visitedBlocks: Set<string>,
+  variables: Map<string, string | number | boolean>,
+): boolean {
+  if (node.type !== "choice") {
+    return true
+  }
+
+  const choiceNode = node as ActionNode
+  if (!choiceNode.condition) {
+    return true
+  }
+
+  return handleConditionNode(
+    {
+      type: "if",
+      identionLevel: node.identionLevel,
+      choicePath: node.choicePath,
+      condition: choiceNode.condition,
+      skipLines: 0,
+    },
+    visitedBlocks,
+    variables,
+  )
+}
+
+function isSelectedChoiceNode(node: ContentNode, choices: number[]): boolean {
+  if (node.type !== "choice") {
+    return false
+  }
+
+  const choiceNode = node as ActionNode
+  return choices.length > node.choicePath.length &&
+    choices[node.choicePath.length] === choiceNode.myChoiceLevel
+}
+
 function getNextBranchIndex(
   nodes: ContentNode[],
   fromIndex: number,
@@ -157,6 +194,11 @@ export function filterVisibleNodes(
       }
 
       if (matchesSelectedChoicePath(node.choicePath, choices)) {
+        if (!isChoiceConditionMet(node, context.visitedBlocks, context.variables)) {
+          i++
+          continue
+        }
+
         if (
           node.type === "choice" &&
           choices.length > node.choicePath.length &&
@@ -284,6 +326,11 @@ export function evaluateVisibleNodesSequentially(
       }
 
       if (matchesSelectedChoicePath(node.choicePath, choices)) {
+        if (!isChoiceConditionMet(node, context.visitedBlocks, currentVariables)) {
+          i++
+          continue
+        }
+
         if (
           node.type === "choice" &&
           choices.length > node.choicePath.length &&
@@ -300,6 +347,13 @@ export function evaluateVisibleNodesSequentially(
 
         nodeVariables.set(node, new Map(currentVariables))
         visible.push(node)
+
+        if (node.type === "choice" && isSelectedChoiceNode(node, choices)) {
+          const inlineSetCommands = (node as ActionNode).inlineSetCommands ?? []
+          if (inlineSetCommands.length > 0) {
+            currentVariables = applySetCommands(inlineSetCommands, currentVariables)
+          }
+        }
 
         if (node.type === "set") {
           currentVariables = applySetCommands(

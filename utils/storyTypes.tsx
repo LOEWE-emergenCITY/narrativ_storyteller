@@ -26,6 +26,8 @@ export interface ActionNode {
   onceKey?: string
   myChoiceLevel?: number // only for "choice" to track which choice was selected
   jumpTarget?: string // for "jump" and "detour"
+  condition?: string // optional inline choice condition
+  inlineSetCommands?: string[] // optional inline <<set>> commands for choice selection
   //   choice?: { text: string; nextLine: number; siblingLine: number } // for "choice"
   text?: string
   returnTargetLine?: { title: string; line: number } // for "detour" to return to the original flow after detour

@@ -27,8 +27,15 @@ type StoryAppProps = {
   scienceFacts: Record<string, string>
 }
 
+export function shouldPersistStoryState(
+  startupResolved: boolean,
+  hasStarted: boolean,
+): boolean {
+  return startupResolved && hasStarted
+}
+
 function StoryApp({ story, scienceFacts }: StoryAppProps) {
-  const [dataLoaded, setDataLoaded] = useState(false)
+  const [startupResolved, setStartupResolved] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [hasSavedState, setHasSavedState] = useState(false)
 
@@ -56,13 +63,16 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
   }
 
   useEffect(() => {
+    setStartupResolved(false)
+
+    const savedState = readSavedState()
+
     loadStory(story)
     loadScienceFacts(scienceFacts)
 
-    setHasSavedState(readSavedState() !== null)
+    setHasSavedState(savedState !== null)
     setHasStarted(false)
-
-    setDataLoaded(true)
+    setStartupResolved(true)
   }, [story, scienceFacts])
 
   function handleStart() {
@@ -85,7 +95,7 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
   }
 
   useEffect(() => {
-    if (!dataLoaded) return
+    if (!shouldPersistStoryState(startupResolved, hasStarted)) return
 
     const savedState = getSavedStoryState(story.file, hasStarted)
     globalThis.localStorage?.setItem(
@@ -93,7 +103,7 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
       JSON.stringify(savedState, null, 2),
     )
   }, [
-    dataLoaded,
+    startupResolved,
     hasStarted,
     currentBlockTitle.value,
     currentIndentionLevel.value,
@@ -112,6 +122,7 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
   if (!hasStarted) {
     return (
       <TitleScreen
+        isReady={startupResolved}
         canContinue={hasSavedState}
         onStart={handleStart}
         onContinue={handleContinue}

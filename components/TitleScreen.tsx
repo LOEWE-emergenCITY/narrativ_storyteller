@@ -1,4 +1,9 @@
 import clsx from "clsx/lite"
+import {
+  activateGlow,
+  clearGlow,
+  updateGlowPosition,
+} from "@/utils/buttonGlow.ts"
 
 export interface TitleScreenProps {
   isReady: boolean
@@ -20,11 +25,13 @@ function TitleActionButton(
     <button
       type="button"
       onClick={onClick}
+      onPointerEnter={activateGlow}
+      onPointerMove={updateGlowPosition}
+      onPointerLeave={clearGlow}
       class={clsx(
-        "w-full rounded-lg border px-5 py-3 text-center text-lg shadow-sm sm:py-4 sm:text-xl",
+        "interactive-glow interactive-glow--title w-full rounded-lg border px-5 py-3 text-center text-lg shadow-sm sm:py-4 sm:text-xl",
         "bg-linear-to-b transition-[background-color,border-color,box-shadow,transform] duration-200",
         "focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-app-bg",
-        "hover:-translate-y-px hover:border-theme-strong hover:shadow-md",
         secondary
           ? "border-theme from-surface-strong to-surface-muted text-theme"
           : clsx(
@@ -33,7 +40,9 @@ function TitleActionButton(
           ),
       )}
     >
-      {children}
+      <span class="interactive-glow__content">
+        {children}
+      </span>
     </button>
   )
 }

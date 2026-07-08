@@ -34,6 +34,9 @@
 
 :root {
   color-scheme: light dark;
+  --button-glow-opacity: 0.78;
+  --button-glow-opacity-title: 0.9;
+  --button-glow-fade-duration: 280ms;
   --app-bg: #f9f9f9;
   --surface: #ffffff;
   --surface-strong: #f0f5f5;
@@ -66,6 +69,8 @@
 }
 
 :root[data-theme="dark"] {
+  --button-glow-opacity: 1;
+  --button-glow-opacity-title: 1;
   --app-bg: #0a0b10;
   --surface: #121624;
   --surface-strong: #171c2b;
@@ -99,6 +104,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+    --button-glow-opacity: 1;
+    --button-glow-opacity-title: 1;
     --app-bg: #0a0b10;
     --surface: #121624;
     --surface-strong: #171c2b;
@@ -262,6 +269,98 @@ body {
 }
 
 @layer components {
+  .interactive-glow {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transition:
+      transform 220ms ease,
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      background-color 220ms ease;
+  }
+
+  .interactive-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    background:
+      radial-gradient(
+        20rem 12rem at var(--glow-x, 50%) var(--glow-y, 50%),
+        color-mix(in srgb, var(--accent) 18%, transparent) 0%,
+        color-mix(in srgb, var(--accent) 12%, transparent) 40%,
+        transparent 84%
+      ),
+      radial-gradient(
+      9rem 6rem at var(--glow-x, 50%) var(--glow-y, 50%),
+      color-mix(in srgb, var(--accent) 12%, white 6%) 0%,
+      color-mix(in srgb, var(--accent-strong) 8%, transparent) 46%,
+      transparent 86%
+    );
+    transition: opacity var(--button-glow-fade-duration) ease;
+  }
+
+  .interactive-glow:hover:not(:disabled),
+  .interactive-glow[data-glow-active="true"]:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--border-theme-strong);
+    box-shadow:
+      0 10px 24px color-mix(in srgb, var(--accent) 14%, transparent),
+      0 4px 12px rgb(0 0 0 / 0.12);
+  }
+
+  .interactive-glow:hover:not(:disabled)::before,
+  .interactive-glow[data-glow-active="true"]:not(:disabled)::before {
+    opacity: var(--button-glow-opacity);
+  }
+
+  .interactive-glow:disabled,
+  .interactive-glow[aria-disabled="true"] {
+    transform: none;
+  }
+
+  .interactive-glow:disabled::before,
+  .interactive-glow[aria-disabled="true"]::before {
+    opacity: 0;
+  }
+
+  .interactive-glow__content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .interactive-glow--title::before {
+    background:
+      radial-gradient(
+        22rem 13rem at var(--glow-x, 50%) var(--glow-y, 50%),
+        color-mix(in srgb, var(--accent) 22%, transparent) 0%,
+        color-mix(in srgb, var(--accent) 14%, transparent) 42%,
+        transparent 86%
+      ),
+      radial-gradient(
+      10rem 6.5rem at var(--glow-x, 50%) var(--glow-y, 50%),
+      color-mix(in srgb, var(--accent) 16%, white 8%) 0%,
+      color-mix(in srgb, var(--accent-strong) 10%, transparent) 48%,
+      transparent 88%
+    );
+  }
+
+  .interactive-glow--title:hover:not(:disabled),
+  .interactive-glow--title[data-glow-active="true"]:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 30px color-mix(in srgb, var(--accent) 18%, transparent),
+      0 6px 16px rgb(0 0 0 / 0.14);
+  }
+
+  .interactive-glow--title:hover:not(:disabled)::before,
+  .interactive-glow--title[data-glow-active="true"]:not(:disabled)::before {
+    opacity: var(--button-glow-opacity-title);
+  }
+
   .theme-panel {
     @apply rounded-lg border border-theme bg-surface text-theme shadow-sm;
   }

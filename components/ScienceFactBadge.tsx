@@ -1,4 +1,5 @@
 import { Lightbulb } from "lucide-preact"
+import clsx from "clsx/lite"
 import { scienceFacts } from "@/utils/storyStore.ts"
 
 export interface ScienceFactProps {
@@ -11,7 +12,7 @@ export function ScienceFactBadge(props: ScienceFactProps) {
   if (!href) {
     return (
       <div class="flex w-full py-1 px-4 justify-start">
-        <div class="flex w-full p-2 border-yellow-600 border-2 rounded-sm bg-yellow-100 shadow-sm gap-2 text-yellow-900">
+        <div class="flex w-full gap-2 rounded-sm border-2 border-science-fact-missing bg-science-fact-missing p-2 text-science-fact-missing shadow-sm">
           ScienceFact '{props.name}' not found
         </div>
       </div>
@@ -21,11 +22,15 @@ export function ScienceFactBadge(props: ScienceFactProps) {
   return (
     <div class="flex w-full py-1 px-4 justify-end">
       <a
-        class="flex max-w-md p-2 border-emerald-800 border-2 rounded-full bg-emerald-200 shadow-sm gap-1 hover:bg-emerald-300"
+        class={clsx(
+          "flex max-w-md gap-1 rounded-full border-2 p-2 shadow-sm transition-colors",
+          "border-science-fact bg-science-fact text-science-fact",
+          "hover:bg-science-fact-hover",
+        )}
         href={href}
         target="_blank"
       >
-        <Lightbulb class="text-emerald-800" />
+        <Lightbulb class="text-science-fact-icon" />
         ScienceFact
       </a>
     </div>

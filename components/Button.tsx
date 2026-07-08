@@ -23,15 +23,17 @@ export function Button(
         {...props}
         class={clsx(
           "px-2 py-4 text-start flex items-center",
-          "border-[#b3c6c6] border-2 rounded-sm bg-white w-full shadow-sm",
-          props.disabled ? "opacity-60" : "hover:bg-gray-200 transition-colors",
+          "w-full rounded-sm border-2 border-theme-strong bg-surface text-theme shadow-sm",
+          props.disabled
+            ? "opacity-60"
+            : "transition-colors hover:bg-surface-strong",
         )}
       >
         {props.choiceId && (
           <div
             class={clsx(
-              "rounded-sm border-2 border-[#b3c6c6]",
-              "text-3xl font-bold flex text-[#b3c6c6]",
+              "rounded-sm border-2 border-theme-strong",
+              "text-3xl font-bold flex text-accent",
               "items-center justify-center size-9 me-4 px-2",
             )}
           >
@@ -55,9 +57,10 @@ export function ContinueButton(
       <button
         {...props}
         class={clsx(
-          "w-32 p-2 justify-center flex items-center text-[#b3c6c6]",
-          "border-[#b3c6c6] border-2 rounded-sm bg-white shadow-sm",
-          props.disabled ? "opacity-60" : "hover:bg-gray-200 transition-colors",
+          "flex w-32 items-center justify-center rounded-sm border-2 border-theme-strong bg-surface p-2 text-accent shadow-sm",
+          props.disabled
+            ? "opacity-60"
+            : "transition-colors hover:bg-surface-strong",
         )}
       >
         <ArrowBigDownDash class="size-10" />

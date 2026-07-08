@@ -229,7 +229,7 @@ function StoryViewer() {
         {renderedHistoric}
         <hr
           ref={isLastHistoricalSection ? activeBlockSeparatorRef : null}
-          class="my-6 border-gray-200"
+          class="my-6 border-theme"
         />
       </div>
     )
@@ -244,8 +244,8 @@ function StoryViewer() {
     .flat()
 
   return (
-    <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
-      <div class="max-w-3xl mx-auto flex flex-col">
+    <div class="mx-auto min-h-[calc(100vh-4.5rem)] bg-app-bg px-4 py-8 text-theme">
+      <div class="mx-auto flex max-w-3xl flex-col">
         {historicalSections}
         {renderedNodes}
         {activeBlockProgress.status === "ready_to_continue" &&

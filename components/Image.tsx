@@ -21,7 +21,7 @@ export function Image(props: ImageProps) {
       <img
         src={imgPath}
         alt={`${props.type}: ${props.name}`}
-        class="w-full rounded-sm border border-gray-300 shadow-sm"
+        class="w-full rounded-sm border border-theme shadow-sm"
       />
     </div>
   )

@@ -14,8 +14,8 @@ export default define.page(async function Home() {
   loadScienceFacts(scienceFacts)
 
   return (
-    <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
-      <div class="max-w-3xl mx-auto flex flex-col items-center justify-start">
+    <div class="mx-auto min-h-[calc(100vh-4.5rem)] bg-app-bg px-4 py-8 text-theme">
+      <div class="mx-auto flex max-w-3xl flex-col items-center justify-start">
         <h1 class="text-4xl font-bold">Storyteller</h1>
         <Text html="Lorem <b>ipsum</b> dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod <i>tempor</i> invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet." />
         <Text>

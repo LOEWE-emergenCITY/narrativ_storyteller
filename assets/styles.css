@@ -1,10 +1,272 @@
 @import "tailwindcss";
-.fresh-gradient {
-  background-color: rgb(134, 239, 172);
-  background-image: linear-gradient(
-    to right bottom,
-    rgb(219, 234, 254),
-    rgb(187, 247, 208),
-    rgb(254, 249, 195)
-  );
+
+@theme {
+  --color-app-bg: var(--app-bg);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-theme: var(--border-theme);
+  --color-border-theme-strong: var(--border-theme-strong);
+  --color-text-theme: var(--text-theme);
+  --color-text-theme-muted: var(--text-theme-muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-chat-self-bg: var(--chat-self-bg);
+  --color-chat-self-text: var(--chat-self-text);
+  --color-chat-self-muted: var(--chat-self-muted);
+  --color-chat-other-bg: var(--chat-other-bg);
+  --color-chat-other-text: var(--chat-other-text);
+  --color-chat-other-muted: var(--chat-other-muted);
+  --color-header-bg: var(--header-bg);
+  --color-header-border: var(--header-border);
+  --color-header-text: var(--header-text);
+  --color-header-muted: var(--header-muted);
+  --color-science-fact-bg: var(--science-fact-bg);
+  --color-science-fact-border: var(--science-fact-border);
+  --color-science-fact-text: var(--science-fact-text);
+  --color-science-fact-hover: var(--science-fact-hover);
+  --color-science-fact-icon: var(--science-fact-icon);
+  --color-science-fact-missing-bg: var(--science-fact-missing-bg);
+  --color-science-fact-missing-border: var(--science-fact-missing-border);
+  --color-science-fact-missing-text: var(--science-fact-missing-text);
+}
+
+:root {
+  color-scheme: light dark;
+  --app-bg: #f9f9f9;
+  --surface: #ffffff;
+  --surface-strong: #f0f5f5;
+  --surface-muted: #f2f2f2;
+  --border-theme: #d5dddd;
+  --border-theme-strong: #b3c6c6;
+  --text-theme: #1f2937;
+  --text-theme-muted: #6b7280;
+  --accent: #b3c6c6;
+  --accent-strong: #8ea5a5;
+  --accent-contrast: #1f2937;
+  --chat-self-bg: #f2f2f2;
+  --chat-self-text: #1f2937;
+  --chat-self-muted: #6b7280;
+  --chat-other-bg: #5f2869;
+  --chat-other-text: #ffffff;
+  --chat-other-muted: rgb(255 255 255 / 0.7);
+  --header-bg: rgb(255 255 255 / 0.9);
+  --header-border: rgb(179 198 198 / 0.85);
+  --header-text: #1f2937;
+  --header-muted: #6b7280;
+  --science-fact-bg: #bbf7d0;
+  --science-fact-border: #065f46;
+  --science-fact-text: #052e16;
+  --science-fact-hover: #86efac;
+  --science-fact-icon: #065f46;
+  --science-fact-missing-bg: #fef9c3;
+  --science-fact-missing-border: #ca8a04;
+  --science-fact-missing-text: #713f12;
+}
+
+:root[data-theme="dark"] {
+  --app-bg: #0a0b10;
+  --surface: #121624;
+  --surface-strong: #171c2b;
+  --surface-muted: #141a28;
+  --border-theme: #2a3147;
+  --border-theme-strong: #445176;
+  --text-theme: #f6f4ff;
+  --text-theme-muted: #d9dcef;
+  --accent: #8d79c9;
+  --accent-strong: #5b6b95;
+  --accent-contrast: #f6f4ff;
+  --chat-self-bg: #171c2b;
+  --chat-self-text: #f6f4ff;
+  --chat-self-muted: #d9dcef;
+  --chat-other-bg: #2d3650;
+  --chat-other-text: #f6f4ff;
+  --chat-other-muted: rgb(217 220 239 / 0.75);
+  --header-bg: rgb(18 22 36 / 0.9);
+  --header-border: rgb(42 49 71 / 0.95);
+  --header-text: #f6f4ff;
+  --header-muted: #d9dcef;
+  --science-fact-bg: rgb(6 78 59 / 0.4);
+  --science-fact-border: #34d399;
+  --science-fact-text: #d1fae5;
+  --science-fact-hover: rgb(6 95 70 / 0.6);
+  --science-fact-icon: #a7f3d0;
+  --science-fact-missing-bg: rgb(133 77 14 / 0.35);
+  --science-fact-missing-border: #facc15;
+  --science-fact-missing-text: #fef3c7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --app-bg: #0a0b10;
+    --surface: #121624;
+    --surface-strong: #171c2b;
+    --surface-muted: #141a28;
+    --border-theme: #2a3147;
+    --border-theme-strong: #445176;
+    --text-theme: #f6f4ff;
+    --text-theme-muted: #d9dcef;
+    --accent: #8d79c9;
+    --accent-strong: #5b6b95;
+    --accent-contrast: #f6f4ff;
+    --chat-self-bg: #171c2b;
+    --chat-self-text: #f6f4ff;
+    --chat-self-muted: #d9dcef;
+    --chat-other-bg: #2d3650;
+    --chat-other-text: #f6f4ff;
+    --chat-other-muted: rgb(217 220 239 / 0.75);
+    --header-bg: rgb(18 22 36 / 0.9);
+    --header-border: rgb(42 49 71 / 0.95);
+    --header-text: #f6f4ff;
+    --header-muted: #d9dcef;
+    --science-fact-bg: rgb(6 78 59 / 0.4);
+    --science-fact-border: #34d399;
+    --science-fact-text: #d1fae5;
+    --science-fact-hover: rgb(6 95 70 / 0.6);
+    --science-fact-icon: #a7f3d0;
+    --science-fact-missing-bg: rgb(133 77 14 / 0.35);
+    --science-fact-missing-border: #facc15;
+    --science-fact-missing-text: #fef3c7;
+  }
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--text-theme);
+}
+
+@utility bg-app-bg {
+  background-color: var(--app-bg);
+}
+
+@utility bg-surface {
+  background-color: var(--surface);
+}
+
+@utility bg-surface-strong {
+  background-color: var(--surface-strong);
+}
+
+@utility bg-surface-muted {
+  background-color: var(--surface-muted);
+}
+
+@utility border-theme {
+  border-color: var(--border-theme);
+}
+
+@utility border-theme-strong {
+  border-color: var(--border-theme-strong);
+}
+
+@utility text-theme {
+  color: var(--text-theme);
+}
+
+@utility text-theme-muted {
+  color: var(--text-theme-muted);
+}
+
+@utility bg-accent {
+  background-color: var(--accent);
+}
+
+@utility text-accent {
+  color: var(--accent);
+}
+
+@utility text-accent-contrast {
+  color: var(--accent-contrast);
+}
+
+@utility border-accent {
+  border-color: var(--accent);
+}
+
+@utility bg-chat-self {
+  background-color: var(--chat-self-bg);
+}
+
+@utility text-chat-self {
+  color: var(--chat-self-text);
+}
+
+@utility text-chat-self-muted {
+  color: var(--chat-self-muted);
+}
+
+@utility bg-chat-other {
+  background-color: var(--chat-other-bg);
+}
+
+@utility text-chat-other {
+  color: var(--chat-other-text);
+}
+
+@utility text-chat-other-muted {
+  color: var(--chat-other-muted);
+}
+
+@utility bg-header {
+  background-color: var(--header-bg);
+}
+
+@utility border-header {
+  border-color: var(--header-border);
+}
+
+@utility text-header {
+  color: var(--header-text);
+}
+
+@utility text-header-muted {
+  color: var(--header-muted);
+}
+
+@utility bg-science-fact {
+  background-color: var(--science-fact-bg);
+}
+
+@utility border-science-fact {
+  border-color: var(--science-fact-border);
+}
+
+@utility text-science-fact {
+  color: var(--science-fact-text);
+}
+
+@utility text-science-fact-icon {
+  color: var(--science-fact-icon);
+}
+
+@utility bg-science-fact-hover {
+  background-color: var(--science-fact-hover);
+}
+
+@utility bg-science-fact-missing {
+  background-color: var(--science-fact-missing-bg);
+}
+
+@utility border-science-fact-missing {
+  border-color: var(--science-fact-missing-border);
+}
+
+@utility text-science-fact-missing {
+  color: var(--science-fact-missing-text);
+}
+
+@layer components {
+  .theme-panel {
+    @apply rounded-lg border border-theme bg-surface text-theme shadow-sm;
+  }
+
+  .theme-header {
+    @apply border-b border-header bg-header text-header backdrop-blur;
+  }
 }

@@ -3,6 +3,9 @@ import { applySetCommands } from "@/utils/setHandler.ts"
 import { ActionNode, Block, CommandNode, Story } from "@/utils/storyTypes.tsx"
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
+export const STORY_STATE_STORAGE_KEY = "narrativ.storyState"
+export const STORY_STATE_VERSION = 1
+
 // ===== SIGNALS =====
 
 export const storyBlocks = signal<Map<string, Block>>(new Map())
@@ -49,6 +52,33 @@ export const blockHistory = signal<
     seenOnceSections: Set<string>
   }>
 >([])
+
+export type StoryValue = string | number | boolean
+
+export interface SavedBlockSnapshot {
+  title: string
+  choices: number[]
+  variables: Record<string, StoryValue>
+  visitedBlocks: string[]
+  seenOnceSections: string[]
+}
+
+export interface SavedStoryState {
+  version: number
+  storyFile: string
+  hasStarted: boolean
+  currentBlockTitle: string
+  currentIndentionLevel: number
+  choices: number[]
+  storyVariables: Record<string, StoryValue>
+  visitedBlocks: string[]
+  seenOnceSections: string[]
+  visibleOnceSections: string[]
+  blockEntryVariables: Record<string, StoryValue>
+  activeBlockStatus: ActiveBlockStatus
+  pendingContinueTarget: string | null
+  blockHistory: SavedBlockSnapshot[]
+}
 
 // ===== ACTIONS =====
 
@@ -147,6 +177,127 @@ export function loadStory(story: Story): void {
 
 export function loadScienceFacts(facts: Record<string, string>): void {
   scienceFacts.value = { ...facts }
+}
+
+function mapToRecord(
+  values: Map<string, StoryValue>,
+): Record<string, StoryValue> {
+  return Object.fromEntries(values.entries())
+}
+
+function recordToMap(
+  values: Record<string, StoryValue>,
+): Map<string, StoryValue> {
+  return new Map(Object.entries(values))
+}
+
+function isStoryValue(value: unknown): value is StoryValue {
+  return typeof value === "string" || typeof value === "number" ||
+    typeof value === "boolean"
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "number")
+}
+
+function isStoryValueRecord(
+  value: unknown,
+): value is Record<string, StoryValue> {
+  return typeof value === "object" && value !== null &&
+    Object.values(value).every(isStoryValue)
+}
+
+function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
+  if (typeof value !== "object" || value === null) return false
+
+  const snapshot = value as Partial<SavedBlockSnapshot>
+  return typeof snapshot.title === "string" &&
+    isNumberArray(snapshot.choices) &&
+    isStoryValueRecord(snapshot.variables) &&
+    isStringArray(snapshot.visitedBlocks) &&
+    isStringArray(snapshot.seenOnceSections)
+}
+
+function isActiveBlockStatus(value: unknown): value is ActiveBlockStatus {
+  return value === "waiting_for_choice" || value === "auto_jump_now" ||
+    value === "resolving_branch" || value === "ready_to_continue" ||
+    value === "complete_without_continue"
+}
+
+export function getSavedStoryState(
+  storyFile: string,
+  hasStarted: boolean,
+): SavedStoryState {
+  return {
+    version: STORY_STATE_VERSION,
+    storyFile,
+    hasStarted,
+    currentBlockTitle: currentBlockTitle.value,
+    currentIndentionLevel: currentIndentionLevel.value,
+    choices: [...choices.value],
+    storyVariables: mapToRecord(storyVariables.value),
+    visitedBlocks: [...visitedBlocks.value],
+    seenOnceSections: [...seenOnceSections.value],
+    visibleOnceSections: [...visibleOnceSections.value],
+    blockEntryVariables: mapToRecord(blockEntryVariables.value),
+    activeBlockStatus: activeBlockStatus.value,
+    pendingContinueTarget: pendingContinueTarget.value,
+    blockHistory: blockHistory.value.map((snapshot) => ({
+      title: snapshot.title,
+      choices: [...snapshot.choices],
+      variables: mapToRecord(snapshot.variables),
+      visitedBlocks: [...snapshot.visitedBlocks],
+      seenOnceSections: [...snapshot.seenOnceSections],
+    })),
+  }
+}
+
+export function restoreSavedStoryState(savedState: SavedStoryState): void {
+  batch(() => {
+    currentBlockTitle.value = savedState.currentBlockTitle
+    currentIndentionLevel.value = savedState.currentIndentionLevel
+    choices.value = [...savedState.choices]
+    storyVariables.value = recordToMap(savedState.storyVariables)
+    visitedBlocks.value = new Set(savedState.visitedBlocks)
+    seenOnceSections.value = new Set(savedState.seenOnceSections)
+    visibleOnceSections.value = new Set(savedState.visibleOnceSections)
+    blockEntryVariables.value = recordToMap(savedState.blockEntryVariables)
+    activeBlockStatus.value = savedState.activeBlockStatus
+    pendingContinueTarget.value = savedState.pendingContinueTarget
+    blockHistory.value = savedState.blockHistory.map((snapshot) => ({
+      title: snapshot.title,
+      choices: [...snapshot.choices],
+      variables: recordToMap(snapshot.variables),
+      visitedBlocks: new Set(snapshot.visitedBlocks),
+      seenOnceSections: new Set(snapshot.seenOnceSections),
+    }))
+  })
+}
+
+export function isSavedStoryState(value: unknown): value is SavedStoryState {
+  if (typeof value !== "object" || value === null) return false
+
+  const savedState = value as Partial<SavedStoryState>
+  return savedState.version === STORY_STATE_VERSION &&
+    typeof savedState.storyFile === "string" &&
+    typeof savedState.hasStarted === "boolean" &&
+    typeof savedState.currentBlockTitle === "string" &&
+    typeof savedState.currentIndentionLevel === "number" &&
+    isNumberArray(savedState.choices) &&
+    isStoryValueRecord(savedState.storyVariables) &&
+    isStringArray(savedState.visitedBlocks) &&
+    isStringArray(savedState.seenOnceSections) &&
+    isStringArray(savedState.visibleOnceSections) &&
+    isStoryValueRecord(savedState.blockEntryVariables) &&
+    isActiveBlockStatus(savedState.activeBlockStatus) &&
+    (savedState.pendingContinueTarget === null ||
+      typeof savedState.pendingContinueTarget === "string") &&
+    Array.isArray(savedState.blockHistory) &&
+    savedState.blockHistory.every(isSavedBlockSnapshot)
 }
 
 /**

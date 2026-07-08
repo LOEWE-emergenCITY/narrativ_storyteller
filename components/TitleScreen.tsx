@@ -1,13 +1,13 @@
 import { Button } from "@/components/Button.tsx"
 
 export interface TitleScreenProps {
-  isReady: boolean
+  canContinue: boolean
   onStart: () => void
-  onImageLoad: () => void
+  onContinue: () => void
 }
 
 export function TitleScreen(
-  { isReady, onStart, onImageLoad }: TitleScreenProps,
+  { canContinue, onStart, onContinue }: TitleScreenProps,
 ) {
   return (
     <div class="min-h-screen flex justify-center px-4 py-6">
@@ -16,7 +16,6 @@ export function TitleScreen(
           src="/scenes/eHub_restlicht_title.jpg"
           alt="Restlicht title screen"
           class="w-full h-auto block"
-          onLoad={onImageLoad}
         />
         <div class="w-full flex gap-2">
           <Button
@@ -25,9 +24,11 @@ export function TitleScreen(
           >
             Start
           </Button>
-          <Button disabled>
-            Continue
-          </Button>
+          {canContinue && (
+            <Button onClick={onContinue}>
+              Continue
+            </Button>
+          )}
         </div>
         {
           /* {isReady

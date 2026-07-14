@@ -104,7 +104,7 @@ Inline once text <<once>>
 
     assert(startBlock)
 
-    const firstPass = filterVisibleNodes(startBlock.contentNodes, [], {
+    const firstPass = filterVisibleNodes(startBlock.contentNodes, {}, {
       visitedBlocks: new Set(["Start"]),
       seenOnceSections: new Set(),
       variables: new Map(),
@@ -121,7 +121,7 @@ Inline once text <<once>>
     ])
     assertEquals(firstPass.visibleOnceKeys.size, 2)
 
-    const revisit = filterVisibleNodes(startBlock.contentNodes, [], {
+    const revisit = filterVisibleNodes(startBlock.contentNodes, {}, {
       visitedBlocks: new Set(["Start"]),
       seenOnceSections: firstPass.visibleOnceKeys,
       variables: new Map(),
@@ -150,7 +150,7 @@ Deno.test("inline once on choice hides the choice after revisit", async () => {
 
     assert(startBlock)
 
-    const firstPass = filterVisibleNodes(startBlock.contentNodes, [], {
+    const firstPass = filterVisibleNodes(startBlock.contentNodes, {}, {
       visitedBlocks: new Set(["Start"]),
       seenOnceSections: new Set<string>(),
       variables: new Map(),
@@ -162,7 +162,7 @@ Deno.test("inline once on choice hides the choice after revisit", async () => {
 
     assertEquals(firstChoices, ["Only once", "Always there"])
 
-    const revisit = filterVisibleNodes(startBlock.contentNodes, [], {
+    const revisit = filterVisibleNodes(startBlock.contentNodes, {}, {
       visitedBlocks: new Set(["Start"]),
       seenOnceSections: firstPass.visibleOnceKeys,
       variables: new Map(),

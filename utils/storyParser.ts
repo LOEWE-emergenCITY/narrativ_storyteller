@@ -1,6 +1,7 @@
 import {
   ActionNode,
   Block,
+  ChoicePathEntry,
   CommandNode,
   ConditionNode,
   ContentNode,
@@ -268,7 +269,7 @@ function parseBlockMetadata(line: string, currentBlock: Block): boolean {
 function parseCommandNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   onceKey?: string,
   condition?: string,
 ): CommandNode | null {
@@ -322,7 +323,7 @@ function parseCommandNode(
 function parseActionNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   currentBlockTitle: string,
   currentContentNodeIndex: number,
   onceKey?: string,
@@ -360,7 +361,7 @@ function parseActionNode(
 function parseConditionNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   lines: string[],
   currentIndex: number,
   filePath: string,
@@ -454,16 +455,13 @@ function parseConditionNode(
 function parseChoiceNode(
   trimmedLine: string,
   identionLevel: number,
-  activeChoicePath: number[],
-  choiceCounters: number[],
+  activeChoicePath: ChoicePathEntry[],
+  choiceGroup: { choiceBlockId: number; nextChoiceLevel: number },
   currentBlockTitle: string,
   lineIndex: number,
   onceKey?: string,
-): [ContentNode | null, number[], number[]] {
-  const choiceDepth = activeChoicePath.length
-  const newChoiceLevel = choiceCounters[choiceDepth] !== undefined
-    ? choiceCounters[choiceDepth] + 1
-    : 1
+): [ContentNode | null, ChoicePathEntry[]] {
+  const newChoiceLevel = choiceGroup.nextChoiceLevel
   const inlineChoice = parseInlineChoiceMetadata(
     trimmedLine,
     currentBlockTitle,
@@ -474,6 +472,7 @@ function parseChoiceNode(
     type: "choice",
     identionLevel,
     choicePath: [...activeChoicePath],
+    choiceBlockId: choiceGroup.choiceBlockId,
     onceKey: onceKey ?? inlineChoice.onceKey,
     myChoiceLevel: newChoiceLevel,
     text: inlineChoice.text,
@@ -481,17 +480,21 @@ function parseChoiceNode(
     inlineSetCommands: inlineChoice.inlineSetCommands,
   } as ActionNode
 
-  const nextActiveChoicePath = [...activeChoicePath, newChoiceLevel]
-  const nextChoiceCounters = choiceCounters.slice(0, choiceDepth + 1)
-  nextChoiceCounters[choiceDepth] = newChoiceLevel
+  const nextActiveChoicePath = [
+    ...activeChoicePath,
+    {
+      choiceBlockId: choiceGroup.choiceBlockId,
+      choiceLevel: newChoiceLevel,
+    },
+  ]
 
-  return [choiceNode, nextActiveChoicePath, nextChoiceCounters]
+  return [choiceNode, nextActiveChoicePath]
 }
 
 function parseChatNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   onceKey?: string,
   condition?: string,
 ): TextNode | null {
@@ -510,7 +513,7 @@ function parseChatNode(
 function parseTextNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   onceKey?: string,
   condition?: string,
 ): TextNode {
@@ -553,9 +556,19 @@ export async function parseStory(filePath: string): Promise<Story> {
   } as Block
 
   const lines = fileContent.split("\n")
-  let activeChoicePath: number[] = []
+  let activeChoicePath: ChoicePathEntry[] = []
   let activeChoiceIndents: number[] = []
-  let choiceCounters: number[] = []
+  let nextChoiceBlockId = 0
+  let choiceGroups = new Map<
+    string,
+    { choiceBlockId: number; nextChoiceLevel: number }
+  >()
+  const choiceGroupKey = (path: ChoicePathEntry[], indentionLevel: number) =>
+    `${indentionLevel}:${
+      path.map((entry) => `${entry.choiceBlockId}.${entry.choiceLevel}`).join(
+        "/",
+      )
+    }`
 
   for (const [index, line] of lines.entries()) {
     // Handle block separator
@@ -571,7 +584,8 @@ export async function parseStory(filePath: string): Promise<Story> {
       } as Block
       activeChoicePath = []
       activeChoiceIndents = []
-      choiceCounters = []
+      nextChoiceBlockId = 0
+      choiceGroups = new Map()
       continue
     }
 
@@ -647,15 +661,27 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     if (!contentNode) {
       if (sanitizedLine.startsWith("-> ")) {
-        ;[contentNode, activeChoicePath, choiceCounters] = parseChoiceNode(
+        const groupKey = choiceGroupKey(currentChoicePath, indentionLevel)
+        let choiceGroup = choiceGroups.get(groupKey)
+        if (!choiceGroup) {
+          choiceGroup = {
+            choiceBlockId: nextChoiceBlockId,
+            nextChoiceLevel: 1,
+          }
+          nextChoiceBlockId++
+          choiceGroups.set(groupKey, choiceGroup)
+        }
+
+        ;[contentNode, activeChoicePath] = parseChoiceNode(
           sanitizedLine,
           indentionLevel,
           currentChoicePath,
-          choiceCounters,
+          choiceGroup,
           currentBlock.title,
           index,
           inlineOnce.onceKey,
         )
+        choiceGroup.nextChoiceLevel++
         activeChoiceIndents = [...activeChoiceIndents, indentionLevel]
       } else if (sanitizedLine.match(/^([^:]+):\s*(.*)$/)) {
         contentNode = parseChatNode(
@@ -677,6 +703,10 @@ export async function parseStory(filePath: string): Promise<Story> {
         inlineOnce.onceKey,
         inlineCondition.condition,
       )
+    }
+
+    if (contentNode.type !== "choice") {
+      choiceGroups.delete(choiceGroupKey(currentChoicePath, indentionLevel))
     }
 
     currentBlock.contentNodes.push(contentNode)

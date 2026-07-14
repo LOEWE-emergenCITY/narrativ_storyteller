@@ -8,6 +8,7 @@ import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 import { RenderContext } from "@/utils/nodeVisibility.ts"
 import {
   ActionNode,
+  ChoiceState,
   CommandNode,
   ContentNode,
   TextNode,
@@ -15,7 +16,7 @@ import {
 import { JSX } from "preact/jsx-runtime"
 
 export interface RenderConfig {
-  choices: number[]
+  choices: ChoiceState
   context: RenderContext
   nodeVariables?: WeakMap<ContentNode, Map<string, string | number | boolean>>
   isHistorical?: boolean
@@ -92,8 +93,8 @@ function renderChoiceNode(
       choiceId={String(node.myChoiceLevel)}
       onClick={() => handleChoiceClick(contentNodes, index)}
       html={node.text || ""}
-      disabled={config.choices.length > node.choicePath.length &&
-        config.choices[node.choicePath.length] === node.myChoiceLevel!}
+      disabled={node.choiceBlockId !== undefined &&
+        config.choices[String(node.choiceBlockId)] === node.myChoiceLevel!}
     />
   )
 }

@@ -42,10 +42,15 @@ export function handleChoiceClick(
     return
   }
 
-  const nextChoices = [
-    ...contentNodes[currentIndex].choicePath,
-    choiceNode.myChoiceLevel,
-  ]
+  if (choiceNode.choiceBlockId === undefined) {
+    console.error(`Choice node at index ${currentIndex} missing choiceBlockId`)
+    return
+  }
+
+  const nextChoices = {
+    ...choices.value,
+    [choiceNode.choiceBlockId]: choiceNode.myChoiceLevel,
+  }
   const activeBlock = storyBlocks.value.get(currentBlockTitle.value)
   // Apply the same resume-from-line slice that StoryViewer uses so evaluation
   // is consistent with what is actually visible on screen.
@@ -71,22 +76,22 @@ export function handleChoiceClick(
 
   if (progress.status === "auto_jump_now" && progress.continueTarget) {
     applyVariables(visibleResult.finalVariables)
-    selectChoice(choiceNode.myChoiceLevel)
+    selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
     navigateToBlock(progress.continueTarget)
     return
   }
 
   if (progress.status === "auto_detour_now" && progress.continueTarget) {
     applyVariables(visibleResult.finalVariables)
-    selectChoice(choiceNode.myChoiceLevel)
+    selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
     // choices and currentIndentionLevel are updated synchronously by selectChoice.
     navigateToDetour(progress.continueTarget, {
       title: currentBlockTitle.value,
       line: progress.detourReturnLine ?? 0,
-      choices: [...choices.value],
+      choices: { ...choices.value },
     })
     return
   }
 
-  selectChoice(choiceNode.myChoiceLevel)
+  selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
 }

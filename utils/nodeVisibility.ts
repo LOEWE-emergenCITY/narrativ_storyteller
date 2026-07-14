@@ -2,6 +2,7 @@ import { handleConditionNode } from "@/utils/conditionHandler.ts"
 import { applySetCommands } from "@/utils/setHandler.ts"
 import {
   ActionNode,
+  ChoiceState,
   CommandNode,
   ConditionNode,
   ContentNode,
@@ -46,10 +47,21 @@ function isRenderableNode(node: ContentNode): boolean {
 }
 
 function matchesSelectedChoicePath(
-  nodeChoicePath: number[],
-  choices: number[],
+  nodeChoicePath: ActionNode["choicePath"],
+  choices: ChoiceState,
 ): boolean {
-  return nodeChoicePath.every((value, index) => choices[index] === value)
+  return nodeChoicePath.every((entry) =>
+    choices[String(entry.choiceBlockId)] === entry.choiceLevel
+  )
+}
+
+function getSelectedChoiceLevel(
+  choiceNode: ActionNode,
+  choices: ChoiceState,
+): number | undefined {
+  return choiceNode.choiceBlockId === undefined
+    ? undefined
+    : choices[String(choiceNode.choiceBlockId)]
 }
 
 function isNodeConditionMet(
@@ -74,14 +86,17 @@ function isNodeConditionMet(
   )
 }
 
-function isSelectedChoiceNode(node: ContentNode, choices: number[]): boolean {
+function isSelectedChoiceNode(
+  node: ContentNode,
+  choices: ChoiceState,
+): boolean {
   if (node.type !== "choice") {
     return false
   }
 
   const choiceNode = node as ActionNode
-  return choices.length > node.choicePath.length &&
-    choices[node.choicePath.length] === choiceNode.myChoiceLevel
+  return getSelectedChoiceLevel(choiceNode, choices) ===
+    choiceNode.myChoiceLevel
 }
 
 function getNextBranchIndex(
@@ -105,13 +120,14 @@ function getNextBranchIndex(
 
 export function filterVisibleNodes(
   contentNodes: ContentNode[],
-  choices: number[],
+  choices: ChoiceState,
   context: RenderContext,
 ): VisibleNodesResult {
   const visible: ContentNode[] = []
   const visibleOnceKeys = new Set<string>()
   const conditionStack: Array<{ active: boolean; done: boolean }> = []
   const onceStack: Array<{ active: boolean }> = []
+  let blockingChoiceBlockId: number | null = null
 
   const allConditionsActive = (): boolean =>
     conditionStack.every((condition) => condition.active)
@@ -209,13 +225,28 @@ export function filterVisibleNodes(
         }
 
         if (
-          node.type === "choice" &&
-          choices.length > node.choicePath.length &&
-          choices[node.choicePath.length] !==
-            (node as ActionNode).myChoiceLevel!
+          blockingChoiceBlockId !== null &&
+          (node.type !== "choice" ||
+            (node as ActionNode).choiceBlockId !== blockingChoiceBlockId)
         ) {
-          i++
-          continue
+          break
+        }
+
+        if (node.type === "choice") {
+          const choiceNode = node as ActionNode
+          const selectedLevel = getSelectedChoiceLevel(choiceNode, choices)
+
+          if (
+            selectedLevel !== undefined &&
+            selectedLevel !== choiceNode.myChoiceLevel!
+          ) {
+            i++
+            continue
+          }
+
+          if (selectedLevel === undefined) {
+            blockingChoiceBlockId = choiceNode.choiceBlockId ?? null
+          }
         }
 
         if (node.onceKey) {
@@ -234,7 +265,7 @@ export function filterVisibleNodes(
 
 export function evaluateVisibleNodesSequentially(
   contentNodes: ContentNode[],
-  choices: number[],
+  choices: ChoiceState,
   context: RenderContext,
 ): SequentialVisibleNodesResult {
   const visible: ContentNode[] = []
@@ -245,6 +276,7 @@ export function evaluateVisibleNodesSequentially(
   >()
   const conditionStack: Array<{ active: boolean; done: boolean }> = []
   const onceStack: Array<{ active: boolean }> = []
+  let blockingChoiceBlockId: number | null = null
   let currentVariables = new Map(context.variables)
 
   const allConditionsActive = (): boolean =>
@@ -343,13 +375,28 @@ export function evaluateVisibleNodesSequentially(
         }
 
         if (
-          node.type === "choice" &&
-          choices.length > node.choicePath.length &&
-          choices[node.choicePath.length] !==
-            (node as ActionNode).myChoiceLevel!
+          blockingChoiceBlockId !== null &&
+          (node.type !== "choice" ||
+            (node as ActionNode).choiceBlockId !== blockingChoiceBlockId)
         ) {
-          i++
-          continue
+          break
+        }
+
+        if (node.type === "choice") {
+          const choiceNode = node as ActionNode
+          const selectedLevel = getSelectedChoiceLevel(choiceNode, choices)
+
+          if (
+            selectedLevel !== undefined &&
+            selectedLevel !== choiceNode.myChoiceLevel!
+          ) {
+            i++
+            continue
+          }
+
+          if (selectedLevel === undefined) {
+            blockingChoiceBlockId = choiceNode.choiceBlockId ?? null
+          }
         }
 
         if (node.onceKey) {
@@ -392,20 +439,16 @@ export function evaluateVisibleNodesSequentially(
 export function evaluateActiveBlockProgress(
   contentNodes: ContentNode[],
   visibleNodes: ContentNode[],
-  choices: number[],
+  choices: ChoiceState,
 ): ActiveBlockProgress {
   const visibleSet = new Set(visibleNodes)
   let latestSelectedChoiceIndex = -1
 
-  if (choices.length > 0) {
+  if (Object.keys(choices).length > 0) {
     for (const [index, node] of contentNodes.entries()) {
       if (!visibleSet.has(node) || node.type !== "choice") continue
 
-      const choiceNode = node as ActionNode
-      if (
-        node.choicePath.length === choices.length - 1 &&
-        choices[node.choicePath.length] === choiceNode.myChoiceLevel
-      ) {
+      if (isSelectedChoiceNode(node, choices)) {
         latestSelectedChoiceIndex = index
       }
     }
@@ -427,7 +470,7 @@ export function evaluateActiveBlockProgress(
 
     if (node.type === "choice") {
       const choiceNode = node as ActionNode
-      const selectedLevel = choices[node.choicePath.length]
+      const selectedLevel = getSelectedChoiceLevel(choiceNode, choices)
 
       if (selectedLevel === undefined) {
         return {
@@ -459,7 +502,7 @@ export function evaluateActiveBlockProgress(
       }
 
       return {
-        status: choices.length > 0 && !sawRenderableContent
+        status: Object.keys(choices).length > 0 && !sawRenderableContent
           ? "auto_jump_now"
           : "ready_to_continue",
         continueTarget: jumpTarget,
@@ -482,7 +525,7 @@ export function evaluateActiveBlockProgress(
       }
 
       return {
-        status: choices.length > 0 && !sawRenderableContent
+        status: Object.keys(choices).length > 0 && !sawRenderableContent
           ? "auto_detour_now"
           : "ready_to_detour",
         continueTarget: detourTarget,

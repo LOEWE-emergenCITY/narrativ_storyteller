@@ -147,7 +147,7 @@ Deno.test("nested choices render only for the selected parent branch", async () 
 
     const initialVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [],
+      {},
       context,
     )
     const initialChoiceTexts = initialVisible.visibleNodes
@@ -158,7 +158,7 @@ Deno.test("nested choices render only for the selected parent branch", async () 
 
     const firstBranchVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [1],
+      { 0: 1 },
       context,
     )
     const firstBranchChoiceTexts = firstBranchVisible.visibleNodes
@@ -173,7 +173,7 @@ Deno.test("nested choices render only for the selected parent branch", async () 
 
     const secondBranchVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [2],
+      { 0: 2 },
       context,
     )
     const secondBranchChoiceTexts = secondBranchVisible.visibleNodes
@@ -203,7 +203,7 @@ Deno.test("inline choice if hides and shows sibling choices based on variables",
 
     assert(startBlock)
 
-    const visible = filterVisibleNodes(startBlock.contentNodes, [], {
+    const visible = filterVisibleNodes(startBlock.contentNodes, {}, {
       visitedBlocks: new Set(["Start"]),
       seenOnceSections: new Set<string>(),
       variables: new Map(story.variables),
@@ -240,6 +240,80 @@ Deno.test("choice numbering remains stable with inline choice suffixes", async (
     assertEquals(choiceNodes.length, 2)
     assertEquals(choiceNodes[0].myChoiceLevel, 1)
     assertEquals(choiceNodes[1].myChoiceLevel, 2)
+  })
+})
+
+Deno.test("separate same-indent choice blocks resolve one after another", async () => {
+  const storyText = `title: Start
+---
+-> First A
+    First A result
+-> First B
+    First B result
+Between groups
+-> Second A
+    Second A result
+-> Second B
+    Second B result
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    }
+
+    const initial = filterVisibleNodes(startBlock.contentNodes, {}, context)
+    const initialChoices = initial.visibleNodes
+      .filter((node): node is ActionNode => node.type === "choice")
+      .map((node) => node.text)
+    const initialTexts = initial.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(initialChoices, ["First A", "First B"])
+    assertEquals(initialTexts, [])
+
+    const afterFirst = filterVisibleNodes(
+      startBlock.contentNodes,
+      { 0: 1 },
+      context,
+    )
+    const afterFirstChoices = afterFirst.visibleNodes
+      .filter((node): node is ActionNode => node.type === "choice")
+      .map((node) => node.text)
+    const afterFirstTexts = afterFirst.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(afterFirstChoices, ["First A", "Second A", "Second B"])
+    assertEquals(afterFirstTexts, ["First A result", "Between groups"])
+
+    const afterSecond = filterVisibleNodes(
+      startBlock.contentNodes,
+      { 0: 1, 1: 2 },
+      context,
+    )
+    const afterSecondChoices = afterSecond.visibleNodes
+      .filter((node): node is ActionNode => node.type === "choice")
+      .map((node) => node.text)
+    const afterSecondTexts = afterSecond.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(afterSecondChoices, ["First A", "Second B"])
+    assertEquals(afterSecondTexts, [
+      "First A result",
+      "Between groups",
+      "Second B result",
+    ])
   })
 })
 

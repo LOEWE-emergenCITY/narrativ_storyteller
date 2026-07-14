@@ -4,7 +4,7 @@ import {
   DetourButton,
   ReturnFromDetourButton,
 } from "@/components/Button.tsx"
-import { ContentNode } from "@/utils/storyTypes.tsx"
+import { ChoiceState, ContentNode } from "@/utils/storyTypes.tsx"
 import {
   evaluateActiveBlockProgress,
   evaluateVisibleNodesSequentially,
@@ -71,7 +71,7 @@ const activeNodeVarsCache: {
 type HistorySnapshot = {
   title: string
   startFromLine: number
-  choices: number[]
+  choices: ChoiceState
   variables: Map<string, string | number | boolean>
   visitedBlocks: Set<string>
   seenOnceSections: Set<string>
@@ -294,7 +294,7 @@ function StoryViewer() {
               navigateToDetour(activeBlockProgress.continueTarget!, {
                 title: blockTitle,
                 line: activeBlockProgress.detourReturnLine ?? 0,
-                choices: [...currentChoices],
+                choices: { ...currentChoices },
               })
             }}
           />

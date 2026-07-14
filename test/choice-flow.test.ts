@@ -65,13 +65,13 @@ Done
 
     const initialVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [],
+      {},
       context,
     )
     const initialProgress = evaluateActiveBlockProgress(
       startBlock.contentNodes,
       initialVisible.visibleNodes,
-      [],
+      {},
     )
 
     assertEquals(initialProgress.status, "waiting_for_choice")
@@ -79,7 +79,7 @@ Done
 
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [1],
+      { 0: 1 },
       context,
     )
     const selectedTexts = selectedVisible.visibleNodes
@@ -88,7 +88,7 @@ Done
     const selectedProgress = evaluateActiveBlockProgress(
       startBlock.contentNodes,
       selectedVisible.visibleNodes,
-      [1],
+      { 0: 1 },
     )
 
     assertEquals(selectedTexts, ["Branch line"])
@@ -125,13 +125,13 @@ Done
 
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [1],
+      { 0: 1 },
       context,
     )
     const selectedProgress = evaluateActiveBlockProgress(
       startBlock.contentNodes,
       selectedVisible.visibleNodes,
-      [1],
+      { 0: 1 },
     )
 
     assertEquals(selectedProgress.status, "auto_jump_now")
@@ -141,7 +141,7 @@ Done
     handleChoiceClick(startBlock.contentNodes, 0)
 
     assertEquals(currentBlockTitle.value, "Next")
-    assertEquals(choices.value, [])
+    assertEquals(choices.value, {})
     assertEquals(storyVariables.value.get("$counter"), 2)
   })
 })
@@ -165,7 +165,7 @@ Deno.test("selected choice inline set updates branch visibility and final variab
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [1],
+      { 0: 1 },
       {
         visitedBlocks: new Set(["Start"]),
         seenOnceSections: new Set<string>(),
@@ -202,7 +202,7 @@ Deno.test("choice click persists inline set effects within current block", async
     loadStory(story)
     handleChoiceClick(startBlock.contentNodes, 0)
 
-    assertEquals(choices.value, [1])
+    assertEquals(choices.value, { 0: 1 })
 
     const branchResult = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
@@ -239,7 +239,7 @@ Deno.test("inline choice if can depend on earlier set nodes in sequence", async 
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [],
+      {},
       {
         visitedBlocks: new Set(["Start"]),
         seenOnceSections: new Set<string>(),
@@ -273,7 +273,7 @@ Visible after set <<if $flag>>
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [],
+      {},
       {
         visitedBlocks: new Set(["Start"]),
         seenOnceSections: new Set<string>(),
@@ -310,7 +310,7 @@ Deno.test("inline if gates set node side effects", async () => {
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [],
+      {},
       {
         visitedBlocks: new Set(["Start"]),
         seenOnceSections: new Set<string>(),
@@ -351,13 +351,13 @@ Done
 
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [1],
+      { 0: 1 },
       context,
     )
     const selectedProgress = evaluateActiveBlockProgress(
       startBlock.contentNodes,
       selectedVisible.visibleNodes,
-      [1],
+      { 0: 1 },
     )
 
     assertEquals(selectedProgress.status, "waiting_for_choice")
@@ -387,13 +387,13 @@ Deno.test("selected branch without jump completes in place", async () => {
 
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
-      [1],
+      { 0: 1 },
       context,
     )
     const selectedProgress = evaluateActiveBlockProgress(
       startBlock.contentNodes,
       selectedVisible.visibleNodes,
-      [1],
+      { 0: 1 },
     )
 
     assertEquals(selectedProgress.status, "complete_without_continue")
@@ -421,10 +421,10 @@ Done
 
     assertEquals(currentBlockTitle.value, "Start")
 
-    selectChoice(1)
+    selectChoice(0, 1)
 
     assertEquals(currentBlockTitle.value, "Start")
-    assertEquals(choices.value, [1])
+    assertEquals(choices.value, { 0: 1 })
     assertEquals(activeBlockStatus.value, "resolving_branch")
     assertEquals(pendingContinueTarget.value, null)
 
@@ -434,7 +434,7 @@ Done
     continueBranch()
 
     assertEquals(currentBlockTitle.value, "Next")
-    assertEquals(choices.value, [])
+    assertEquals(choices.value, {})
     assertEquals(pendingContinueTarget.value, null)
     assertEquals(activeBlockStatus.value, "complete_without_continue")
   })
@@ -470,7 +470,7 @@ Deno.test("self-mutating else branch does not re-open earlier if, but later if s
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [],
+      {},
       context,
     )
 
@@ -512,7 +512,7 @@ title: Next
 
     const firstPass = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [],
+      {},
       {
         visitedBlocks: visitedBlocks.value,
         seenOnceSections: new Set<string>(),
@@ -530,7 +530,7 @@ title: Next
 
     const reentered = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
-      [],
+      {},
       reentryContext,
     )
 

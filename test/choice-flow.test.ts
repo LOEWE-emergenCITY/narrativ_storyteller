@@ -7,9 +7,9 @@ import {
 } from "@/utils/nodeVisibility.ts"
 import { parseStory } from "@/utils/storyParser.ts"
 import {
+  activeBlockStatus,
   applyVariables,
   blockEntryVariables,
-  activeBlockStatus,
   choices,
   continueBranch,
   currentBlockTitle,

@@ -7,8 +7,11 @@ import {
 import {
   applyVariables,
   blockEntryVariables,
+  choices,
   currentBlockTitle,
   navigateToBlock,
+  navigateToDetour,
+  resumeFromLine,
   seenOnceSections,
   selectChoice,
   storyBlocks,
@@ -44,7 +47,12 @@ export function handleChoiceClick(
     choiceNode.myChoiceLevel,
   ]
   const activeBlock = storyBlocks.value.get(currentBlockTitle.value)
-  const resolvedContentNodes = activeBlock?.contentNodes ?? contentNodes
+  // Apply the same resume-from-line slice that StoryViewer uses so evaluation
+  // is consistent with what is actually visible on screen.
+  const fullNodes = activeBlock?.contentNodes ?? contentNodes
+  const resolvedContentNodes = resumeFromLine.value > 0
+    ? fullNodes.slice(resumeFromLine.value)
+    : fullNodes
   const context = {
     visitedBlocks: visitedBlocks.value,
     seenOnceSections: seenOnceSections.value,
@@ -65,6 +73,18 @@ export function handleChoiceClick(
     applyVariables(visibleResult.finalVariables)
     selectChoice(choiceNode.myChoiceLevel)
     navigateToBlock(progress.continueTarget)
+    return
+  }
+
+  if (progress.status === "auto_detour_now" && progress.continueTarget) {
+    applyVariables(visibleResult.finalVariables)
+    selectChoice(choiceNode.myChoiceLevel)
+    // choices and currentIndentionLevel are updated synchronously by selectChoice.
+    navigateToDetour(progress.continueTarget, {
+      title: currentBlockTitle.value,
+      line: progress.detourReturnLine ?? 0,
+      choices: [...choices.value],
+    })
     return
   }
 

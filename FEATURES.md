@@ -25,24 +25,24 @@ Assumptions:
 
 ## Parsing (`utils/storyParser.ts`)
 
-| Feature                                                                  | Status          |
-| ------------------------------------------------------------------------ | --------------- |
-| Read `.yarn` file from disk                                              | Done            |
-| Parse block headers (`title:`, `group:`, `tags:`, `position:`, `color:`) | Done            |
-| Parse `<<declare>>` variables                                            | Done            |
-| Parse `<<set …>>`                                                        | Done            |
-| Parse `<<if>>` / `<<elseif>>` / `<<else>>` / `<<endif>>`                 | Done            |
-| Parse `<<once>>` / `<<endonce>>`                                         | Done            |
-| Parse inline `<<once>>` suffix                                           | Done            |
-| Parse `<<jump …>>`                                                       | Done            |
-| Parse `<<detour …>>`                                                     | Done            |
-| Parse `<<Mood …>>`                                                       | Done            |
-| Parse `<<Scene …>>`                                                      | Done            |
-| Parse `<<GatherScienceFact …>>`                                          | Done            |
-| Parse `-> choice` lines                                                  | Done            |
-| Parse `Speaker: text` chat lines                                         | Done            |
-| Parse plain text lines                                                   | Done            |
-| Parse inline `<<if>>` inside text                                        | Done            |
+| Feature                                                                  | Status |
+| ------------------------------------------------------------------------ | ------ |
+| Read `.yarn` file from disk                                              | Done   |
+| Parse block headers (`title:`, `group:`, `tags:`, `position:`, `color:`) | Done   |
+| Parse `<<declare>>` variables                                            | Done   |
+| Parse `<<set …>>`                                                        | Done   |
+| Parse `<<if>>` / `<<elseif>>` / `<<else>>` / `<<endif>>`                 | Done   |
+| Parse `<<once>>` / `<<endonce>>`                                         | Done   |
+| Parse inline `<<once>>` suffix                                           | Done   |
+| Parse `<<jump …>>`                                                       | Done   |
+| Parse `<<detour …>>`                                                     | Done   |
+| Parse `<<Mood …>>`                                                       | Done   |
+| Parse `<<Scene …>>`                                                      | Done   |
+| Parse `<<GatherScienceFact …>>`                                          | Done   |
+| Parse `-> choice` lines                                                  | Done   |
+| Parse `Speaker: text` chat lines                                         | Done   |
+| Parse plain text lines                                                   | Done   |
+| Parse inline `<<if>>` inside text                                        | Done   |
 
 ---
 

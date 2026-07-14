@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "preact/hooks"
-import { ContinueButton } from "@/components/Button.tsx"
+import {
+  ContinueButton,
+  DetourButton,
+  ReturnFromDetourButton,
+} from "@/components/Button.tsx"
 import { ContentNode } from "@/utils/storyTypes.tsx"
 import {
   evaluateActiveBlockProgress,
@@ -15,9 +19,12 @@ import {
   choices,
   continueBranch,
   currentBlockTitle,
+  detourReturnStack,
+  navigateToDetour,
+  resumeFromLine,
+  returnFromDetour,
   seenOnceSections,
   storyBlocks,
-  storyVariables,
   updateActiveBlockState,
   visibleOnceSections,
   visitedBlocks,
@@ -52,6 +59,7 @@ const activeNodeVarsCache: {
     status: "complete_without_continue",
     continueTarget: null,
     blockingChoicePathLength: null,
+    detourReturnLine: null,
   },
 }
 
@@ -62,6 +70,7 @@ const activeNodeVarsCache: {
  */
 type HistorySnapshot = {
   title: string
+  startFromLine: number
   choices: number[]
   variables: Map<string, string | number | boolean>
   visitedBlocks: Set<string>
@@ -77,6 +86,8 @@ function StoryViewer() {
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
   const history = blockHistory.value
+  const currentResumeFromLine = resumeFromLine.value
+  const detourStack = detourReturnStack.value
 
   // storyBlocks is populated by loadStory() before isLoggedIn is set to true,
   // so it is always available on the first render of this component.
@@ -88,7 +99,9 @@ function StoryViewer() {
     variables: blockEntryVariables.value,
   }
 
-  const contentNodes = block?.contentNodes || []
+  // Apply the resume-from-line offset so only the post-detour portion of the
+  // origin block is evaluated and rendered as the active section.
+  const contentNodes = (block?.contentNodes || []).slice(currentResumeFromLine)
 
   // Capture the previous active block's computed vars BEFORE potentially
   // overwriting the cache. These are needed when that block first enters
@@ -96,8 +109,11 @@ function StoryViewer() {
   const prevActiveKey = activeNodeVarsCache.key
   const prevActiveVars = activeNodeVarsCache.vars
 
+  // resumeFromLine is included so the cache invalidates correctly when
+  // returning to the same block at a different offset (multiple detours).
   const evaluationSignature = JSON.stringify({
     blockTitle,
+    resumeFromLine: currentResumeFromLine,
     choices: currentChoices,
     visitedBlocks: [...visitedBlocks.value].sort(),
     seenOnceSections: [...seenOnceSections.value].sort(),
@@ -145,7 +161,10 @@ function StoryViewer() {
   }, [blockTitle, evaluationSignature])
 
   useEffect(() => {
-    if (activeBlockProgress.status === "auto_jump_now") {
+    if (
+      activeBlockProgress.status === "auto_jump_now" ||
+      activeBlockProgress.status === "auto_detour_now"
+    ) {
       return
     }
 
@@ -189,7 +208,10 @@ function StoryViewer() {
       variables: snapshot.variables,
     }
 
-    const frozenNodes = historicBlock.contentNodes
+    // Apply startFromLine so each history segment only shows its own portion.
+    const frozenNodes = historicBlock.contentNodes.slice(
+      snapshot.startFromLine ?? 0,
+    )
     const { visibleNodes: frozenVisible } = filterVisibleNodes(
       frozenNodes,
       snapshot.choices,
@@ -243,14 +265,42 @@ function StoryViewer() {
     )
     .flat()
 
+  // ── Determine which action button to show ────────────────────────────────
+
+  // Three distinct continue-style buttons depending on the current state:
+  //   1. ContinueButton       — regular <<jump>> reached
+  //   2. DetourButton         — <<detour>> reached, about to branch off
+  //   3. ReturnFromDetourButton — detour block ended cleanly, return to origin
+
+  const showContinue = activeBlockProgress.status === "ready_to_continue" &&
+    activeBlockProgress.continueTarget !== null
+
+  const showDetour = activeBlockProgress.status === "ready_to_detour" &&
+    activeBlockProgress.continueTarget !== null
+
+  const showReturn =
+    activeBlockProgress.status === "complete_without_continue" &&
+    detourStack.length > 0
+
   return (
     <div class="mx-auto min-h-[calc(100vh-4.5rem)] bg-app-bg px-4 py-8 text-theme">
       <div class="mx-auto flex max-w-3xl flex-col">
         {historicalSections}
         {renderedNodes}
-        {activeBlockProgress.status === "ready_to_continue" &&
-          activeBlockProgress.continueTarget && (
-          <ContinueButton onClick={() => continueBranch()} />
+        {showContinue && <ContinueButton onClick={() => continueBranch()} />}
+        {showDetour && (
+          <DetourButton
+            onClick={() => {
+              navigateToDetour(activeBlockProgress.continueTarget!, {
+                title: blockTitle,
+                line: activeBlockProgress.detourReturnLine ?? 0,
+                choices: [...currentChoices],
+              })
+            }}
+          />
+        )}
+        {showReturn && (
+          <ReturnFromDetourButton onClick={() => returnFromDetour()} />
         )}
       </div>
     </div>

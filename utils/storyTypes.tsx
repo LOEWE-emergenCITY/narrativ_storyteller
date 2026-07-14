@@ -1,5 +1,11 @@
 //------- Interface definitions for story structure --------------------------------------------------------------
 
+export interface DetourReturn {
+  title: string // origin block to return to
+  line: number // contentNodes index to resume from (one past the <<detour>> tag)
+  choices: number[] // choice path snapshot at the moment the detour was entered
+}
+
 export interface Story {
   file: string
   blocks: Map<string, Block>

@@ -1,6 +1,12 @@
 import { batch, signal } from "@preact/signals"
 import { applySetCommands } from "@/utils/setHandler.ts"
-import { ActionNode, Block, CommandNode, Story } from "@/utils/storyTypes.tsx"
+import {
+  ActionNode,
+  Block,
+  CommandNode,
+  DetourReturn,
+  Story,
+} from "@/utils/storyTypes.tsx"
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 export const STORY_STATE_STORAGE_KEY = "narrativ.storyState"
@@ -26,6 +32,21 @@ export const pendingContinueTarget = signal<string | null>(null)
 export const isLoggedIn = signal<boolean>(false)
 
 /**
+ * Stack of pending detour returns. Non-empty means we are currently inside a
+ * detour. The top entry records where to resume in the origin block when the
+ * detour block ends without a jump.
+ */
+export const detourReturnStack = signal<DetourReturn[]>([])
+
+/**
+ * The contentNodes index from which the active block should be evaluated and
+ * rendered. 0 means from the beginning (normal case). Set to a positive value
+ * when returning from a detour so only the post-detour portion of the origin
+ * block is shown as the current active section.
+ */
+export const resumeFromLine = signal<number>(0)
+
+/**
  * Variable state at the moment the current block was entered — i.e. before any
  * <<set>> commands in this block have run. Used as the baseline for
  * buildNodeVariables so set-command replays always start from the correct
@@ -42,10 +63,15 @@ export const blockEntryVariables = signal<
  * the final choices array, and a frozen snapshot of variables and visitedBlocks
  * at the moment the reader navigated away, so the block can be re-rendered
  * read-only with the exact state it was left in.
+ *
+ * `startFromLine` records the contentNodes slice offset for this snapshot.
+ * Blocks that are split by detours appear as multiple consecutive entries with
+ * different `startFromLine` values (0 for the first half, N for later halves).
  */
 export const blockHistory = signal<
   Array<{
     title: string
+    startFromLine: number
     choices: number[]
     variables: Map<string, string | number | boolean>
     visitedBlocks: Set<string>
@@ -57,6 +83,7 @@ export type StoryValue = string | number | boolean
 
 export interface SavedBlockSnapshot {
   title: string
+  startFromLine: number
   choices: number[]
   variables: Record<string, StoryValue>
   visitedBlocks: string[]
@@ -78,6 +105,8 @@ export interface SavedStoryState {
   activeBlockStatus: ActiveBlockStatus
   pendingContinueTarget: string | null
   blockHistory: SavedBlockSnapshot[]
+  detourReturnStack: Array<{ title: string; line: number; choices: number[] }>
+  resumeFromLine: number
 }
 
 // ===== ACTIONS =====
@@ -172,6 +201,8 @@ export function loadStory(story: Story): void {
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
     blockHistory.value = []
+    detourReturnStack.value = []
+    resumeFromLine.value = 0
   })
 }
 
@@ -216,6 +247,8 @@ function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
 
   const snapshot = value as Partial<SavedBlockSnapshot>
   return typeof snapshot.title === "string" &&
+    (snapshot.startFromLine === undefined ||
+      typeof snapshot.startFromLine === "number") &&
     isNumberArray(snapshot.choices) &&
     isStoryValueRecord(snapshot.variables) &&
     isStringArray(snapshot.visitedBlocks) &&
@@ -225,7 +258,8 @@ function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
 function isActiveBlockStatus(value: unknown): value is ActiveBlockStatus {
   return value === "waiting_for_choice" || value === "auto_jump_now" ||
     value === "resolving_branch" || value === "ready_to_continue" ||
-    value === "complete_without_continue"
+    value === "complete_without_continue" || value === "ready_to_detour" ||
+    value === "auto_detour_now"
 }
 
 export function getSavedStoryState(
@@ -248,11 +282,18 @@ export function getSavedStoryState(
     pendingContinueTarget: pendingContinueTarget.value,
     blockHistory: blockHistory.value.map((snapshot) => ({
       title: snapshot.title,
+      startFromLine: snapshot.startFromLine,
       choices: [...snapshot.choices],
       variables: mapToRecord(snapshot.variables),
       visitedBlocks: [...snapshot.visitedBlocks],
       seenOnceSections: [...snapshot.seenOnceSections],
     })),
+    detourReturnStack: detourReturnStack.value.map((entry) => ({
+      title: entry.title,
+      line: entry.line,
+      choices: [...entry.choices],
+    })),
+    resumeFromLine: resumeFromLine.value,
   }
 }
 
@@ -270,11 +311,20 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
     pendingContinueTarget.value = savedState.pendingContinueTarget
     blockHistory.value = savedState.blockHistory.map((snapshot) => ({
       title: snapshot.title,
+      startFromLine: snapshot.startFromLine ?? 0,
       choices: [...snapshot.choices],
       variables: recordToMap(snapshot.variables),
       visitedBlocks: new Set(snapshot.visitedBlocks),
       seenOnceSections: new Set(snapshot.seenOnceSections),
     }))
+    detourReturnStack.value = (savedState.detourReturnStack ?? []).map(
+      (entry) => ({
+        title: entry.title,
+        line: entry.line,
+        choices: [...entry.choices],
+      }),
+    )
+    resumeFromLine.value = savedState.resumeFromLine ?? 0
   })
 }
 
@@ -297,13 +347,20 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
     (savedState.pendingContinueTarget === null ||
       typeof savedState.pendingContinueTarget === "string") &&
     Array.isArray(savedState.blockHistory) &&
-    savedState.blockHistory.every(isSavedBlockSnapshot)
+    savedState.blockHistory.every(isSavedBlockSnapshot) &&
+    (savedState.detourReturnStack === undefined ||
+      Array.isArray(savedState.detourReturnStack)) &&
+    (savedState.resumeFromLine === undefined ||
+      typeof savedState.resumeFromLine === "number")
 }
 
 /**
  * Advance to a new block, mark it visited, and reset per-block navigation.
  * Snapshots the leaving block into blockHistory so it can be rendered
  * read-only as part of the accumulated story view.
+ *
+ * A jump always cancels any active detour — the return stack is cleared and
+ * the resume offset is reset.
  */
 export function navigateToBlock(title: string): void {
   batch(() => {
@@ -315,6 +372,7 @@ export function navigateToBlock(title: string): void {
       ...blockHistory.value,
       {
         title: currentBlockTitle.value,
+        startFromLine: resumeFromLine.value,
         choices: choices.value,
         variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
@@ -331,6 +389,9 @@ export function navigateToBlock(title: string): void {
     choices.value = []
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
+    // A jump always cancels any in-flight detour.
+    detourReturnStack.value = []
+    resumeFromLine.value = 0
   })
 }
 
@@ -360,6 +421,90 @@ export function continueBranch(): void {
   const target = pendingContinueTarget.value
   if (!target) return
   navigateToBlock(target)
+}
+
+/**
+ * Enter a detour block. Snapshots the current position (the "first half" of a
+ * potentially split block) into history, pushes the return info onto the detour
+ * stack, and navigates to the detour target — without clearing the stack (unlike
+ * a regular jump).
+ */
+export function navigateToDetour(
+  target: string,
+  returnInfo: DetourReturn,
+): void {
+  batch(() => {
+    const consumedOnceSections = new Set([
+      ...seenOnceSections.value,
+      ...visibleOnceSections.value,
+    ])
+    // Snapshot everything up to the detour node as one history entry.
+    blockHistory.value = [
+      ...blockHistory.value,
+      {
+        title: currentBlockTitle.value,
+        startFromLine: resumeFromLine.value,
+        choices: choices.value,
+        variables: new Map(blockEntryVariables.value),
+        visitedBlocks: new Set(visitedBlocks.value),
+        seenOnceSections: new Set(seenOnceSections.value),
+      },
+    ]
+    detourReturnStack.value = [...detourReturnStack.value, returnInfo]
+    blockEntryVariables.value = new Map(storyVariables.value)
+    seenOnceSections.value = consumedOnceSections
+    visibleOnceSections.value = new Set()
+    visitedBlocks.value = new Set([...visitedBlocks.value, target])
+    currentBlockTitle.value = target
+    currentIndentionLevel.value = 0
+    choices.value = []
+    resumeFromLine.value = 0
+    activeBlockStatus.value = "complete_without_continue"
+    pendingContinueTarget.value = null
+  })
+}
+
+/**
+ * Return from the current detour to the origin block. Pushes the detour block
+ * into history, pops the return stack, and resumes the origin block from the
+ * line after the <<detour>> tag.
+ */
+export function returnFromDetour(): void {
+  const stack = detourReturnStack.value
+  if (stack.length === 0) return
+
+  const returnInfo = stack[stack.length - 1]
+
+  batch(() => {
+    const consumedOnceSections = new Set([
+      ...seenOnceSections.value,
+      ...visibleOnceSections.value,
+    ])
+    // Snapshot the detour block into history.
+    blockHistory.value = [
+      ...blockHistory.value,
+      {
+        title: currentBlockTitle.value,
+        startFromLine: 0,
+        choices: choices.value,
+        variables: new Map(blockEntryVariables.value),
+        visitedBlocks: new Set(visitedBlocks.value),
+        seenOnceSections: new Set(seenOnceSections.value),
+      },
+    ]
+    detourReturnStack.value = stack.slice(0, -1)
+    // The second half of the origin block continues from the current variable
+    // state (which now includes any <<set>> changes made in the detour block).
+    blockEntryVariables.value = new Map(storyVariables.value)
+    seenOnceSections.value = consumedOnceSections
+    visibleOnceSections.value = new Set()
+    currentBlockTitle.value = returnInfo.title
+    choices.value = [...returnInfo.choices]
+    currentIndentionLevel.value = returnInfo.choices.length
+    resumeFromLine.value = returnInfo.line
+    activeBlockStatus.value = "resolving_branch"
+    pendingContinueTarget.value = null
+  })
 }
 
 /**

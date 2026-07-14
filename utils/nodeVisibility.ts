@@ -1,6 +1,11 @@
 import { handleConditionNode } from "@/utils/conditionHandler.ts"
 import { applySetCommands } from "@/utils/setHandler.ts"
-import { ActionNode, CommandNode, ConditionNode, ContentNode } from "@/utils/storyTypes.tsx"
+import {
+  ActionNode,
+  CommandNode,
+  ConditionNode,
+  ContentNode,
+} from "@/utils/storyTypes.tsx"
 
 export interface RenderContext {
   visitedBlocks: Set<string>
@@ -24,11 +29,15 @@ export type ActiveBlockStatus =
   | "resolving_branch"
   | "ready_to_continue"
   | "complete_without_continue"
+  | "ready_to_detour"
+  | "auto_detour_now"
 
 export interface ActiveBlockProgress {
   status: ActiveBlockStatus
   continueTarget: string | null
   blockingChoicePathLength: number | null
+  /** Line index (in the origin block's contentNodes) to resume from after a detour returns. */
+  detourReturnLine: number | null
 }
 
 function isRenderableNode(node: ContentNode): boolean {
@@ -36,7 +45,10 @@ function isRenderableNode(node: ContentNode): boolean {
     node.type === "scene" || node.type === "scienceFact"
 }
 
-function matchesSelectedChoicePath(nodeChoicePath: number[], choices: number[]): boolean {
+function matchesSelectedChoicePath(
+  nodeChoicePath: number[],
+  choices: number[],
+): boolean {
   return nodeChoicePath.every((value, index) => choices[index] === value)
 }
 
@@ -189,7 +201,9 @@ export function filterVisibleNodes(
       }
 
       if (matchesSelectedChoicePath(node.choicePath, choices)) {
-        if (!isNodeConditionMet(node, context.visitedBlocks, context.variables)) {
+        if (
+          !isNodeConditionMet(node, context.visitedBlocks, context.variables)
+        ) {
           i++
           continue
         }
@@ -321,7 +335,9 @@ export function evaluateVisibleNodesSequentially(
       }
 
       if (matchesSelectedChoicePath(node.choicePath, choices)) {
-        if (!isNodeConditionMet(node, context.visitedBlocks, currentVariables)) {
+        if (
+          !isNodeConditionMet(node, context.visitedBlocks, currentVariables)
+        ) {
           i++
           continue
         }
@@ -346,7 +362,10 @@ export function evaluateVisibleNodesSequentially(
         if (node.type === "choice" && isSelectedChoiceNode(node, choices)) {
           const inlineSetCommands = (node as ActionNode).inlineSetCommands ?? []
           if (inlineSetCommands.length > 0) {
-            currentVariables = applySetCommands(inlineSetCommands, currentVariables)
+            currentVariables = applySetCommands(
+              inlineSetCommands,
+              currentVariables,
+            )
           }
         }
 
@@ -415,6 +434,7 @@ export function evaluateActiveBlockProgress(
           status: "waiting_for_choice",
           continueTarget: null,
           blockingChoicePathLength: node.choicePath.length,
+          detourReturnLine: null,
         }
       }
 
@@ -434,6 +454,7 @@ export function evaluateActiveBlockProgress(
           status: "complete_without_continue",
           continueTarget: null,
           blockingChoicePathLength: null,
+          detourReturnLine: null,
         }
       }
 
@@ -443,6 +464,30 @@ export function evaluateActiveBlockProgress(
           : "ready_to_continue",
         continueTarget: jumpTarget,
         blockingChoicePathLength: null,
+        detourReturnLine: null,
+      }
+    }
+
+    if (node.type === "detour") {
+      const detourNode = node as ActionNode
+      const detourTarget = detourNode.jumpTarget ?? null
+
+      if (!detourTarget) {
+        return {
+          status: "complete_without_continue",
+          continueTarget: null,
+          blockingChoicePathLength: null,
+          detourReturnLine: null,
+        }
+      }
+
+      return {
+        status: choices.length > 0 && !sawRenderableContent
+          ? "auto_detour_now"
+          : "ready_to_detour",
+        continueTarget: detourTarget,
+        blockingChoicePathLength: null,
+        detourReturnLine: detourNode.returnTargetLine?.line ?? null,
       }
     }
   }
@@ -451,5 +496,6 @@ export function evaluateActiveBlockProgress(
     status: "complete_without_continue",
     continueTarget: null,
     blockingChoicePathLength: null,
+    detourReturnLine: null,
   }
 }

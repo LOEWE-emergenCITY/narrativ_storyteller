@@ -34,9 +34,9 @@ Deno.test("parser assigns distinct levels to sibling top-level choices", async (
 
     assert(startBlock)
 
-    const choiceNodes = startBlock.contentNodes.filter((node): node is ActionNode =>
-      node.type === "choice"
-    )
+    const choiceNodes = startBlock.contentNodes.filter((
+      node,
+    ): node is ActionNode => node.type === "choice")
 
     assertEquals(choiceNodes.length, 2)
     assertEquals(choiceNodes[0].myChoiceLevel, 1)
@@ -112,9 +112,9 @@ Deno.test("parser keeps sibling numbering after dedenting within a branch", asyn
 
     assert(startBlock)
 
-    const choiceNodes = startBlock.contentNodes.filter((node): node is ActionNode =>
-      node.type === "choice"
-    )
+    const choiceNodes = startBlock.contentNodes.filter((
+      node,
+    ): node is ActionNode => node.type === "choice")
 
     assertEquals(choiceNodes.length, 2)
     assertEquals(choiceNodes[0].myChoiceLevel, 1)
@@ -145,7 +145,11 @@ Deno.test("nested choices render only for the selected parent branch", async () 
       variables: new Map<string, string | number | boolean>(),
     }
 
-    const initialVisible = filterVisibleNodes(startBlock.contentNodes, [], context)
+    const initialVisible = filterVisibleNodes(
+      startBlock.contentNodes,
+      [],
+      context,
+    )
     const initialChoiceTexts = initialVisible.visibleNodes
       .filter((node): node is ActionNode => node.type === "choice")
       .map((node) => node.text)
@@ -229,9 +233,9 @@ Deno.test("choice numbering remains stable with inline choice suffixes", async (
 
     assert(startBlock)
 
-    const choiceNodes = startBlock.contentNodes.filter((node): node is ActionNode =>
-      node.type === "choice"
-    )
+    const choiceNodes = startBlock.contentNodes.filter((
+      node,
+    ): node is ActionNode => node.type === "choice")
 
     assertEquals(choiceNodes.length, 2)
     assertEquals(choiceNodes[0].myChoiceLevel, 1)

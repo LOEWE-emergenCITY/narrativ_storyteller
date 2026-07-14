@@ -324,7 +324,7 @@ function parseActionNode(
   identionLevel: number,
   choicePath: number[],
   currentBlockTitle: string,
-  currentLineIndex: number,
+  currentContentNodeIndex: number,
   onceKey?: string,
   condition?: string,
 ): ActionNode | null {
@@ -349,7 +349,7 @@ function parseActionNode(
       jumpTarget: trimmedLine.substring(9).split(">>")[0].trim(),
       returnTargetLine: {
         title: currentBlockTitle,
-        line: currentLineIndex + 1,
+        line: currentContentNodeIndex + 1,
       }, // after detour, return to the line following the detour command
     } as ActionNode
   }
@@ -617,19 +617,19 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     // Try parsing different node types in order
     if (sanitizedLine.startsWith("<<")) {
-        contentNode = parseCommandNode(
-          sanitizedLine,
-          indentionLevel,
-          currentChoicePath,
-          inlineOnce.onceKey,
-          inlineCondition.condition,
-        ) ||
+      contentNode = parseCommandNode(
+        sanitizedLine,
+        indentionLevel,
+        currentChoicePath,
+        inlineOnce.onceKey,
+        inlineCondition.condition,
+      ) ||
         parseActionNode(
           sanitizedLine,
           indentionLevel,
           currentChoicePath,
           currentBlock.title,
-          index,
+          currentBlock.contentNodes.length,
           inlineOnce.onceKey,
           inlineCondition.condition,
         ) ||

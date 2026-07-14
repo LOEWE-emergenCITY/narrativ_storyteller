@@ -1,6 +1,6 @@
 # Feature List — .yarn File Format Support
 
-Last updated: 2026-07-02
+Last updated: 2026-07-14
 
 ---
 
@@ -12,8 +12,8 @@ Scoring:
 - Partial = 0.5
 - Not implemented = 0
 
-- Step 1 / MVP progress: 82% done, 18% remaining
-- Complete package progress: 64% done, 36% remaining
+- Step 1 / MVP progress: 92% done, 8% remaining
+- Complete package progress: 71% done, 29% remaining
 
 Assumptions:
 
@@ -82,7 +82,7 @@ Assumptions:
 | Historical block rendering                     | Done            |
 | Selected choice transcript in history          | Done            |
 | Localization                                   | Not implemented |
-| Dark Mode                                      | Not implemented |
+| Dark Mode                                      | Done            |
 
 ---
 
@@ -98,9 +98,9 @@ Assumptions:
 | Block history snapshots               | Done            |
 | Detour return stack                   | Not implemented |
 | Science fact catalog loaded           | Done            |
-| Browser session restore on load       | Not implemented |
-| Browser session auto-save             | Not implemented |
-| Restart story and clear saved session | Not implemented |
+| Browser session restore on load       | Done            |
+| Browser session auto-save             | Done            |
+| Restart story and clear saved session | Done            |
 
 ---
 
@@ -108,7 +108,7 @@ Assumptions:
 
 | Feature                      | Status          |
 | ---------------------------- | --------------- |
-| Shared header                | Not implemented |
+| Shared header                | Done            |
 | Shared footer                | Not implemented |
 | Impressum page               | Not implemented |
 | Data security / privacy page | Not implemented |
@@ -175,14 +175,11 @@ Assumptions:
 
 ### Step 2: Product UI And Session State Management
 
-1. Add browser session restore on load.
-2. Add browser session auto-save after progress changes.
-3. Add restart behavior that clears saved browser state and returns to `Start`.
-4. Add a shared header and footer.
-5. Add Impressum and data security / privacy pages.
-6. Finish logos and branding integration.
-7. Improve the reader UI for clearer hierarchy and better mobile behavior.
-8. Add a localization foundation for static UI copy and legal content.
+1. Add a shared footer.
+2. Add Impressum and data security / privacy pages.
+3. Finish logos and branding integration.
+4. Improve the reader UI for clearer hierarchy and better mobile behavior.
+5. Add a localization foundation for static UI copy and legal content.
 
 ### Step 3: Quality, Testing, CI/CD
 

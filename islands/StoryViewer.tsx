@@ -4,7 +4,11 @@ import {
   DetourButton,
   ReturnFromDetourButton,
 } from "@/components/Button.tsx"
-import { ChoiceState, ContentNode } from "@/utils/storyTypes.tsx"
+import {
+  ChoiceState,
+  ContentNode,
+  RandomChoiceState,
+} from "@/utils/storyTypes.tsx"
 import {
   evaluateActiveBlockProgress,
   evaluateVisibleNodesSequentially,
@@ -21,6 +25,8 @@ import {
   currentBlockTitle,
   detourReturnStack,
   navigateToDetour,
+  randomChoices,
+  resolveRandomChoices,
   resumeFromLine,
   returnFromDetour,
   seenOnceSections,
@@ -47,6 +53,7 @@ const activeNodeVarsCache: {
   finalVars: Map<string, string | number | boolean>
   visibleNodes: ContentNode[]
   visibleOnceKeys: Set<string>
+  resolvedRandomChoices: RandomChoiceState
   progress: ReturnType<typeof evaluateActiveBlockProgress>
 } = {
   key: "",
@@ -55,6 +62,7 @@ const activeNodeVarsCache: {
   finalVars: new Map(),
   visibleNodes: [],
   visibleOnceKeys: new Set(),
+  resolvedRandomChoices: {},
   progress: {
     status: "complete_without_continue",
     continueTarget: null,
@@ -72,6 +80,7 @@ type HistorySnapshot = {
   title: string
   startFromLine: number
   choices: ChoiceState
+  randomChoices: RandomChoiceState
   variables: Map<string, string | number | boolean>
   visitedBlocks: Set<string>
   seenOnceSections: Set<string>
@@ -85,6 +94,7 @@ function StoryViewer() {
   const activeBlockSeparatorRef = useRef<HTMLHRElement | null>(null)
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
+  const currentRandomChoices = randomChoices.value
   const history = blockHistory.value
   const currentResumeFromLine = resumeFromLine.value
   const detourStack = detourReturnStack.value
@@ -115,6 +125,7 @@ function StoryViewer() {
     blockTitle,
     resumeFromLine: currentResumeFromLine,
     choices: currentChoices,
+    randomChoices: currentRandomChoices,
     visitedBlocks: [...visitedBlocks.value].sort(),
     seenOnceSections: [...seenOnceSections.value].sort(),
     variables: [...blockEntryVariables.value.entries()].sort(([a], [b]) =>
@@ -129,6 +140,7 @@ function StoryViewer() {
     const sequentialResult = evaluateVisibleNodesSequentially(
       contentNodes,
       currentChoices,
+      currentRandomChoices,
       context,
     )
     activeNodeVarsCache.key = blockTitle
@@ -137,6 +149,8 @@ function StoryViewer() {
     activeNodeVarsCache.finalVars = sequentialResult.finalVariables
     activeNodeVarsCache.visibleNodes = sequentialResult.visibleNodes
     activeNodeVarsCache.visibleOnceKeys = sequentialResult.visibleOnceKeys
+    activeNodeVarsCache.resolvedRandomChoices =
+      sequentialResult.resolvedRandomChoices
     activeNodeVarsCache.progress = evaluateActiveBlockProgress(
       contentNodes,
       sequentialResult.visibleNodes,
@@ -158,6 +172,7 @@ function StoryViewer() {
   useEffect(() => {
     if (!block) return
     applyVariables(activeNodeVarsCache.finalVars)
+    resolveRandomChoices(activeNodeVarsCache.resolvedRandomChoices)
   }, [blockTitle, evaluationSignature])
 
   useEffect(() => {
@@ -215,6 +230,7 @@ function StoryViewer() {
     const { visibleNodes: frozenVisible } = filterVisibleNodes(
       frozenNodes,
       snapshot.choices,
+      snapshot.randomChoices,
       frozenContext,
     )
 
@@ -295,6 +311,7 @@ function StoryViewer() {
                 title: blockTitle,
                 line: activeBlockProgress.detourReturnLine ?? 0,
                 choices: { ...currentChoices },
+                randomChoices: { ...currentRandomChoices },
               })
             }}
           />

@@ -32,6 +32,7 @@ function getNodeType(
   | "mood"
   | "set"
   | "scienceFact"
+  | "randomChoice"
   | "debug"
   | "detour"
   | "scene" {
@@ -42,6 +43,7 @@ function getNodeType(
   if (node.type === "mood") return "mood"
   if (node.type === "set") return "set"
   if (node.type === "scienceFact") return "scienceFact"
+  if (node.type === "randomChoice") return "randomChoice"
   if (node.type === "detour") return "detour"
   if (node.type === "scene") return "scene"
   return "debug"
@@ -165,6 +167,11 @@ export function renderNode(
     case "scienceFact":
       return [
         renderScienceFactNode(node as CommandNode),
+      ]
+
+    case "randomChoice":
+      return [
+        renderTextNode(node as TextNode, config, index),
       ]
 
     case "detour":

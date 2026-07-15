@@ -66,6 +66,7 @@ Done
     const initialVisible = filterVisibleNodes(
       startBlock.contentNodes,
       {},
+      {},
       context,
     )
     const initialProgress = evaluateActiveBlockProgress(
@@ -80,6 +81,7 @@ Done
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       context,
     )
     const selectedTexts = selectedVisible.visibleNodes
@@ -126,6 +128,7 @@ Done
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       context,
     )
     const selectedProgress = evaluateActiveBlockProgress(
@@ -166,6 +169,7 @@ Deno.test("selected choice inline set updates branch visibility and final variab
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       {
         visitedBlocks: new Set(["Start"]),
         seenOnceSections: new Set<string>(),
@@ -207,6 +211,7 @@ Deno.test("choice click persists inline set effects within current block", async
     const branchResult = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
       choices.value,
+      {},
       {
         visitedBlocks: visitedBlocks.value,
         seenOnceSections: new Set<string>(),
@@ -239,6 +244,7 @@ Deno.test("inline choice if can depend on earlier set nodes in sequence", async 
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
+      {},
       {},
       {
         visitedBlocks: new Set(["Start"]),
@@ -273,6 +279,7 @@ Visible after set <<if $flag>>
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
+      {},
       {},
       {
         visitedBlocks: new Set(["Start"]),
@@ -310,6 +317,7 @@ Deno.test("inline if gates set node side effects", async () => {
 
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
+      {},
       {},
       {
         visitedBlocks: new Set(["Start"]),
@@ -352,6 +360,7 @@ Done
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       context,
     )
     const selectedProgress = evaluateActiveBlockProgress(
@@ -388,6 +397,7 @@ Deno.test("selected branch without jump completes in place", async () => {
     const selectedVisible = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       context,
     )
     const selectedProgress = evaluateActiveBlockProgress(
@@ -471,6 +481,7 @@ Deno.test("self-mutating else branch does not re-open earlier if, but later if s
     const result = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
       {},
+      {},
       context,
     )
 
@@ -513,6 +524,7 @@ title: Next
     const firstPass = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
       {},
+      {},
       {
         visitedBlocks: visitedBlocks.value,
         seenOnceSections: new Set<string>(),
@@ -530,6 +542,7 @@ title: Next
 
     const reentered = evaluateVisibleNodesSequentially(
       startBlock.contentNodes,
+      {},
       {},
       reentryContext,
     )

@@ -6,6 +6,7 @@ import {
   CommandNode,
   ConditionNode,
   ContentNode,
+  RandomChoiceState,
 } from "@/utils/storyTypes.tsx"
 
 export interface RenderContext {
@@ -17,6 +18,7 @@ export interface RenderContext {
 export interface VisibleNodesResult {
   visibleNodes: ContentNode[]
   visibleOnceKeys: Set<string>
+  resolvedRandomChoices: RandomChoiceState
 }
 
 export interface SequentialVisibleNodesResult extends VisibleNodesResult {
@@ -43,7 +45,8 @@ export interface ActiveBlockProgress {
 
 function isRenderableNode(node: ContentNode): boolean {
   return node.type === "text" || node.type === "chat" || node.type === "mood" ||
-    node.type === "scene" || node.type === "scienceFact"
+    node.type === "scene" || node.type === "scienceFact" ||
+    node.type === "randomChoice"
 }
 
 function matchesSelectedChoicePath(
@@ -62,6 +65,57 @@ function getSelectedChoiceLevel(
   return choiceNode.choiceBlockId === undefined
     ? undefined
     : choices[String(choiceNode.choiceBlockId)]
+}
+
+function getSelectedRandomChoiceLevel(
+  randomChoiceNode: ActionNode,
+  randomChoices: RandomChoiceState,
+): number | undefined {
+  return randomChoiceNode.randomChoiceBlockId === undefined
+    ? undefined
+    : randomChoices[String(randomChoiceNode.randomChoiceBlockId)]
+}
+
+function selectRandomChoiceLevel(nodes: ActionNode[]): number | undefined {
+  const levels = nodes
+    .map((node) => node.myRandomChoiceLevel)
+    .filter((level): level is number => typeof level === "number")
+
+  if (levels.length === 0) return undefined
+
+  return levels[Math.floor(Math.random() * levels.length)]
+}
+
+function getRandomChoiceGroupCandidates(
+  contentNodes: ContentNode[],
+  startIndex: number,
+  choices: ChoiceState,
+  visitedBlocks: Set<string>,
+  seenOnceSections: Set<string>,
+  variables: Map<string, string | number | boolean>,
+): ActionNode[] {
+  const firstNode = contentNodes[startIndex] as ActionNode
+  const blockId = firstNode.randomChoiceBlockId
+  if (blockId === undefined) return []
+
+  const candidates: ActionNode[] = []
+  for (let i = startIndex; i < contentNodes.length; i++) {
+    const node = contentNodes[i]
+    if (
+      node.type !== "randomChoice" ||
+      (node as ActionNode).randomChoiceBlockId !== blockId
+    ) {
+      break
+    }
+
+    if (node.onceKey && seenOnceSections.has(node.onceKey)) continue
+    if (!matchesSelectedChoicePath(node.choicePath, choices)) continue
+    if (!isNodeConditionMet(node, visitedBlocks, variables)) continue
+
+    candidates.push(node as ActionNode)
+  }
+
+  return candidates
 }
 
 function isNodeConditionMet(
@@ -121,10 +175,12 @@ function getNextBranchIndex(
 export function filterVisibleNodes(
   contentNodes: ContentNode[],
   choices: ChoiceState,
+  randomChoices: RandomChoiceState,
   context: RenderContext,
 ): VisibleNodesResult {
   const visible: ContentNode[] = []
   const visibleOnceKeys = new Set<string>()
+  const resolvedRandomChoices: RandomChoiceState = { ...randomChoices }
   const conditionStack: Array<{ active: boolean; done: boolean }> = []
   const onceStack: Array<{ active: boolean }> = []
   let blockingChoiceBlockId: number | null = null
@@ -249,6 +305,39 @@ export function filterVisibleNodes(
           }
         }
 
+        if (node.type === "randomChoice") {
+          const randomChoiceNode = node as ActionNode
+          const blockId = randomChoiceNode.randomChoiceBlockId
+
+          if (blockId === undefined) {
+            i++
+            continue
+          }
+
+          const selectedLevel = getSelectedRandomChoiceLevel(
+            randomChoiceNode,
+            resolvedRandomChoices,
+          ) ?? selectRandomChoiceLevel(
+            getRandomChoiceGroupCandidates(
+              contentNodes,
+              i,
+              choices,
+              context.visitedBlocks,
+              context.seenOnceSections,
+              context.variables,
+            ),
+          )
+
+          if (selectedLevel !== undefined) {
+            resolvedRandomChoices[String(blockId)] = selectedLevel
+          }
+
+          if (selectedLevel !== randomChoiceNode.myRandomChoiceLevel) {
+            i++
+            continue
+          }
+        }
+
         if (node.onceKey) {
           visibleOnceKeys.add(node.onceKey)
         }
@@ -260,16 +349,18 @@ export function filterVisibleNodes(
     i++
   }
 
-  return { visibleNodes: visible, visibleOnceKeys }
+  return { visibleNodes: visible, visibleOnceKeys, resolvedRandomChoices }
 }
 
 export function evaluateVisibleNodesSequentially(
   contentNodes: ContentNode[],
   choices: ChoiceState,
+  randomChoices: RandomChoiceState,
   context: RenderContext,
 ): SequentialVisibleNodesResult {
   const visible: ContentNode[] = []
   const visibleOnceKeys = new Set<string>()
+  const resolvedRandomChoices: RandomChoiceState = { ...randomChoices }
   const nodeVariables = new WeakMap<
     ContentNode,
     Map<string, string | number | boolean>
@@ -399,6 +490,39 @@ export function evaluateVisibleNodesSequentially(
           }
         }
 
+        if (node.type === "randomChoice") {
+          const randomChoiceNode = node as ActionNode
+          const blockId = randomChoiceNode.randomChoiceBlockId
+
+          if (blockId === undefined) {
+            i++
+            continue
+          }
+
+          const selectedLevel = getSelectedRandomChoiceLevel(
+            randomChoiceNode,
+            resolvedRandomChoices,
+          ) ?? selectRandomChoiceLevel(
+            getRandomChoiceGroupCandidates(
+              contentNodes,
+              i,
+              choices,
+              context.visitedBlocks,
+              context.seenOnceSections,
+              currentVariables,
+            ),
+          )
+
+          if (selectedLevel !== undefined) {
+            resolvedRandomChoices[String(blockId)] = selectedLevel
+          }
+
+          if (selectedLevel !== randomChoiceNode.myRandomChoiceLevel) {
+            i++
+            continue
+          }
+        }
+
         if (node.onceKey) {
           visibleOnceKeys.add(node.onceKey)
         }
@@ -431,6 +555,7 @@ export function evaluateVisibleNodesSequentially(
   return {
     visibleNodes: visible,
     visibleOnceKeys,
+    resolvedRandomChoices,
     nodeVariables,
     finalVariables: currentVariables,
   }

@@ -148,6 +148,7 @@ Deno.test("nested choices render only for the selected parent branch", async () 
     const initialVisible = filterVisibleNodes(
       startBlock.contentNodes,
       {},
+      {},
       context,
     )
     const initialChoiceTexts = initialVisible.visibleNodes
@@ -159,6 +160,7 @@ Deno.test("nested choices render only for the selected parent branch", async () 
     const firstBranchVisible = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       context,
     )
     const firstBranchChoiceTexts = firstBranchVisible.visibleNodes
@@ -174,6 +176,7 @@ Deno.test("nested choices render only for the selected parent branch", async () 
     const secondBranchVisible = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 2 },
+      {},
       context,
     )
     const secondBranchChoiceTexts = secondBranchVisible.visibleNodes
@@ -203,7 +206,7 @@ Deno.test("inline choice if hides and shows sibling choices based on variables",
 
     assert(startBlock)
 
-    const visible = filterVisibleNodes(startBlock.contentNodes, {}, {
+    const visible = filterVisibleNodes(startBlock.contentNodes, {}, {}, {
       visitedBlocks: new Set(["Start"]),
       seenOnceSections: new Set<string>(),
       variables: new Map(story.variables),
@@ -270,7 +273,7 @@ Between groups
       variables: new Map<string, string | number | boolean>(),
     }
 
-    const initial = filterVisibleNodes(startBlock.contentNodes, {}, context)
+    const initial = filterVisibleNodes(startBlock.contentNodes, {}, {}, context)
     const initialChoices = initial.visibleNodes
       .filter((node): node is ActionNode => node.type === "choice")
       .map((node) => node.text)
@@ -284,6 +287,7 @@ Between groups
     const afterFirst = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1 },
+      {},
       context,
     )
     const afterFirstChoices = afterFirst.visibleNodes
@@ -299,6 +303,7 @@ Between groups
     const afterSecond = filterVisibleNodes(
       startBlock.contentNodes,
       { 0: 1, 1: 2 },
+      {},
       context,
     )
     const afterSecondChoices = afterSecond.visibleNodes
@@ -350,5 +355,137 @@ Angela: Hallo <<if visited(Intro)>>
     assertEquals((setNode as CommandNode).type, "set")
     assertEquals((setNode as CommandNode).command, "$seen to true")
     assertEquals((setNode as CommandNode).condition, "$flag")
+  })
+})
+
+Deno.test("parser groups adjacent same-indent random choices", async () => {
+  const storyText = `title: Start
+---
+=> First random
+=> Second random
+Between groups
+=> Third random
+=> Fourth random
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const randomChoiceNodes = startBlock.contentNodes.filter((
+      node,
+    ): node is ActionNode => node.type === "randomChoice")
+
+    assertEquals(randomChoiceNodes.length, 4)
+    assertEquals(randomChoiceNodes.map((node) => node.text), [
+      "First random",
+      "Second random",
+      "Third random",
+      "Fourth random",
+    ])
+    assertEquals(randomChoiceNodes.map((node) => node.randomChoiceBlockId), [
+      0,
+      0,
+      1,
+      1,
+    ])
+    assertEquals(randomChoiceNodes.map((node) => node.myRandomChoiceLevel), [
+      1,
+      2,
+      1,
+      2,
+    ])
+  })
+})
+
+Deno.test("random choice renders one stable line from saved state", async () => {
+  const storyText = `title: Start
+---
+=> First random
+=> Second random
+After random
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    }
+
+    const visible = filterVisibleNodes(
+      startBlock.contentNodes,
+      {},
+      { 0: 2 },
+      context,
+    )
+    const texts = visible.visibleNodes
+      .filter((node): node is ActionNode | TextNode =>
+        node.type === "randomChoice" || node.type === "text"
+      )
+      .map((node) => node.text)
+
+    assertEquals(texts, ["Second random", "After random"])
+    assertEquals(visible.resolvedRandomChoices, { 0: 2 })
+  })
+})
+
+Deno.test("random choice auto-resolves and can be replayed", async () => {
+  const storyText = `title: Start
+---
+=> First random
+=> Second random
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    }
+
+    const firstPass = filterVisibleNodes(
+      startBlock.contentNodes,
+      {},
+      {},
+      context,
+    )
+    const selectedLevel = firstPass.resolvedRandomChoices[0]
+
+    assert(selectedLevel === 1 || selectedLevel === 2)
+    assertEquals(
+      firstPass.visibleNodes.filter((node) => node.type === "randomChoice")
+        .length,
+      1,
+    )
+
+    const replay = filterVisibleNodes(
+      startBlock.contentNodes,
+      {},
+      firstPass.resolvedRandomChoices,
+      context,
+    )
+
+    assertEquals(
+      replay.visibleNodes
+        .filter((node): node is ActionNode => node.type === "randomChoice")
+        .map((node) => node.myRandomChoiceLevel),
+      [selectedLevel],
+    )
   })
 })

@@ -11,6 +11,8 @@ import {
   currentBlockTitle,
   navigateToBlock,
   navigateToDetour,
+  randomChoices,
+  resolveRandomChoices,
   resumeFromLine,
   seenOnceSections,
   selectChoice,
@@ -66,6 +68,7 @@ export function handleChoiceClick(
   const visibleResult = evaluateVisibleNodesSequentially(
     resolvedContentNodes,
     nextChoices,
+    randomChoices.value,
     context,
   )
   const progress = evaluateActiveBlockProgress(
@@ -76,6 +79,7 @@ export function handleChoiceClick(
 
   if (progress.status === "auto_jump_now" && progress.continueTarget) {
     applyVariables(visibleResult.finalVariables)
+    resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
     navigateToBlock(progress.continueTarget)
     return
@@ -83,12 +87,14 @@ export function handleChoiceClick(
 
   if (progress.status === "auto_detour_now" && progress.continueTarget) {
     applyVariables(visibleResult.finalVariables)
+    resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
     // choices and currentIndentionLevel are updated synchronously by selectChoice.
     navigateToDetour(progress.continueTarget, {
       title: currentBlockTitle.value,
       line: progress.detourReturnLine ?? 0,
       choices: { ...choices.value },
+      randomChoices: { ...randomChoices.value },
     })
     return
   }

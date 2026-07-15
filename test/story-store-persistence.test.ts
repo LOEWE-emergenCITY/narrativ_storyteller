@@ -13,6 +13,8 @@ import {
   loadStory,
   navigateToBlock,
   pendingContinueTarget,
+  randomChoices,
+  resolveRandomChoices,
   restoreSavedStoryState,
   seenOnceSections,
   STORY_STATE_VERSION,
@@ -56,6 +58,7 @@ Next block
 
     loadStory(story)
     choices.value = { 0: 1 }
+    resolveRandomChoices({ 0: 2 })
     currentIndentionLevel.value = 1
     applyVariables(new Map([["$trust", 1]]))
     visibleOnceSections.value = new Set(["Next:1"])
@@ -63,6 +66,7 @@ Next block
     updateActiveBlockState("ready_to_continue", "Next")
     navigateToBlock("Next")
     choices.value = { 0: 2 }
+    resolveRandomChoices({ 0: 1 })
     currentIndentionLevel.value = 1
     visibleOnceSections.value = new Set(["Next:5"])
     updateActiveBlockState("waiting_for_choice", null)
@@ -78,6 +82,7 @@ Next block
     assertEquals(currentBlockTitle.value, "Next")
     assertEquals(currentIndentionLevel.value, 1)
     assertEquals(choices.value, { 0: 2 })
+    assertEquals(randomChoices.value, { 0: 1 })
     assertEquals(Object.fromEntries(storyVariables.value), { "$trust": 1 })
     assertEquals([...visitedBlocks.value], ["Start", "Next"])
     assertEquals([...seenOnceSections.value], ["Start:3", "Next:1"])
@@ -88,6 +93,7 @@ Next block
     assertEquals(blockHistory.value.length, 1)
     assertEquals(blockHistory.value[0].title, "Start")
     assertEquals(blockHistory.value[0].choices, { 0: 1 })
+    assertEquals(blockHistory.value[0].randomChoices, { 0: 2 })
     assertEquals(Object.fromEntries(blockHistory.value[0].variables), {
       "$trust": 0,
     })

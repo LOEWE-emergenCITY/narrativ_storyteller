@@ -6,6 +6,7 @@ import {
   ChoiceState,
   CommandNode,
   DetourReturn,
+  RandomChoiceState,
   Story,
 } from "@/utils/storyTypes.tsx"
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
@@ -26,6 +27,7 @@ export const storyVariables = signal<Map<string, string | number | boolean>>(
 export const currentBlockTitle = signal<string>("Start")
 export const currentIndentionLevel = signal<number>(0)
 export const choices = signal<ChoiceState>({})
+export const randomChoices = signal<RandomChoiceState>({})
 export const activeBlockStatus = signal<ActiveBlockStatus>(
   "complete_without_continue",
 )
@@ -74,6 +76,7 @@ export const blockHistory = signal<
     title: string
     startFromLine: number
     choices: ChoiceState
+    randomChoices: RandomChoiceState
     variables: Map<string, string | number | boolean>
     visitedBlocks: Set<string>
     seenOnceSections: Set<string>
@@ -86,10 +89,15 @@ function cloneChoices(value: ChoiceState): ChoiceState {
   return { ...value }
 }
 
+function cloneRandomChoices(value: RandomChoiceState): RandomChoiceState {
+  return { ...value }
+}
+
 export interface SavedBlockSnapshot {
   title: string
   startFromLine: number
   choices: ChoiceState
+  randomChoices?: RandomChoiceState
   variables: Record<string, StoryValue>
   visitedBlocks: string[]
   seenOnceSections: string[]
@@ -102,6 +110,7 @@ export interface SavedStoryState {
   currentBlockTitle: string
   currentIndentionLevel: number
   choices: ChoiceState
+  randomChoices?: RandomChoiceState
   storyVariables: Record<string, StoryValue>
   visitedBlocks: string[]
   seenOnceSections: string[]
@@ -111,7 +120,12 @@ export interface SavedStoryState {
   pendingContinueTarget: string | null
   blockHistory: SavedBlockSnapshot[]
   detourReturnStack: Array<
-    { title: string; line: number; choices: ChoiceState }
+    {
+      title: string
+      line: number
+      choices: ChoiceState
+      randomChoices?: RandomChoiceState
+    }
   >
   resumeFromLine: number
 }
@@ -205,6 +219,7 @@ export function loadStory(story: Story): void {
     currentBlockTitle.value = initialStory.initialBlockTitle
     currentIndentionLevel.value = 0
     choices.value = {}
+    randomChoices.value = {}
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
     blockHistory.value = []
@@ -258,6 +273,8 @@ function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
     (snapshot.startFromLine === undefined ||
       typeof snapshot.startFromLine === "number") &&
     isChoiceState(snapshot.choices) &&
+    (snapshot.randomChoices === undefined ||
+      isChoiceState(snapshot.randomChoices)) &&
     isStoryValueRecord(snapshot.variables) &&
     isStringArray(snapshot.visitedBlocks) &&
     isStringArray(snapshot.seenOnceSections)
@@ -281,6 +298,7 @@ export function getSavedStoryState(
     currentBlockTitle: currentBlockTitle.value,
     currentIndentionLevel: currentIndentionLevel.value,
     choices: cloneChoices(choices.value),
+    randomChoices: cloneRandomChoices(randomChoices.value),
     storyVariables: mapToRecord(storyVariables.value),
     visitedBlocks: [...visitedBlocks.value],
     seenOnceSections: [...seenOnceSections.value],
@@ -292,6 +310,7 @@ export function getSavedStoryState(
       title: snapshot.title,
       startFromLine: snapshot.startFromLine,
       choices: cloneChoices(snapshot.choices),
+      randomChoices: cloneRandomChoices(snapshot.randomChoices),
       variables: mapToRecord(snapshot.variables),
       visitedBlocks: [...snapshot.visitedBlocks],
       seenOnceSections: [...snapshot.seenOnceSections],
@@ -300,6 +319,7 @@ export function getSavedStoryState(
       title: entry.title,
       line: entry.line,
       choices: cloneChoices(entry.choices),
+      randomChoices: cloneRandomChoices(entry.randomChoices),
     })),
     resumeFromLine: resumeFromLine.value,
   }
@@ -310,6 +330,7 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
     currentBlockTitle.value = savedState.currentBlockTitle
     currentIndentionLevel.value = savedState.currentIndentionLevel
     choices.value = cloneChoices(savedState.choices)
+    randomChoices.value = cloneRandomChoices(savedState.randomChoices ?? {})
     storyVariables.value = recordToMap(savedState.storyVariables)
     visitedBlocks.value = new Set(savedState.visitedBlocks)
     seenOnceSections.value = new Set(savedState.seenOnceSections)
@@ -321,6 +342,7 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
       title: snapshot.title,
       startFromLine: snapshot.startFromLine ?? 0,
       choices: cloneChoices(snapshot.choices),
+      randomChoices: cloneRandomChoices(snapshot.randomChoices ?? {}),
       variables: recordToMap(snapshot.variables),
       visitedBlocks: new Set(snapshot.visitedBlocks),
       seenOnceSections: new Set(snapshot.seenOnceSections),
@@ -330,6 +352,7 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
         title: entry.title,
         line: entry.line,
         choices: cloneChoices(entry.choices),
+        randomChoices: cloneRandomChoices(entry.randomChoices ?? {}),
       }),
     )
     resumeFromLine.value = savedState.resumeFromLine ?? 0
@@ -346,6 +369,8 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
     typeof savedState.currentBlockTitle === "string" &&
     typeof savedState.currentIndentionLevel === "number" &&
     isChoiceState(savedState.choices) &&
+    (savedState.randomChoices === undefined ||
+      isChoiceState(savedState.randomChoices)) &&
     isStoryValueRecord(savedState.storyVariables) &&
     isStringArray(savedState.visitedBlocks) &&
     isStringArray(savedState.seenOnceSections) &&
@@ -382,6 +407,7 @@ export function navigateToBlock(title: string): void {
         title: currentBlockTitle.value,
         startFromLine: resumeFromLine.value,
         choices: cloneChoices(choices.value),
+        randomChoices: cloneRandomChoices(randomChoices.value),
         variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
         seenOnceSections: new Set(seenOnceSections.value),
@@ -395,6 +421,7 @@ export function navigateToBlock(title: string): void {
     currentBlockTitle.value = title
     currentIndentionLevel.value = 0
     choices.value = {}
+    randomChoices.value = {}
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
     // A jump always cancels any in-flight detour.
@@ -416,6 +443,12 @@ export function selectChoice(choiceBlockId: number, choiceLevel: number): void {
     activeBlockStatus.value = "resolving_branch"
     pendingContinueTarget.value = null
   })
+}
+
+export function resolveRandomChoices(
+  nextRandomChoices: RandomChoiceState,
+): void {
+  randomChoices.value = cloneRandomChoices(nextRandomChoices)
 }
 
 export function updateActiveBlockState(
@@ -456,6 +489,7 @@ export function navigateToDetour(
         title: currentBlockTitle.value,
         startFromLine: resumeFromLine.value,
         choices: cloneChoices(choices.value),
+        randomChoices: cloneRandomChoices(randomChoices.value),
         variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
         seenOnceSections: new Set(seenOnceSections.value),
@@ -469,6 +503,7 @@ export function navigateToDetour(
     currentBlockTitle.value = target
     currentIndentionLevel.value = 0
     choices.value = {}
+    randomChoices.value = {}
     resumeFromLine.value = 0
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
@@ -498,6 +533,7 @@ export function returnFromDetour(): void {
         title: currentBlockTitle.value,
         startFromLine: 0,
         choices: cloneChoices(choices.value),
+        randomChoices: cloneRandomChoices(randomChoices.value),
         variables: new Map(blockEntryVariables.value),
         visitedBlocks: new Set(visitedBlocks.value),
         seenOnceSections: new Set(seenOnceSections.value),
@@ -511,6 +547,7 @@ export function returnFromDetour(): void {
     visibleOnceSections.value = new Set()
     currentBlockTitle.value = returnInfo.title
     choices.value = cloneChoices(returnInfo.choices)
+    randomChoices.value = cloneRandomChoices(returnInfo.randomChoices)
     currentIndentionLevel.value = Object.keys(returnInfo.choices).length
     resumeFromLine.value = returnInfo.line
     activeBlockStatus.value = "resolving_branch"

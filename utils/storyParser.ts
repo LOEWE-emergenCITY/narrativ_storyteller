@@ -491,6 +491,31 @@ function parseChoiceNode(
   return [choiceNode, nextActiveChoicePath]
 }
 
+function parseRandomChoiceNode(
+  trimmedLine: string,
+  identionLevel: number,
+  choicePath: ChoicePathEntry[],
+  randomChoiceGroup: {
+    randomChoiceBlockId: number
+    nextRandomChoiceLevel: number
+  },
+  onceKey?: string,
+  condition?: string,
+): ActionNode {
+  const newRandomChoiceLevel = randomChoiceGroup.nextRandomChoiceLevel
+
+  return {
+    type: "randomChoice",
+    identionLevel,
+    choicePath,
+    onceKey,
+    condition,
+    randomChoiceBlockId: randomChoiceGroup.randomChoiceBlockId,
+    myRandomChoiceLevel: newRandomChoiceLevel,
+    text: stripTrailingComment(trimmedLine.substring(3)).trim(),
+  } as ActionNode
+}
+
 function parseChatNode(
   trimmedLine: string,
   identionLevel: number,
@@ -563,6 +588,11 @@ export async function parseStory(filePath: string): Promise<Story> {
     string,
     { choiceBlockId: number; nextChoiceLevel: number }
   >()
+  let nextRandomChoiceBlockId = 0
+  let randomChoiceGroups = new Map<
+    string,
+    { randomChoiceBlockId: number; nextRandomChoiceLevel: number }
+  >()
   const choiceGroupKey = (path: ChoicePathEntry[], indentionLevel: number) =>
     `${indentionLevel}:${
       path.map((entry) => `${entry.choiceBlockId}.${entry.choiceLevel}`).join(
@@ -586,6 +616,8 @@ export async function parseStory(filePath: string): Promise<Story> {
       activeChoiceIndents = []
       nextChoiceBlockId = 0
       choiceGroups = new Map()
+      nextRandomChoiceBlockId = 0
+      randomChoiceGroups = new Map()
       continue
     }
 
@@ -683,6 +715,27 @@ export async function parseStory(filePath: string): Promise<Story> {
         )
         choiceGroup.nextChoiceLevel++
         activeChoiceIndents = [...activeChoiceIndents, indentionLevel]
+      } else if (sanitizedLine.startsWith("=> ")) {
+        const groupKey = choiceGroupKey(currentChoicePath, indentionLevel)
+        let randomChoiceGroup = randomChoiceGroups.get(groupKey)
+        if (!randomChoiceGroup) {
+          randomChoiceGroup = {
+            randomChoiceBlockId: nextRandomChoiceBlockId,
+            nextRandomChoiceLevel: 1,
+          }
+          nextRandomChoiceBlockId++
+          randomChoiceGroups.set(groupKey, randomChoiceGroup)
+        }
+
+        contentNode = parseRandomChoiceNode(
+          sanitizedLine,
+          indentionLevel,
+          currentChoicePath,
+          randomChoiceGroup,
+          inlineOnce.onceKey,
+          inlineCondition.condition,
+        )
+        randomChoiceGroup.nextRandomChoiceLevel++
       } else if (sanitizedLine.match(/^([^:]+):\s*(.*)$/)) {
         contentNode = parseChatNode(
           sanitizedLine,
@@ -707,6 +760,12 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     if (contentNode.type !== "choice") {
       choiceGroups.delete(choiceGroupKey(currentChoicePath, indentionLevel))
+    }
+
+    if (contentNode.type !== "randomChoice") {
+      randomChoiceGroups.delete(
+        choiceGroupKey(currentChoicePath, indentionLevel),
+      )
     }
 
     currentBlock.contentNodes.push(contentNode)

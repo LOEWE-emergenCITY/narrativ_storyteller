@@ -12,8 +12,8 @@ Scoring:
 - Partial = 0.5
 - Not implemented = 0
 
-- Step 1 / MVP progress: 97% done, 3% remaining
-- Complete package progress: 76% done, 24% remaining
+- Step 1 / MVP progress: 98% done, 2% remaining
+- Complete package progress: 77% done, 23% remaining
 
 Assumptions:
 
@@ -85,6 +85,8 @@ Assumptions:
 | `=> randomChoice` selected line rendering      | Done            |
 | Historical block rendering                     | Done            |
 | Selected choice transcript in history          | Done            |
+| New blocks append without forced auto-scroll   | Done            |
+| No visual separator between story blocks       | Done            |
 | Localization                                   | Not implemented |
 | Dark Mode                                      | Done            |
 
@@ -123,20 +125,22 @@ Assumptions:
 
 ## Testing
 
-| Feature / Area                          | Status                                                     |
-| --------------------------------------- | ---------------------------------------------------------- |
-| Test runner available (`deno test`)     | Done                                                       |
-| Existing automated tests                | Partial - parser, once, choice flow, session, randomChoice |
-| Parser test coverage                    | Partial                                                    |
-| Condition evaluation tests              | Partial                                                    |
-| `<<set>>` evaluation tests              | Partial                                                    |
-| `<<jump>>` / choice flow tests          | Done                                                       |
-| `<<detour>>` flow tests                 | Not implemented                                            |
-| `=> randomChoice` parsing/runtime tests | Done                                                       |
-| Session persistence tests               | Done                                                       |
-| `<<Scene>>` show image for scene        | Not implemented                                            |
-| Component rendering tests               | Not implemented                                            |
-| End-to-end story flow tests             | Not implemented                                            |
+| Feature / Area                          | Status                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| Test runner available (`deno test`)     | Done                                                                           |
+| Existing automated tests                | Partial - parser, once, choice flow, choice regressions, session, randomChoice |
+| Parser test coverage                    | Partial                                                                        |
+| Condition evaluation tests              | Partial                                                                        |
+| `<<set>>` evaluation tests              | Partial                                                                        |
+| `<<jump>>` / choice flow tests          | Done                                                                           |
+| Choice shortcut tests                   | Done                                                                           |
+| `<<detour>>` flow tests                 | Not implemented                                                                |
+| `=> randomChoice` parsing/runtime tests | Done                                                                           |
+| Session persistence tests               | Done                                                                           |
+| Story app lifecycle tests               | Done                                                                           |
+| `<<Scene>>` show image for scene        | Not implemented                                                                |
+| Component rendering tests               | Not implemented                                                                |
+| End-to-end story flow tests             | Not implemented                                                                |
 
 ---
 
@@ -187,7 +191,7 @@ Assumptions:
 1. Add a shared footer.
 2. Add Impressum and data security / privacy pages.
 3. Finish logos and branding integration.
-4. Improve the reader UI for clearer hierarchy and better mobile behavior.
+4. Continue improving reader UI hierarchy and mobile behavior.
 5. Add a localization foundation for static UI copy and legal content.
 
 ### Step 3: Quality, Testing, CI/CD

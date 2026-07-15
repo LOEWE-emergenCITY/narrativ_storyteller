@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks"
+import { useEffect } from "preact/hooks"
 import { ContinueButton, ReturnFromDetourButton } from "@/components/Button.tsx"
 import {
   ActionNode,
@@ -133,7 +133,6 @@ function isEditableShortcutTarget(target: EventTarget | null): boolean {
 }
 
 function StoryViewer() {
-  const activeBlockSeparatorRef = useRef<HTMLHRElement | null>(null)
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
   const currentRandomChoices = randomChoices.value
@@ -274,15 +273,6 @@ function StoryViewer() {
     visibleOnceSections.value = new Set(visibleOnceKeys)
   }, [visibleOnceSignature])
 
-  // Scroll to the newly appended block each time the active block changes.
-  useEffect(() => {
-    if (history.length === 0) return
-    activeBlockSeparatorRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    })
-  }, [blockTitle, history.length])
-
   const activeRenderConfig: RenderConfig = {
     choices: currentChoices,
     context,
@@ -339,15 +329,9 @@ function StoryViewer() {
       )
       .flat()
 
-    const isLastHistoricalSection = sectionIndex === history.length - 1
-
     return (
       <div key={`history-${sectionIndex}-${snapshot.title}`}>
         {renderedHistoric}
-        <hr
-          ref={isLastHistoricalSection ? activeBlockSeparatorRef : null}
-          class="my-6 border-theme"
-        />
       </div>
     )
   })

@@ -20,6 +20,7 @@ export interface RenderConfig {
   context: RenderContext
   nodeVariables?: WeakMap<ContentNode, Map<string, string | number | boolean>>
   isHistorical?: boolean
+  getChoiceShortcutLabel?: (choiceLevel?: number) => string | null
 }
 
 function getNodeType(
@@ -92,7 +93,8 @@ function renderChoiceNode(
 
   return (
     <Button
-      choiceId={String(node.myChoiceLevel)}
+      choiceId={config.getChoiceShortcutLabel?.(node.myChoiceLevel) ??
+        String(node.myChoiceLevel)}
       onClick={() => handleChoiceClick(contentNodes, index)}
       html={node.text || ""}
       disabled={node.choiceBlockId !== undefined &&

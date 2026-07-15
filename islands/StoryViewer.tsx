@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "preact/hooks"
 import { ContinueButton, ReturnFromDetourButton } from "@/components/Button.tsx"
 import {
+  ActionNode,
   ChoiceState,
   ContentNode,
   RandomChoiceState,
@@ -34,6 +35,7 @@ import {
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
+import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 
 // ── Module-level caches ───────────────────────────────────────────────────────
 
@@ -87,6 +89,48 @@ const historicNodeVarsCache = new WeakMap<
   HistorySnapshot,
   WeakMap<ContentNode, Map<string, string | number | boolean>>
 >()
+
+export function getChoiceShortcutIndex(
+  contentNodes: ContentNode[],
+  visibleNodes: ContentNode[],
+  currentChoices: ChoiceState,
+  key: string,
+): number | null {
+  const normalizedKey = key.toUpperCase()
+  if (!/^[1-9A-Z]$/.test(normalizedKey)) return null
+
+  const choiceIndex = contentNodes.findIndex((node) => {
+    if (!visibleNodes.includes(node) || node.type !== "choice") return false
+
+    const choiceNode = node as ActionNode
+    if (getChoiceShortcutLabel(choiceNode.myChoiceLevel) !== normalizedKey) {
+      return false
+    }
+
+    return choiceNode.choiceBlockId === undefined ||
+      currentChoices[String(choiceNode.choiceBlockId)] !==
+        choiceNode.myChoiceLevel
+  })
+
+  return choiceIndex === -1 ? null : choiceIndex
+}
+
+export function getChoiceShortcutLabel(choiceLevel?: number): string | null {
+  if (choiceLevel === undefined || choiceLevel < 1 || choiceLevel > 35) {
+    return null
+  }
+
+  if (choiceLevel <= 9) return String(choiceLevel)
+
+  return String.fromCharCode("A".charCodeAt(0) + choiceLevel - 10)
+}
+
+function isEditableShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+
+  return target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+}
 
 function StoryViewer() {
   const activeBlockSeparatorRef = useRef<HTMLHRElement | null>(null)
@@ -242,6 +286,7 @@ function StoryViewer() {
   const activeRenderConfig: RenderConfig = {
     choices: currentChoices,
     context,
+    getChoiceShortcutLabel,
     nodeVariables,
   }
 
@@ -326,6 +371,60 @@ function StoryViewer() {
   const showReturn =
     activeBlockProgress.status === "complete_without_continue" &&
     detourStack.length > 0
+
+  useEffect(() => {
+    function handleStoryKeyDown(event: KeyboardEvent) {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        isEditableShortcutTarget(event.target)
+      ) {
+        return
+      }
+
+      if (event.key === "Enter") {
+        if (showContinue) {
+          event.preventDefault()
+          continueBranch()
+          return
+        }
+
+        if (showReturn) {
+          event.preventDefault()
+          returnFromDetour()
+        }
+
+        return
+      }
+
+      const choiceIndex = getChoiceShortcutIndex(
+        contentNodes,
+        visibleNodes,
+        currentChoices,
+        event.key,
+      )
+
+      if (choiceIndex === null) return
+
+      event.preventDefault()
+      handleChoiceClick(contentNodes, choiceIndex)
+    }
+
+    globalThis.addEventListener("keydown", handleStoryKeyDown)
+
+    return () => {
+      globalThis.removeEventListener("keydown", handleStoryKeyDown)
+    }
+  }, [
+    contentNodes,
+    currentChoices,
+    showContinue,
+    showReturn,
+    visibleNodes,
+  ])
 
   return (
     <div class="mx-auto min-h-[calc(100vh-4.5rem)] bg-app-bg px-4 py-8 text-theme">

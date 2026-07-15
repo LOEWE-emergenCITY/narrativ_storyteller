@@ -20,6 +20,10 @@ import {
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
+import {
+  getChoiceShortcutIndex,
+  getChoiceShortcutLabel,
+} from "@/islands/StoryViewer.tsx"
 import { ActionNode, TextNode } from "@/utils/storyTypes.tsx"
 
 async function withTempStory(
@@ -224,6 +228,136 @@ Deno.test("choice click persists inline set effects within current block", async
       .map((node) => node.text)
 
     assertEquals(texts, ["Branch sees updated flag"])
+  })
+})
+
+Deno.test("choice shortcut selects visible matching choice level", async () => {
+  const storyText = `title: Start
+---
+-> First choice
+-> Second choice
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    }
+    const visible = filterVisibleNodes(
+      startBlock.contentNodes,
+      {},
+      {},
+      context,
+    )
+
+    assertEquals(
+      getChoiceShortcutIndex(
+        startBlock.contentNodes,
+        visible.visibleNodes,
+        {},
+        "2",
+      ),
+      1,
+    )
+  })
+})
+
+Deno.test("choice shortcut ignores already selected choices", async () => {
+  const storyText = `title: Start
+---
+-> First choice
+-> Second choice
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    }
+    const visible = filterVisibleNodes(
+      startBlock.contentNodes,
+      {},
+      {},
+      context,
+    )
+
+    assertEquals(
+      getChoiceShortcutIndex(
+        startBlock.contentNodes,
+        visible.visibleNodes,
+        { 0: 1 },
+        "1",
+      ),
+      null,
+    )
+  })
+})
+
+Deno.test("choice shortcut labels use base-36 keys", () => {
+  assertEquals(getChoiceShortcutLabel(1), "1")
+  assertEquals(getChoiceShortcutLabel(9), "9")
+  assertEquals(getChoiceShortcutLabel(10), "A")
+  assertEquals(getChoiceShortcutLabel(35), "Z")
+  assertEquals(getChoiceShortcutLabel(36), null)
+})
+
+Deno.test("choice shortcut accepts letters case-insensitively", async () => {
+  const storyText = `title: Start
+---
+-> Choice 1
+-> Choice 2
+-> Choice 3
+-> Choice 4
+-> Choice 5
+-> Choice 6
+-> Choice 7
+-> Choice 8
+-> Choice 9
+-> Choice 10
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Start"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    }
+    const visible = filterVisibleNodes(
+      startBlock.contentNodes,
+      {},
+      {},
+      context,
+    )
+
+    assertEquals(
+      getChoiceShortcutIndex(
+        startBlock.contentNodes,
+        visible.visibleNodes,
+        {},
+        "a",
+      ),
+      9,
+    )
   })
 })
 

@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "preact/hooks"
-import {
-  ContinueButton,
-  DetourButton,
-  ReturnFromDetourButton,
-} from "@/components/Button.tsx"
+import { ContinueButton, ReturnFromDetourButton } from "@/components/Button.tsx"
 import {
   ChoiceState,
   ContentNode,
@@ -24,7 +20,9 @@ import {
   continueBranch,
   currentBlockTitle,
   detourReturnStack,
+  navigateToBlock,
   navigateToDetour,
+  navigateWithinDetour,
   randomChoices,
   resolveRandomChoices,
   resumeFromLine,
@@ -178,7 +176,8 @@ function StoryViewer() {
   useEffect(() => {
     if (
       activeBlockProgress.status === "auto_jump_now" ||
-      activeBlockProgress.status === "auto_detour_now"
+      activeBlockProgress.status === "auto_detour_now" ||
+      activeBlockProgress.status === "ready_to_detour"
     ) {
       return
     }
@@ -190,6 +189,41 @@ function StoryViewer() {
   }, [
     activeBlockProgress.status,
     activeBlockProgress.continueTarget,
+  ])
+
+  useEffect(() => {
+    if (
+      (activeBlockProgress.status !== "auto_jump_now" &&
+        activeBlockProgress.status !== "auto_detour_now" &&
+        activeBlockProgress.status !== "ready_to_detour") ||
+      activeBlockProgress.continueTarget === null
+    ) {
+      return
+    }
+
+    if (activeBlockProgress.status === "auto_jump_now") {
+      if (detourStack.length > 0) {
+        navigateWithinDetour(activeBlockProgress.continueTarget)
+      } else {
+        navigateToBlock(activeBlockProgress.continueTarget)
+      }
+      return
+    }
+
+    navigateToDetour(activeBlockProgress.continueTarget, {
+      title: blockTitle,
+      line: activeBlockProgress.detourReturnLine ?? 0,
+      choices: { ...currentChoices },
+      randomChoices: { ...currentRandomChoices },
+    })
+  }, [
+    activeBlockProgress.status,
+    activeBlockProgress.continueTarget,
+    activeBlockProgress.detourReturnLine,
+    blockTitle,
+    currentChoices,
+    currentRandomChoices,
+    detourStack.length,
   ])
 
   useEffect(() => {
@@ -283,15 +317,10 @@ function StoryViewer() {
 
   // ── Determine which action button to show ────────────────────────────────
 
-  // Three distinct continue-style buttons depending on the current state:
-  //   1. ContinueButton       — regular <<jump>> reached
-  //   2. DetourButton         — <<detour>> reached, about to branch off
-  //   3. ReturnFromDetourButton — detour block ended cleanly, return to origin
+  // Two continue-style buttons remain user-driven: normal visible jumps and
+  // returning from a detour. Entering detours is automatic.
 
   const showContinue = activeBlockProgress.status === "ready_to_continue" &&
-    activeBlockProgress.continueTarget !== null
-
-  const showDetour = activeBlockProgress.status === "ready_to_detour" &&
     activeBlockProgress.continueTarget !== null
 
   const showReturn =
@@ -304,18 +333,6 @@ function StoryViewer() {
         {historicalSections}
         {renderedNodes}
         {showContinue && <ContinueButton onClick={() => continueBranch()} />}
-        {showDetour && (
-          <DetourButton
-            onClick={() => {
-              navigateToDetour(activeBlockProgress.continueTarget!, {
-                title: blockTitle,
-                line: activeBlockProgress.detourReturnLine ?? 0,
-                choices: { ...currentChoices },
-                randomChoices: { ...currentRandomChoices },
-              })
-            }}
-          />
-        )}
         {showReturn && (
           <ReturnFromDetourButton onClick={() => returnFromDetour()} />
         )}

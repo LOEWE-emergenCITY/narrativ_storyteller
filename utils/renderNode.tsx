@@ -182,7 +182,7 @@ export function renderNode(
           class="w-full flex px-6 py-1 opacity-50"
         >
           <div class="flex items-center gap-2 text-xs text-theme-muted italic">
-            ↳ detour
+            DEBUG: detour -&gt; {(node as ActionNode).jumpTarget ?? "unknown"}
           </div>
         </div>,
       ]

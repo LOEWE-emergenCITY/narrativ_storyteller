@@ -1,6 +1,10 @@
 import { batch, signal } from "@preact/signals"
 import { applySetCommands } from "@/utils/setHandler.ts"
 import {
+  evaluateVisibleNodesSequentially,
+  isUserVisibleNode,
+} from "@/utils/nodeVisibility.ts"
+import {
   ActionNode,
   Block,
   ChoiceState,
@@ -91,6 +95,41 @@ function cloneChoices(value: ChoiceState): ChoiceState {
 
 function cloneRandomChoices(value: RandomChoiceState): RandomChoiceState {
   return { ...value }
+}
+
+function currentBlockHasUserVisibleContent(): boolean {
+  const block = storyBlocks.value.get(currentBlockTitle.value)
+  if (!block) return false
+
+  const result = evaluateVisibleNodesSequentially(
+    block.contentNodes.slice(resumeFromLine.value),
+    choices.value,
+    randomChoices.value,
+    {
+      visitedBlocks: visitedBlocks.value,
+      seenOnceSections: seenOnceSections.value,
+      variables: blockEntryVariables.value,
+    },
+  )
+
+  return result.visibleNodes.some(isUserVisibleNode)
+}
+
+function appendCurrentBlockToHistory(
+  startFromLine = resumeFromLine.value,
+): void {
+  blockHistory.value = [
+    ...blockHistory.value,
+    {
+      title: currentBlockTitle.value,
+      startFromLine,
+      choices: cloneChoices(choices.value),
+      randomChoices: cloneRandomChoices(randomChoices.value),
+      variables: new Map(blockEntryVariables.value),
+      visitedBlocks: new Set(visitedBlocks.value),
+      seenOnceSections: new Set(seenOnceSections.value),
+    },
+  ]
 }
 
 export interface SavedBlockSnapshot {
@@ -396,23 +435,29 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
  * the resume offset is reset.
  */
 export function navigateToBlock(title: string): void {
+  navigateToBlockInternal(title, false)
+}
+
+/**
+ * Advance through an invisible bridge block while staying inside the current
+ * detour. Used for control-only detour chains that should still return later.
+ */
+export function navigateWithinDetour(title: string): void {
+  navigateToBlockInternal(title, true)
+}
+
+function navigateToBlockInternal(
+  title: string,
+  keepDetourReturnStack: boolean,
+): void {
   batch(() => {
     const consumedOnceSections = new Set([
       ...seenOnceSections.value,
       ...visibleOnceSections.value,
     ])
-    blockHistory.value = [
-      ...blockHistory.value,
-      {
-        title: currentBlockTitle.value,
-        startFromLine: resumeFromLine.value,
-        choices: cloneChoices(choices.value),
-        randomChoices: cloneRandomChoices(randomChoices.value),
-        variables: new Map(blockEntryVariables.value),
-        visitedBlocks: new Set(visitedBlocks.value),
-        seenOnceSections: new Set(seenOnceSections.value),
-      },
-    ]
+    if (currentBlockHasUserVisibleContent()) {
+      appendCurrentBlockToHistory()
+    }
     // Post-current-block state becomes the pre-entry state for the new block.
     blockEntryVariables.value = new Map(storyVariables.value)
     seenOnceSections.value = consumedOnceSections
@@ -424,8 +469,10 @@ export function navigateToBlock(title: string): void {
     randomChoices.value = {}
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
-    // A jump always cancels any in-flight detour.
-    detourReturnStack.value = []
+    if (!keepDetourReturnStack) {
+      // A normal jump cancels any in-flight detour.
+      detourReturnStack.value = []
+    }
     resumeFromLine.value = 0
   })
 }
@@ -483,18 +530,7 @@ export function navigateToDetour(
       ...visibleOnceSections.value,
     ])
     // Snapshot everything up to the detour node as one history entry.
-    blockHistory.value = [
-      ...blockHistory.value,
-      {
-        title: currentBlockTitle.value,
-        startFromLine: resumeFromLine.value,
-        choices: cloneChoices(choices.value),
-        randomChoices: cloneRandomChoices(randomChoices.value),
-        variables: new Map(blockEntryVariables.value),
-        visitedBlocks: new Set(visitedBlocks.value),
-        seenOnceSections: new Set(seenOnceSections.value),
-      },
-    ]
+    appendCurrentBlockToHistory()
     detourReturnStack.value = [...detourReturnStack.value, returnInfo]
     blockEntryVariables.value = new Map(storyVariables.value)
     seenOnceSections.value = consumedOnceSections
@@ -526,19 +562,10 @@ export function returnFromDetour(): void {
       ...seenOnceSections.value,
       ...visibleOnceSections.value,
     ])
-    // Snapshot the detour block into history.
-    blockHistory.value = [
-      ...blockHistory.value,
-      {
-        title: currentBlockTitle.value,
-        startFromLine: 0,
-        choices: cloneChoices(choices.value),
-        randomChoices: cloneRandomChoices(randomChoices.value),
-        variables: new Map(blockEntryVariables.value),
-        visitedBlocks: new Set(visitedBlocks.value),
-        seenOnceSections: new Set(seenOnceSections.value),
-      },
-    ]
+    // Control-only detour blocks can update state without cluttering history.
+    if (currentBlockHasUserVisibleContent()) {
+      appendCurrentBlockToHistory(0)
+    }
     detourReturnStack.value = stack.slice(0, -1)
     // The second half of the origin block continues from the current variable
     // state (which now includes any <<set>> changes made in the detour block).

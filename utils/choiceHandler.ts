@@ -9,8 +9,10 @@ import {
   blockEntryVariables,
   choices,
   currentBlockTitle,
+  detourReturnStack,
   navigateToBlock,
   navigateToDetour,
+  navigateWithinDetour,
   randomChoices,
   resolveRandomChoices,
   resumeFromLine,
@@ -81,7 +83,11 @@ export function handleChoiceClick(
     applyVariables(visibleResult.finalVariables)
     resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
-    navigateToBlock(progress.continueTarget)
+    if (detourReturnStack.value.length > 0) {
+      navigateWithinDetour(progress.continueTarget)
+    } else {
+      navigateToBlock(progress.continueTarget)
+    }
     return
   }
 

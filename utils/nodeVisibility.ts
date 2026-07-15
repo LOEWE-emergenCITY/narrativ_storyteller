@@ -43,10 +43,14 @@ export interface ActiveBlockProgress {
   detourReturnLine: number | null
 }
 
-function isRenderableNode(node: ContentNode): boolean {
+export function isUserVisibleNode(node: ContentNode): boolean {
   return node.type === "text" || node.type === "chat" || node.type === "mood" ||
     node.type === "scene" || node.type === "scienceFact" ||
-    node.type === "randomChoice"
+    node.type === "randomChoice" || node.type === "choice"
+}
+
+function isRenderableNode(node: ContentNode): boolean {
+  return isUserVisibleNode(node) && node.type !== "choice"
 }
 
 function matchesSelectedChoicePath(
@@ -214,7 +218,12 @@ export function filterVisibleNodes(
 
     if (node.type === "elseif") {
       const conditionNode = node as ConditionNode
-      const top = conditionStack.pop()!
+      const top = conditionStack.pop()
+      if (!top) {
+        i = getNextBranchIndex(contentNodes, i, conditionNode.identionLevel)
+        continue
+      }
+
       const result = allConditionsActive() && !top.done &&
         handleConditionNode(
           conditionNode,
@@ -234,7 +243,12 @@ export function filterVisibleNodes(
     }
 
     if (node.type === "else") {
-      const top = conditionStack.pop()!
+      const top = conditionStack.pop()
+      if (!top) {
+        i = getNextBranchIndex(contentNodes, i, node.identionLevel)
+        continue
+      }
+
       const active = allConditionsActive() && !top.done
       conditionStack.push({ active, done: true })
       i++
@@ -242,7 +256,7 @@ export function filterVisibleNodes(
     }
 
     if (node.type === "endif") {
-      conditionStack.pop()
+      if (conditionStack.length > 0) conditionStack.pop()
       i++
       continue
     }
@@ -261,7 +275,7 @@ export function filterVisibleNodes(
     }
 
     if (node.type === "endonce") {
-      onceStack.pop()
+      if (onceStack.length > 0) onceStack.pop()
       i++
       continue
     }
@@ -399,7 +413,12 @@ export function evaluateVisibleNodesSequentially(
 
     if (node.type === "elseif") {
       const conditionNode = node as ConditionNode
-      const top = conditionStack.pop()!
+      const top = conditionStack.pop()
+      if (!top) {
+        i = getNextBranchIndex(contentNodes, i, conditionNode.identionLevel)
+        continue
+      }
+
       const result = allConditionsActive() && allOnceActive() && !top.done &&
         handleConditionNode(
           conditionNode,
@@ -419,7 +438,12 @@ export function evaluateVisibleNodesSequentially(
     }
 
     if (node.type === "else") {
-      const top = conditionStack.pop()!
+      const top = conditionStack.pop()
+      if (!top) {
+        i = getNextBranchIndex(contentNodes, i, node.identionLevel)
+        continue
+      }
+
       const active = allConditionsActive() && allOnceActive() && !top.done
       conditionStack.push({ active, done: true })
       i++
@@ -427,7 +451,7 @@ export function evaluateVisibleNodesSequentially(
     }
 
     if (node.type === "endif") {
-      conditionStack.pop()
+      if (conditionStack.length > 0) conditionStack.pop()
       i++
       continue
     }
@@ -446,7 +470,7 @@ export function evaluateVisibleNodesSequentially(
     }
 
     if (node.type === "endonce") {
-      onceStack.pop()
+      if (onceStack.length > 0) onceStack.pop()
       i++
       continue
     }
@@ -627,9 +651,7 @@ export function evaluateActiveBlockProgress(
       }
 
       return {
-        status: Object.keys(choices).length > 0 && !sawRenderableContent
-          ? "auto_jump_now"
-          : "ready_to_continue",
+        status: !sawRenderableContent ? "auto_jump_now" : "ready_to_continue",
         continueTarget: jumpTarget,
         blockingChoicePathLength: null,
         detourReturnLine: null,
@@ -650,9 +672,7 @@ export function evaluateActiveBlockProgress(
       }
 
       return {
-        status: Object.keys(choices).length > 0 && !sawRenderableContent
-          ? "auto_detour_now"
-          : "ready_to_detour",
+        status: !sawRenderableContent ? "auto_detour_now" : "ready_to_detour",
         continueTarget: detourTarget,
         blockingChoicePathLength: null,
         detourReturnLine: detourNode.returnTargetLine?.line ?? null,

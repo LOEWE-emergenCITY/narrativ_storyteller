@@ -7,9 +7,9 @@ export function Image(props: ImageProps) {
   let imgPath
 
   if (props.type === "mood") {
-    imgPath = `/moods/Moods_${
+    imgPath = `/moods/moods_${
       props.name.split("_")[0]
-    }/eHub_Moods_${props.name}_72dpi.jpg`
+    }/eHub_moods_${props.name}_72dpi.jpg`
   } else if (props.type === "scene") {
     imgPath = `/scenes/eHub_${props.name}.jpg`
   } else {

@@ -219,7 +219,7 @@ export function filterVisibleNodes(
   while (i < contentNodes.length) {
     const node = contentNodes[i]
 
-    if (isResumeBoundary(node, options)) break
+    if (isResumeBoundary(node, options) && conditionStack.length === 0) break
 
     if (node.type === "if") {
       const conditionNode = node as ConditionNode
@@ -419,7 +419,7 @@ export function evaluateVisibleNodesSequentially(
   while (i < contentNodes.length) {
     const node = contentNodes[i]
 
-    if (isResumeBoundary(node, options)) break
+    if (isResumeBoundary(node, options) && conditionStack.length === 0) break
 
     if (node.type === "if") {
       const conditionNode = node as ConditionNode

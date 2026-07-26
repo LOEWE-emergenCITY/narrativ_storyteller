@@ -628,6 +628,75 @@ Ending reached
   })
 })
 
+Deno.test("root-level post-detour resume continues through local if blocks", async () => {
+  const storyText = `title: Laptop
+---
+<<detour CheckEnding>>
+<<if $alreadyBusy>>
+    Should not show
+    <<jump GetBusy>>
+<<endif>>
+<<if $showChoices>>
+    Continue text
+    -> Pick work
+        <<jump Work>>
+<<endif>>
+===
+title: CheckEnding
+---
+===
+title: GetBusy
+---
+Busy
+===
+title: Work
+---
+Work
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const laptopBlock = story.blocks.get("Laptop")
+
+    assert(laptopBlock)
+
+    const detourIndex = laptopBlock.contentNodes.findIndex((node) =>
+      node.type === "detour" && (node as ActionNode).jumpTarget ===
+        "CheckEnding"
+    )
+    const resumeLine = detourIndex + 1
+    const resumedNodes = laptopBlock.contentNodes.slice(resumeLine)
+    const result = evaluateVisibleNodesSequentially(
+      resumedNodes,
+      {},
+      {},
+      {
+        visitedBlocks: new Set(["Laptop", "CheckEnding"]),
+        seenOnceSections: new Set<string>(),
+        variables: new Map<string, string | number | boolean>([
+          ["$alreadyBusy", false],
+          ["$showChoices", true],
+        ]),
+      },
+      {
+        resumeStartIndent: laptopBlock.contentNodes[resumeLine]?.identionLevel,
+      },
+    )
+    const texts = result.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+    const progress = evaluateActiveBlockProgress(
+      resumedNodes,
+      result.visibleNodes,
+      {},
+    )
+
+    assertEquals(texts, ["Continue text"])
+    assertEquals(progress.status, "waiting_for_choice")
+  })
+})
+
 Deno.test("store selection does not navigate, continue executes armed jump", async () => {
   const storyText = `title: Start
 ---

@@ -26,6 +26,14 @@ export interface SequentialVisibleNodesResult extends VisibleNodesResult {
   finalVariables: Map<string, string | number | boolean>
 }
 
+export interface VisibilityEvaluationOptions {
+  /**
+   * When evaluating a post-detour slice, stop before branch delimiters that
+   * belong to the already-entered outer control flow.
+   */
+  resumeStartIndent?: number
+}
+
 export type ActiveBlockStatus =
   | "waiting_for_choice"
   | "auto_jump_now"
@@ -176,11 +184,25 @@ function getNextBranchIndex(
   return nodes.length
 }
 
+function isResumeBoundary(
+  node: ContentNode,
+  options?: VisibilityEvaluationOptions,
+): boolean {
+  return options?.resumeStartIndent !== undefined &&
+    (node.type === "elseif" || node.type === "else" || node.type === "endif") &&
+    node.identionLevel <= options.resumeStartIndent
+}
+
+function isFlowTransferNode(node: ContentNode): boolean {
+  return node.type === "jump" || node.type === "detour"
+}
+
 export function filterVisibleNodes(
   contentNodes: ContentNode[],
   choices: ChoiceState,
   randomChoices: RandomChoiceState,
   context: RenderContext,
+  options?: VisibilityEvaluationOptions,
 ): VisibleNodesResult {
   const visible: ContentNode[] = []
   const visibleOnceKeys = new Set<string>()
@@ -196,6 +218,8 @@ export function filterVisibleNodes(
   let i = 0
   while (i < contentNodes.length) {
     const node = contentNodes[i]
+
+    if (isResumeBoundary(node, options)) break
 
     if (node.type === "if") {
       const conditionNode = node as ConditionNode
@@ -357,6 +381,8 @@ export function filterVisibleNodes(
         }
 
         visible.push(node)
+
+        if (isFlowTransferNode(node)) break
       }
     }
 
@@ -371,6 +397,7 @@ export function evaluateVisibleNodesSequentially(
   choices: ChoiceState,
   randomChoices: RandomChoiceState,
   context: RenderContext,
+  options?: VisibilityEvaluationOptions,
 ): SequentialVisibleNodesResult {
   const visible: ContentNode[] = []
   const visibleOnceKeys = new Set<string>()
@@ -391,6 +418,8 @@ export function evaluateVisibleNodesSequentially(
   let i = 0
   while (i < contentNodes.length) {
     const node = contentNodes[i]
+
+    if (isResumeBoundary(node, options)) break
 
     if (node.type === "if") {
       const conditionNode = node as ConditionNode
@@ -553,6 +582,8 @@ export function evaluateVisibleNodesSequentially(
 
         nodeVariables.set(node, new Map(currentVariables))
         visible.push(node)
+
+        if (isFlowTransferNode(node)) break
 
         if (node.type === "choice" && isSelectedChoiceNode(node, choices)) {
           const inlineSetCommands = (node as ActionNode).inlineSetCommands ?? []

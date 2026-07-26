@@ -62,6 +62,11 @@ export function handleChoiceClick(
   const resolvedContentNodes = resumeFromLine.value > 0
     ? fullNodes.slice(resumeFromLine.value)
     : fullNodes
+  const resumeOptions = resumeFromLine.value > 0
+    ? {
+      resumeStartIndent: fullNodes[resumeFromLine.value]?.identionLevel,
+    }
+    : undefined
   const context = {
     visitedBlocks: visitedBlocks.value,
     seenOnceSections: seenOnceSections.value,
@@ -72,6 +77,7 @@ export function handleChoiceClick(
     nextChoices,
     randomChoices.value,
     context,
+    resumeOptions,
   )
   const progress = evaluateActiveBlockProgress(
     resolvedContentNodes,

@@ -153,6 +153,12 @@ function StoryViewer() {
   // Apply the resume-from-line offset so only the post-detour portion of the
   // origin block is evaluated and rendered as the active section.
   const contentNodes = (block?.contentNodes || []).slice(currentResumeFromLine)
+  const resumeOptions = currentResumeFromLine > 0
+    ? {
+      resumeStartIndent: block?.contentNodes[currentResumeFromLine]
+        ?.identionLevel,
+    }
+    : undefined
 
   // Capture the previous active block's computed vars BEFORE potentially
   // overwriting the cache. These are needed when that block first enters
@@ -172,6 +178,7 @@ function StoryViewer() {
     variables: [...blockEntryVariables.value.entries()].sort(([a], [b]) =>
       a.localeCompare(b)
     ),
+    resumeStartIndent: resumeOptions?.resumeStartIndent,
   })
 
   if (
@@ -183,6 +190,7 @@ function StoryViewer() {
       currentChoices,
       currentRandomChoices,
       context,
+      resumeOptions,
     )
     activeNodeVarsCache.key = blockTitle
     activeNodeVarsCache.evaluationSignature = evaluationSignature
@@ -293,14 +301,20 @@ function StoryViewer() {
     }
 
     // Apply startFromLine so each history segment only shows its own portion.
-    const frozenNodes = historicBlock.contentNodes.slice(
-      snapshot.startFromLine ?? 0,
-    )
+    const startFromLine = snapshot.startFromLine ?? 0
+    const frozenNodes = historicBlock.contentNodes.slice(startFromLine)
+    const frozenResumeOptions = startFromLine > 0
+      ? {
+        resumeStartIndent: historicBlock.contentNodes[startFromLine]
+          ?.identionLevel,
+      }
+      : undefined
     const { visibleNodes: frozenVisible } = filterVisibleNodes(
       frozenNodes,
       snapshot.choices,
       snapshot.randomChoices,
       frozenContext,
+      frozenResumeOptions,
     )
 
     // Compute per-node variable snapshots once per snapshot object.

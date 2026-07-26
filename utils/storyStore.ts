@@ -101,8 +101,16 @@ function currentBlockHasUserVisibleContent(): boolean {
   const block = storyBlocks.value.get(currentBlockTitle.value)
   if (!block) return false
 
+  const contentNodes = block.contentNodes.slice(resumeFromLine.value)
+  const resumeOptions = resumeFromLine.value > 0
+    ? {
+      resumeStartIndent: block.contentNodes[resumeFromLine.value]
+        ?.identionLevel,
+    }
+    : undefined
+
   const result = evaluateVisibleNodesSequentially(
-    block.contentNodes.slice(resumeFromLine.value),
+    contentNodes,
     choices.value,
     randomChoices.value,
     {
@@ -110,6 +118,7 @@ function currentBlockHasUserVisibleContent(): boolean {
       seenOnceSections: seenOnceSections.value,
       variables: blockEntryVariables.value,
     },
+    resumeOptions,
   )
 
   return result.visibleNodes.some(isUserVisibleNode)

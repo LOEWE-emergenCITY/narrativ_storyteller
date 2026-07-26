@@ -545,6 +545,89 @@ Deno.test("selected branch without jump completes in place", async () => {
   })
 })
 
+Deno.test("post-detour resume stops before stale outer branch boundary", async () => {
+  const storyText = `title: Laptop
+---
+<<if $containment > 0>>
+    <<if visited("A") == false>>
+        <<detour CheckContainment>>
+        <<jump A>>
+    <<elseif visited("B") == false>>
+        <<detour CheckContainment>>
+        <<jump B>>
+    <<endif>>
+<<endif>>
+<<detour CheckEnding>>
+===
+title: CheckContainment
+---
+===
+title: A
+---
+A reached
+===
+title: B
+---
+B reached
+===
+title: CheckEnding
+---
+Ending reached
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const laptopBlock = story.blocks.get("Laptop")
+
+    assert(laptopBlock)
+
+    const context = {
+      visitedBlocks: new Set(["Laptop", "CheckContainment"]),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>([
+        ["$containment", 13],
+      ]),
+    }
+    const initial = evaluateVisibleNodesSequentially(
+      laptopBlock.contentNodes,
+      {},
+      {},
+      context,
+    )
+    const initialTargets = initial.visibleNodes
+      .filter((node) => node.type === "jump" || node.type === "detour")
+      .map((node) => (node as ActionNode).jumpTarget)
+
+    assertEquals(initialTargets, ["CheckContainment"])
+
+    const firstDetourIndex = laptopBlock.contentNodes.findIndex((node) =>
+      node.type === "detour" && (node as ActionNode).jumpTarget ===
+        "CheckContainment"
+    )
+    const resumeLine = firstDetourIndex + 1
+    const resumedNodes = laptopBlock.contentNodes.slice(resumeLine)
+
+    const result = evaluateVisibleNodesSequentially(
+      resumedNodes,
+      {},
+      {},
+      context,
+      {
+        resumeStartIndent: laptopBlock.contentNodes[resumeLine]?.identionLevel,
+      },
+    )
+    const progress = evaluateActiveBlockProgress(
+      resumedNodes,
+      result.visibleNodes,
+      {},
+    )
+
+    assertEquals(progress.status, "auto_jump_now")
+    assertEquals(progress.continueTarget, "A")
+  })
+})
+
 Deno.test("store selection does not navigate, continue executes armed jump", async () => {
   const storyText = `title: Start
 ---

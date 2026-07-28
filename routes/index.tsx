@@ -3,7 +3,7 @@ import StoryApp from "@/islands/StoryApp.tsx"
 import { parseStory } from "@/utils/storyParser.ts"
 
 export default define.page(async () => {
-  const story = await parseStory("data/stories/level3cbs-7.yarn")
+  const story = await parseStory("data/stories/level3cbs-10.yarn")
   const scienceFacts = JSON.parse(
     await Deno.readTextFile("data/science_facts.json"),
   ) as Record<string, string>

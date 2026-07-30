@@ -55,7 +55,7 @@ export function TitleScreen(
       <div class="mx-auto flex h-full w-full max-w-5xl min-h-0 flex-col gap-2 sm:gap-3">
         <div class="flex-1 min-h-0 rounded-lg border border-theme bg-surface p-2 shadow-md sm:p-3">
           <img
-            src="/scenes/eHub_restlicht_title.jpg"
+            src="/scenes/eHub_restlicht_titelbild.jpg"
             alt="Restlicht Title Bild"
             class="h-full w-full rounded-md bg-surface-strong object-contain"
           />

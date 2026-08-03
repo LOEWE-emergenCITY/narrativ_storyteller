@@ -700,6 +700,84 @@ Work
   })
 })
 
+Deno.test("post-detour resume skips stale else branch then evaluates following sibling if", async () => {
+  const storyText = `title: Start
+---
+<<if visited("Fallback") == false>>
+    <<detour Fallback>>
+<<else>>
+    <<detour OtherFallback>>
+<<endif>>
+<<if $goSpecial>>
+    <<jump Special>>
+<<else>>
+    <<jump Normal>>
+<<endif>>
+===
+title: Fallback
+---
+Fallback text
+===
+title: OtherFallback
+---
+Other fallback text
+===
+title: Special
+---
+Special reached
+===
+title: Normal
+---
+Normal reached
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const detourIndex = startBlock.contentNodes.findIndex((node) =>
+      node.type === "detour" && (node as ActionNode).jumpTarget === "Fallback"
+    )
+    const resumeLine = detourIndex + 1
+    const resumedNodes = startBlock.contentNodes.slice(resumeLine)
+    const resumeOptions = {
+      resumeStartIndent: startBlock.contentNodes[resumeLine]?.identionLevel,
+    }
+
+    for (
+      const [goSpecial, expectedTarget] of [[true, "Special"], [
+        false,
+        "Normal",
+      ]] as const
+    ) {
+      const result = evaluateVisibleNodesSequentially(
+        resumedNodes,
+        {},
+        {},
+        {
+          visitedBlocks: new Set(["Start", "Fallback"]),
+          seenOnceSections: new Set<string>(),
+          variables: new Map<string, string | number | boolean>([
+            ["$goSpecial", goSpecial],
+          ]),
+        },
+        resumeOptions,
+      )
+      const progress = evaluateActiveBlockProgress(
+        resumedNodes,
+        result.visibleNodes,
+        {},
+      )
+
+      assertEquals(progress.status, "auto_jump_now")
+      assertEquals(progress.continueTarget, expectedTarget)
+    }
+  })
+})
+
 Deno.test("store selection does not navigate, continue executes armed jump", async () => {
   const storyText = `title: Start
 ---

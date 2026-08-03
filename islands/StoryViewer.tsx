@@ -243,6 +243,10 @@ function StoryViewer() {
   ])
 
   useEffect(() => {
+    visibleOnceSections.value = new Set(visibleOnceKeys)
+  }, [visibleOnceSignature])
+
+  useEffect(() => {
     if (
       (activeBlockProgress.status !== "auto_jump_now" &&
         activeBlockProgress.status !== "auto_detour_now" &&
@@ -276,10 +280,6 @@ function StoryViewer() {
     currentRandomChoices,
     detourStack.length,
   ])
-
-  useEffect(() => {
-    visibleOnceSections.value = new Set(visibleOnceKeys)
-  }, [visibleOnceSignature])
 
   const activeRenderConfig: RenderConfig = {
     choices: currentChoices,

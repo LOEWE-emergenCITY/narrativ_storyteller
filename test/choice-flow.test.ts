@@ -14,9 +14,12 @@ import {
   continueBranch,
   currentBlockTitle,
   loadStory,
+  navigateToDetour,
   pendingContinueTarget,
+  seenOnceSections,
   selectChoice,
   storyVariables,
+  visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
@@ -838,5 +841,76 @@ title: Next
       .map((node) => node.text)
 
     assertEquals(texts, ["First if true"])
+  })
+})
+
+Deno.test("once section is consumed before automatic detour navigation", async () => {
+  const storyText = `title: Start
+---
+<<once>>
+    Intro once
+<<endonce>>
+<<detour Check>>
+<<jump Start>>
+===
+title: Check
+---
+Checked
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+
+    loadStory(story)
+
+    const startBlock = story.blocks.get("Start")
+    assert(startBlock)
+
+    const firstPass = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+    )
+
+    const firstTexts = firstPass.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(firstTexts, ["Intro once"])
+    assertEquals([...firstPass.visibleOnceKeys], ["Start:2"])
+
+    visibleOnceSections.value = new Set(firstPass.visibleOnceKeys)
+    navigateToDetour("Check", {
+      title: "Start",
+      line: 4,
+      choices: {},
+      randomChoices: {},
+    })
+
+    assertEquals([...seenOnceSections.value], ["Start:2"])
+    assertEquals([...visibleOnceSections.value], [])
+
+    const revisited = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+    )
+
+    const revisitedTexts = revisited.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(revisitedTexts, [])
   })
 })

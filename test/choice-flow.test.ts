@@ -437,6 +437,41 @@ Visible after set <<if $flag>>
   })
 })
 
+Deno.test("set command can reset a string variable to an empty string", async () => {
+  const storyText = `title: Start
+---
+<<declare $currentTask = "checkIncidents">>
+<<set $currentTask to "">>
+Task was cleared <<if $currentTask == "">>
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const result = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: new Set(["Start"]),
+        seenOnceSections: new Set<string>(),
+        variables: new Map(story.variables),
+      },
+    )
+
+    const texts = result.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(result.finalVariables.get("$currentTask"), "")
+    assertEquals(texts, ["Task was cleared"])
+  })
+})
+
 Deno.test("inline if gates set node side effects", async () => {
   const storyText = `title: Start
 ---

@@ -2,6 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import {
   activeBlockStatus,
+  activeRenderSnapshot,
   applyVariables,
   blockEntryVariables,
   blockHistory,
@@ -20,6 +21,7 @@ import {
   STORY_STATE_VERSION,
   storyVariables,
   updateActiveBlockState,
+  updateActiveRenderSnapshot,
   visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
@@ -63,6 +65,10 @@ Next block
     applyVariables(new Map([["$trust", 1]]))
     visibleOnceSections.value = new Set(["Next:1"])
     seenOnceSections.value = new Set(["Start:3"])
+    updateActiveRenderSnapshot({
+      visibleNodes: [{ index: 0, variables: { "$trust": 0 } }],
+      visibleOnceKeys: ["Start:3"],
+    })
     updateActiveBlockState("ready_to_continue", "Next")
     navigateToBlock("Next")
     choices.value = { 0: 2 }
@@ -94,11 +100,72 @@ Next block
     assertEquals(blockHistory.value[0].title, "Start")
     assertEquals(blockHistory.value[0].choices, { 0: 1 })
     assertEquals(blockHistory.value[0].randomChoices, { 0: 2 })
+    assertEquals(blockHistory.value[0].renderSnapshot, {
+      visibleNodes: [{ index: 0, variables: { "$trust": 0 } }],
+      visibleOnceKeys: ["Start:3"],
+    })
     assertEquals(Object.fromEntries(blockHistory.value[0].variables), {
       "$trust": 0,
     })
     assertEquals([...blockHistory.value[0].visitedBlocks], ["Start"])
     assertEquals([...blockHistory.value[0].seenOnceSections], ["Start:3"])
+    assertEquals(activeRenderSnapshot.value, null)
+  })
+})
+
+Deno.test("navigation stores active render snapshot without re-evaluating visibility", async () => {
+  const storyText = `title: Start
+---
+<<declare $checkEHUBLog = 3>>
+Angela checks the logs.
+<<set $checkEHUBLog to $checkEHUBLog - 4>>
+Finished branch <<if $checkEHUBLog <= 0>>
+<<jump Pause>>
+===
+title: Pause
+---
+Pause
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    const introIndex = startBlock.contentNodes.findIndex((node) =>
+      node.type === "text" && node.text === "Angela checks the logs."
+    )
+    const finishedIndex = startBlock.contentNodes.findIndex((node) =>
+      node.type === "text" && node.text === "Finished branch"
+    )
+    const jumpIndex = startBlock.contentNodes.findIndex((node) =>
+      node.type === "jump"
+    )
+
+    loadStory(story)
+    applyVariables(new Map([["$checkEHUBLog", -1]]))
+    updateActiveRenderSnapshot({
+      visibleNodes: [
+        { index: introIndex, variables: { "$checkEHUBLog": 3 } },
+        { index: finishedIndex, variables: { "$checkEHUBLog": -1 } },
+        { index: jumpIndex, variables: { "$checkEHUBLog": -1 } },
+      ],
+      visibleOnceKeys: [],
+    })
+    updateActiveBlockState("ready_to_continue", "Pause")
+    navigateToBlock("Pause")
+
+    assertEquals(blockHistory.value.length, 1)
+    assertEquals(blockHistory.value[0].renderSnapshot, {
+      visibleNodes: [
+        { index: introIndex, variables: { "$checkEHUBLog": 3 } },
+        { index: finishedIndex, variables: { "$checkEHUBLog": -1 } },
+        { index: jumpIndex, variables: { "$checkEHUBLog": -1 } },
+      ],
+      visibleOnceKeys: [],
+    })
   })
 })
 

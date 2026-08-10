@@ -31,6 +31,7 @@ import {
   seenOnceSections,
   storyBlocks,
   updateActiveBlockState,
+  updateActiveRenderSnapshot,
   visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
@@ -247,6 +248,18 @@ function StoryViewer() {
   }, [visibleOnceSignature])
 
   useEffect(() => {
+    updateActiveRenderSnapshot({
+      visibleNodes: visibleNodes.map((node) => ({
+        index: currentResumeFromLine + contentNodes.indexOf(node),
+        variables: Object.fromEntries(
+          (nodeVariables.get(node) ?? context.variables).entries(),
+        ),
+      })),
+      visibleOnceKeys: [...visibleOnceKeys],
+    })
+  }, [blockTitle, evaluationSignature])
+
+  useEffect(() => {
     if (
       (activeBlockProgress.status !== "auto_jump_now" &&
         activeBlockProgress.status !== "auto_detour_now" &&
@@ -309,25 +322,43 @@ function StoryViewer() {
           ?.identionLevel,
       }
       : undefined
-    const { visibleNodes: frozenVisible } = filterVisibleNodes(
-      frozenNodes,
-      snapshot.choices,
-      snapshot.randomChoices,
-      frozenContext,
-      frozenResumeOptions,
-    )
+    const snapshotNodes = snapshot.renderSnapshot?.visibleNodes ?? null
+    const frozenVisible = snapshotNodes
+      ? snapshotNodes
+        .map((item) => historicBlock.contentNodes[item.index])
+        .filter((node): node is ContentNode => Boolean(node))
+      : filterVisibleNodes(
+        frozenNodes,
+        snapshot.choices,
+        snapshot.randomChoices,
+        frozenContext,
+        frozenResumeOptions,
+      ).visibleNodes
 
-    // Compute per-node variable snapshots once per snapshot object.
-    // If this block just transitioned from active to historical in this render,
-    // reuse the vars already computed while it was active — avoids re-rolling
-    // random(). For older snapshots already in history, replay from
-    // snapshot.variables (pre-block state, set via blockEntryVariables).
-    let frozenNodeVariables = historicNodeVarsCache.get(snapshot)
-    if (!frozenNodeVariables) {
-      frozenNodeVariables = prevActiveKey === snapshot.title
-        ? prevActiveVars
-        : buildNodeVariables(frozenVisible, snapshot.variables).nodeVars
-      historicNodeVarsCache.set(snapshot, frozenNodeVariables)
+    // Prefer stored active render snapshots so history is a transcript, not a
+    // re-simulation. The fallback supports old in-memory snapshots without it.
+    let frozenNodeVariables: WeakMap<
+      ContentNode,
+      Map<string, string | number | boolean>
+    >
+    if (snapshotNodes) {
+      frozenNodeVariables = new WeakMap()
+      snapshotNodes.forEach((item) => {
+        const node = historicBlock.contentNodes[item.index]
+        if (node) {
+          frozenNodeVariables.set(node, new Map(Object.entries(item.variables)))
+        }
+      })
+    } else {
+      const cachedVariables = historicNodeVarsCache.get(snapshot)
+      if (cachedVariables) {
+        frozenNodeVariables = cachedVariables
+      } else {
+        frozenNodeVariables = prevActiveKey === snapshot.title
+          ? prevActiveVars
+          : buildNodeVariables(frozenVisible, snapshot.variables).nodeVars
+        historicNodeVarsCache.set(snapshot, frozenNodeVariables)
+      }
     }
 
     const historicConfig: RenderConfig = {
@@ -337,11 +368,23 @@ function StoryViewer() {
       isHistorical: true,
     }
 
-    const renderedHistoric = frozenNodes
-      .map((node, i) =>
-        renderNode(node, i, frozenNodes, historicConfig, frozenVisible)
-      )
-      .flat()
+    const renderedHistoric = snapshotNodes
+      ? snapshotNodes.flatMap((item) => {
+        const node = historicBlock.contentNodes[item.index]
+        if (!node) return []
+        return renderNode(
+          node,
+          item.index,
+          historicBlock.contentNodes,
+          historicConfig,
+          frozenVisible,
+        )
+      })
+      : frozenNodes
+        .map((node, i) =>
+          renderNode(node, i, frozenNodes, historicConfig, frozenVisible)
+        )
+        .flat()
 
     return (
       <div key={`history-${sectionIndex}-${snapshot.title}`}>

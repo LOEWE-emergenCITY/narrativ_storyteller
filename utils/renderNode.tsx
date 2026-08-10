@@ -15,6 +15,8 @@ import {
 } from "@/utils/storyTypes.tsx"
 import { JSX } from "preact/jsx-runtime"
 
+const SHOW_FLOW_DEBUG = false
+
 export interface RenderConfig {
   choices: ChoiceState
   context: RenderContext
@@ -177,7 +179,7 @@ export function renderNode(
       ]
 
     case "detour":
-      if (!config.isHistorical) return []
+      if (!config.isHistorical || !SHOW_FLOW_DEBUG) return []
       return [
         <div
           key={`DETOUR_${index}`}

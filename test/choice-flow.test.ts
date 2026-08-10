@@ -27,6 +27,7 @@ import {
   getChoiceShortcutIndex,
   getChoiceShortcutLabel,
 } from "@/islands/StoryViewer.tsx"
+import { renderNode } from "@/utils/renderNode.tsx"
 import { ActionNode, TextNode } from "@/utils/storyTypes.tsx"
 
 async function withTempStory(
@@ -470,6 +471,27 @@ Task was cleared <<if $currentTask == "">>
     assertEquals(result.finalVariables.get("$currentTask"), "")
     assertEquals(texts, ["Task was cleared"])
   })
+})
+
+Deno.test("historical detour debug artifact is hidden by default", () => {
+  const node: ActionNode = {
+    type: "detour",
+    identionLevel: 0,
+    choicePath: [],
+    jumpTarget: "DebugTarget",
+  }
+
+  const rendered = renderNode(node, 0, [node], {
+    choices: {},
+    context: {
+      visitedBlocks: new Set<string>(),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    },
+    isHistorical: true,
+  }, [node])
+
+  assertEquals(rendered, [])
 })
 
 Deno.test("inline if gates set node side effects", async () => {

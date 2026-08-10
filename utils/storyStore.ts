@@ -16,7 +16,7 @@ import {
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 export const STORY_STATE_STORAGE_KEY = "narrativ.storyState"
-export const STORY_STATE_VERSION = 2
+export const STORY_STATE_VERSION = 3
 
 // ===== SIGNALS =====
 
@@ -37,6 +37,20 @@ export const activeBlockStatus = signal<ActiveBlockStatus>(
 )
 export const pendingContinueTarget = signal<string | null>(null)
 export const isLoggedIn = signal<boolean>(false)
+
+export type StoryValue = string | number | boolean
+
+export interface RenderedNodeSnapshot {
+  index: number
+  variables: Record<string, StoryValue>
+}
+
+export interface ActiveRenderSnapshot {
+  visibleNodes: RenderedNodeSnapshot[]
+  visibleOnceKeys: string[]
+}
+
+export const activeRenderSnapshot = signal<ActiveRenderSnapshot | null>(null)
 
 /**
  * Stack of pending detour returns. Non-empty means we are currently inside a
@@ -84,10 +98,9 @@ export const blockHistory = signal<
     variables: Map<string, string | number | boolean>
     visitedBlocks: Set<string>
     seenOnceSections: Set<string>
+    renderSnapshot?: ActiveRenderSnapshot
   }>
 >([])
-
-export type StoryValue = string | number | boolean
 
 function cloneChoices(value: ChoiceState): ChoiceState {
   return { ...value }
@@ -97,9 +110,28 @@ function cloneRandomChoices(value: RandomChoiceState): RandomChoiceState {
   return { ...value }
 }
 
+function cloneRenderSnapshot(
+  snapshot: ActiveRenderSnapshot,
+): ActiveRenderSnapshot {
+  return {
+    visibleNodes: snapshot.visibleNodes.map((node) => ({
+      index: node.index,
+      variables: { ...node.variables },
+    })),
+    visibleOnceKeys: [...snapshot.visibleOnceKeys],
+  }
+}
+
 function currentBlockHasUserVisibleContent(): boolean {
   const block = storyBlocks.value.get(currentBlockTitle.value)
   if (!block) return false
+
+  if (activeRenderSnapshot.value) {
+    return activeRenderSnapshot.value.visibleNodes.some((snapshot) => {
+      const node = block.contentNodes[snapshot.index]
+      return node ? isUserVisibleNode(node) : false
+    })
+  }
 
   const contentNodes = block.contentNodes.slice(resumeFromLine.value)
   const resumeOptions = resumeFromLine.value > 0
@@ -137,6 +169,9 @@ function appendCurrentBlockToHistory(
       variables: new Map(blockEntryVariables.value),
       visitedBlocks: new Set(visitedBlocks.value),
       seenOnceSections: new Set(seenOnceSections.value),
+      renderSnapshot: activeRenderSnapshot.value
+        ? cloneRenderSnapshot(activeRenderSnapshot.value)
+        : undefined,
     },
   ]
 }
@@ -149,6 +184,7 @@ export interface SavedBlockSnapshot {
   variables: Record<string, StoryValue>
   visitedBlocks: string[]
   seenOnceSections: string[]
+  renderSnapshot?: ActiveRenderSnapshot
 }
 
 export interface SavedStoryState {
@@ -273,6 +309,7 @@ export function loadStory(story: Story): void {
     blockHistory.value = []
     detourReturnStack.value = []
     resumeFromLine.value = 0
+    activeRenderSnapshot.value = null
   })
 }
 
@@ -325,7 +362,26 @@ function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
       isChoiceState(snapshot.randomChoices)) &&
     isStoryValueRecord(snapshot.variables) &&
     isStringArray(snapshot.visitedBlocks) &&
-    isStringArray(snapshot.seenOnceSections)
+    isStringArray(snapshot.seenOnceSections) &&
+    (snapshot.renderSnapshot === undefined ||
+      isActiveRenderSnapshot(snapshot.renderSnapshot))
+}
+
+function isRenderedNodeSnapshot(value: unknown): value is RenderedNodeSnapshot {
+  if (typeof value !== "object" || value === null) return false
+
+  const snapshot = value as Partial<RenderedNodeSnapshot>
+  return typeof snapshot.index === "number" &&
+    isStoryValueRecord(snapshot.variables)
+}
+
+function isActiveRenderSnapshot(value: unknown): value is ActiveRenderSnapshot {
+  if (typeof value !== "object" || value === null) return false
+
+  const snapshot = value as Partial<ActiveRenderSnapshot>
+  return Array.isArray(snapshot.visibleNodes) &&
+    snapshot.visibleNodes.every(isRenderedNodeSnapshot) &&
+    isStringArray(snapshot.visibleOnceKeys)
 }
 
 function isActiveBlockStatus(value: unknown): value is ActiveBlockStatus {
@@ -362,6 +418,9 @@ export function getSavedStoryState(
       variables: mapToRecord(snapshot.variables),
       visitedBlocks: [...snapshot.visitedBlocks],
       seenOnceSections: [...snapshot.seenOnceSections],
+      renderSnapshot: snapshot.renderSnapshot
+        ? cloneRenderSnapshot(snapshot.renderSnapshot)
+        : undefined,
     })),
     detourReturnStack: detourReturnStack.value.map((entry) => ({
       title: entry.title,
@@ -394,6 +453,9 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
       variables: recordToMap(snapshot.variables),
       visitedBlocks: new Set(snapshot.visitedBlocks),
       seenOnceSections: new Set(snapshot.seenOnceSections),
+      renderSnapshot: snapshot.renderSnapshot
+        ? cloneRenderSnapshot(snapshot.renderSnapshot)
+        : undefined,
     }))
     detourReturnStack.value = (savedState.detourReturnStack ?? []).map(
       (entry) => ({
@@ -404,6 +466,7 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
       }),
     )
     resumeFromLine.value = savedState.resumeFromLine ?? 0
+    activeRenderSnapshot.value = null
   })
 }
 
@@ -483,6 +546,7 @@ function navigateToBlockInternal(
       detourReturnStack.value = []
     }
     resumeFromLine.value = 0
+    activeRenderSnapshot.value = null
   })
 }
 
@@ -552,6 +616,7 @@ export function navigateToDetour(
     resumeFromLine.value = 0
     activeBlockStatus.value = "complete_without_continue"
     pendingContinueTarget.value = null
+    activeRenderSnapshot.value = null
   })
 }
 
@@ -588,6 +653,7 @@ export function returnFromDetour(): void {
     resumeFromLine.value = returnInfo.line
     activeBlockStatus.value = "resolving_branch"
     pendingContinueTarget.value = null
+    activeRenderSnapshot.value = null
   })
 }
 
@@ -603,4 +669,10 @@ export function applyVariables(
   const merged = new Map(storyVariables.value)
   updates.forEach((v, k) => merged.set(k, v))
   storyVariables.value = merged
+}
+
+export function updateActiveRenderSnapshot(
+  snapshot: ActiveRenderSnapshot,
+): void {
+  activeRenderSnapshot.value = cloneRenderSnapshot(snapshot)
 }

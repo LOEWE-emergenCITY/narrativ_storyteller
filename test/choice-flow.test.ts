@@ -8,8 +8,10 @@ import {
 import { parseStory } from "@/utils/storyParser.ts"
 import {
   activeBlockStatus,
+  activeRenderSnapshot,
   applyVariables,
   blockEntryVariables,
+  blockHistory,
   choices,
   continueBranch,
   currentBlockTitle,
@@ -19,6 +21,7 @@ import {
   seenOnceSections,
   selectChoice,
   storyVariables,
+  updateActiveRenderSnapshot,
   visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
@@ -154,6 +157,65 @@ Done
     assertEquals(currentBlockTitle.value, "Next")
     assertEquals(choices.value, {})
     assertEquals(storyVariables.value.get("$counter"), 2)
+  })
+})
+
+Deno.test("auto-jump choice snapshots selected transcript before navigation", async () => {
+  const storyText = `title: Start
+---
+-> First choice
+    <<jump Next>>
+-> Second choice
+    <<jump Other>>
+===
+title: Next
+---
+Done
+===
+title: Other
+---
+Other
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    loadStory(story)
+
+    const initialVisible = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+    )
+    updateActiveRenderSnapshot({
+      visibleNodes: initialVisible.visibleNodes.map((node) => ({
+        index: startBlock.contentNodes.indexOf(node),
+        variables: {},
+      })),
+      visibleOnceKeys: [],
+    })
+
+    handleChoiceClick(startBlock.contentNodes, 0)
+
+    assertEquals(currentBlockTitle.value, "Next")
+    assertEquals(blockHistory.value.length, 1)
+    assertEquals(blockHistory.value[0].choices, { 0: 1 })
+    assertEquals(
+      blockHistory.value[0].renderSnapshot?.visibleNodes.map((node) =>
+        node.index
+      ),
+      [0, 1],
+    )
+    assertEquals(activeRenderSnapshot.value, null)
   })
 })
 

@@ -19,6 +19,7 @@ import {
   seenOnceSections,
   selectChoice,
   storyBlocks,
+  updateActiveRenderSnapshot,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { ActionNode, ContentNode } from "@/utils/storyTypes.tsx"
@@ -85,10 +86,23 @@ export function handleChoiceClick(
     nextChoices,
   )
 
+  const updateSelectedRenderSnapshot = () => {
+    updateActiveRenderSnapshot({
+      visibleNodes: visibleResult.visibleNodes.map((node) => ({
+        index: resumeFromLine.value + resolvedContentNodes.indexOf(node),
+        variables: Object.fromEntries(
+          (visibleResult.nodeVariables.get(node) ?? context.variables).entries(),
+        ),
+      })),
+      visibleOnceKeys: [...visibleResult.visibleOnceKeys],
+    })
+  }
+
   if (progress.status === "auto_jump_now" && progress.continueTarget) {
     applyVariables(visibleResult.finalVariables)
     resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
+    updateSelectedRenderSnapshot()
     if (detourReturnStack.value.length > 0) {
       navigateWithinDetour(progress.continueTarget)
     } else {
@@ -101,6 +115,7 @@ export function handleChoiceClick(
     applyVariables(visibleResult.finalVariables)
     resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
+    updateSelectedRenderSnapshot()
     // choices and currentIndentionLevel are updated synchronously by selectChoice.
     navigateToDetour(progress.continueTarget, {
       title: currentBlockTitle.value,

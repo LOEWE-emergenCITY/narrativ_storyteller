@@ -1,16 +1,23 @@
 import ThemeToggle from "@/islands/ThemeToggle.tsx"
 
-export function Header() {
+export interface HeaderProps {
+  versionLabel?: string
+}
+
+export function Header({ versionLabel }: HeaderProps) {
   return (
-    <header class="theme-header sticky top-0 z-20 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
-      <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6 sm:py-3">
-        <div class="min-w-0">
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-header-muted">
-            Yarn Storyteller
-          </p>
-          <h1 class="truncate text-base font-semibold tracking-[0.02em] text-header sm:text-lg">
-            Restlicht
-          </h1>
+    <header class="sticky top-0 z-20 h-[var(--app-header-height)] bg-app-bg/70 text-header backdrop-blur-sm">
+      <div class="mx-auto flex h-full max-w-5xl items-center justify-between gap-3 px-3 sm:px-4">
+        <div class="min-w-0 truncate text-sm font-medium tracking-[0.02em] sm:text-base">
+          <span>Restlicht</span>
+          {versionLabel && (
+            <span class="text-header-muted">
+              {" · "}
+              <span class="align-baseline text-[0.72rem] font-normal sm:text-xs">
+                {versionLabel}
+              </span>
+            </span>
+          )}
         </div>
         <ThemeToggle />
       </div>

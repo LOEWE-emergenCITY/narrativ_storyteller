@@ -34,6 +34,8 @@
 
 :root {
   color-scheme: light dark;
+  --app-header-height: 2.5rem;
+  --app-footer-height: 1.75rem;
   --button-glow-opacity: 0.78;
   --button-glow-opacity-title: 0.9;
   --button-glow-fade-duration: 280ms;
@@ -289,11 +291,11 @@ body {
     opacity: 0;
     background:
       radial-gradient(
-        20rem 12rem at var(--glow-x, 50%) var(--glow-y, 50%),
-        color-mix(in srgb, var(--accent) 18%, transparent) 0%,
-        color-mix(in srgb, var(--accent) 12%, transparent) 40%,
-        transparent 84%
-      ),
+      20rem 12rem at var(--glow-x, 50%) var(--glow-y, 50%),
+      color-mix(in srgb, var(--accent) 18%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent) 40%,
+      transparent 84%
+    ),
       radial-gradient(
       9rem 6rem at var(--glow-x, 50%) var(--glow-y, 50%),
       color-mix(in srgb, var(--accent) 12%, white 6%) 0%,
@@ -335,11 +337,11 @@ body {
   .interactive-glow--title::before {
     background:
       radial-gradient(
-        22rem 13rem at var(--glow-x, 50%) var(--glow-y, 50%),
-        color-mix(in srgb, var(--accent) 22%, transparent) 0%,
-        color-mix(in srgb, var(--accent) 14%, transparent) 42%,
-        transparent 86%
-      ),
+      22rem 13rem at var(--glow-x, 50%) var(--glow-y, 50%),
+      color-mix(in srgb, var(--accent) 22%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 14%, transparent) 42%,
+      transparent 86%
+    ),
       radial-gradient(
       10rem 6.5rem at var(--glow-x, 50%) var(--glow-y, 50%),
       color-mix(in srgb, var(--accent) 16%, white 8%) 0%,

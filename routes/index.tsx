@@ -1,4 +1,5 @@
 import { define } from "@/utils.ts"
+import { Header } from "@/components/Header.tsx"
 import StoryApp from "@/islands/StoryApp.tsx"
 import { getLatestStoryFile } from "@/utils/storyFiles.ts"
 import { parseStory } from "@/utils/storyParser.ts"
@@ -12,9 +13,7 @@ export default define.page(async () => {
 
   return (
     <>
-      <span class="fixed left-2 top-1 z-30 text-[0.6rem] text-header-muted opacity-50">
-        {storyFile.label}
-      </span>
+      <Header versionLabel={storyFile.label} />
       <StoryApp story={story} scienceFacts={scienceFacts} />
     </>
   )

@@ -468,7 +468,7 @@ function StoryViewer() {
   ])
 
   return (
-    <div class="mx-auto min-h-[calc(100vh-4.5rem)] bg-app-bg px-4 py-8 text-theme">
+    <div class="mx-auto min-h-[calc(100dvh-var(--app-header-height)-var(--app-footer-height))] bg-app-bg px-4 py-8 text-theme">
       <div class="mx-auto flex max-w-3xl flex-col">
         {historicalSections}
         {renderedNodes}

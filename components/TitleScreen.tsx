@@ -51,8 +51,8 @@ export function TitleScreen(
   { isReady, canContinue, onStart, onContinue }: TitleScreenProps,
 ) {
   return (
-    <div class="min-h-[calc(100vh-4.5rem)] overflow-hidden bg-app-bg p-2 text-theme sm:p-3">
-      <div class="mx-auto flex h-full w-full max-w-5xl min-h-0 flex-col gap-2 sm:gap-3">
+    <div class="h-[calc(100dvh-4.5rem)] overflow-hidden bg-app-bg p-2 text-theme sm:p-3">
+      <div class="mx-auto grid h-full w-full max-w-5xl grid-rows-[minmax(0,1fr)_auto] gap-2 sm:gap-3">
         <div class="flex-1 min-h-0 rounded-lg border border-theme bg-surface p-2 shadow-md sm:p-3">
           <img
             src="/scenes/eHub_restlicht_titelbild.jpg"

@@ -18,6 +18,9 @@ import {
   loadStory,
   navigateToDetour,
   pendingContinueTarget,
+  randomChoices,
+  resumeFromLine,
+  returnFromDetour,
   seenOnceSections,
   selectChoice,
   storyVariables,
@@ -1109,5 +1112,195 @@ Checked
       .map((node) => node.text)
 
     assertEquals(revisitedTexts, [])
+  })
+})
+
+Deno.test("returning from detour directly before endif does not get stuck", async () => {
+  const storyText = `title: Start
+---
+<<declare $known = false>>
+Before
+<<if $known>>
+    Known path
+<<else>>
+    <<detour Check>>
+<<endif>>
+After
+<<jump Done>>
+===
+title: Check
+---
+Checked
+===
+title: Done
+---
+Done
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+    const checkBlock = story.blocks.get("Check")
+
+    assert(startBlock)
+    assert(checkBlock)
+
+    loadStory(story)
+
+    const firstPass = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+    )
+    const firstProgress = evaluateActiveBlockProgress(
+      startBlock.contentNodes,
+      firstPass.visibleNodes,
+      {},
+    )
+
+    assertEquals(firstProgress.status, "ready_to_detour")
+    assertEquals(firstProgress.continueTarget, "Check")
+
+    navigateToDetour("Check", {
+      title: "Start",
+      line: firstProgress.detourReturnLine ?? 0,
+      choices: {},
+      randomChoices: {},
+    })
+
+    assertEquals(currentBlockTitle.value, "Check")
+
+    returnFromDetour()
+
+    assertEquals(currentBlockTitle.value, "Start")
+
+    const resumedNodes = startBlock.contentNodes.slice(resumeFromLine.value)
+    const resumed = evaluateVisibleNodesSequentially(
+      resumedNodes,
+      choices.value,
+      randomChoices.value,
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+      {
+        resumeStartIndent: startBlock.contentNodes[resumeFromLine.value]
+          ?.identionLevel,
+      },
+    )
+    const resumedProgress = evaluateActiveBlockProgress(
+      resumedNodes,
+      resumed.visibleNodes,
+      choices.value,
+    )
+    const resumedTexts = resumed.visibleNodes
+      .filter((node): node is TextNode => node.type === "text")
+      .map((node) => node.text)
+
+    assertEquals(resumedTexts, ["After"])
+    assertEquals(resumedProgress.status, "ready_to_continue")
+    assertEquals(resumedProgress.continueTarget, "Done")
+  })
+})
+
+Deno.test("returning from detour before outer elseif continues after the branch", async () => {
+  const storyText = `title: Start
+---
+<<declare $outer = true>>
+<<declare $other = true>>
+Intro
+<<if $outer>>
+    <<if visited("Check")>>
+        Already checked
+    <<else>>
+        <<detour Check>>
+    <<endif>>
+<<elseif $other>>
+    Other branch
+    <<jump Other>>
+<<endif>>
+<<jump Done>>
+===
+title: Check
+---
+Checked
+===
+title: Other
+---
+Other
+===
+title: Done
+---
+Done
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+    const checkBlock = story.blocks.get("Check")
+
+    assert(startBlock)
+    assert(checkBlock)
+
+    loadStory(story)
+
+    const firstPass = evaluateVisibleNodesSequentially(
+      startBlock.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+    )
+    const firstProgress = evaluateActiveBlockProgress(
+      startBlock.contentNodes,
+      firstPass.visibleNodes,
+      {},
+    )
+
+    assertEquals(firstProgress.status, "ready_to_detour")
+    assertEquals(firstProgress.continueTarget, "Check")
+
+    navigateToDetour("Check", {
+      title: "Start",
+      line: firstProgress.detourReturnLine ?? 0,
+      choices: {},
+      randomChoices: {},
+    })
+    returnFromDetour()
+
+    const resumedNodes = startBlock.contentNodes.slice(resumeFromLine.value)
+    const resumed = evaluateVisibleNodesSequentially(
+      resumedNodes,
+      choices.value,
+      randomChoices.value,
+      {
+        visitedBlocks: visitedBlocks.value,
+        seenOnceSections: seenOnceSections.value,
+        variables: blockEntryVariables.value,
+      },
+      {
+        resumeStartIndent: startBlock.contentNodes[resumeFromLine.value]
+          ?.identionLevel,
+      },
+    )
+    const resumedProgress = evaluateActiveBlockProgress(
+      resumedNodes,
+      resumed.visibleNodes,
+      choices.value,
+    )
+
+    assertEquals(resumedProgress.status, "auto_jump_now")
+    assertEquals(resumedProgress.continueTarget, "Done")
   })
 })

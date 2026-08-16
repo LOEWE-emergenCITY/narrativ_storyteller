@@ -193,20 +193,21 @@ function isResumeBoundary(
     node.identionLevel <= options.resumeStartIndent
 }
 
-function getInitialResumeBoundarySkipIndex(
+function getResumeBoundarySkipIndex(
   nodes: ContentNode[],
+  index: number,
   options?: VisibilityEvaluationOptions,
 ): number | null {
-  if (options?.resumeStartIndent === undefined || nodes.length === 0) {
+  if (options?.resumeStartIndent === undefined) {
     return null
   }
 
-  const node = nodes[0]
+  const node = nodes[index]
   if (!isResumeBoundary(node, options)) return null
 
-  if (node.type === "endif") return 1
+  if (node.type === "endif") return index + 1
 
-  for (let i = 1; i < nodes.length; i++) {
+  for (let i = index + 1; i < nodes.length; i++) {
     const candidate = nodes[i]
     if (
       candidate.type === "endif" &&
@@ -236,10 +237,6 @@ export function filterVisibleNodes(
   const conditionStack: Array<{ active: boolean; done: boolean }> = []
   const onceStack: Array<{ active: boolean }> = []
   let blockingChoiceBlockId: number | null = null
-  const initialResumeBoundarySkipIndex = getInitialResumeBoundarySkipIndex(
-    contentNodes,
-    options,
-  )
 
   const allConditionsActive = (): boolean =>
     conditionStack.every((condition) => condition.active)
@@ -249,12 +246,13 @@ export function filterVisibleNodes(
   while (i < contentNodes.length) {
     const node = contentNodes[i]
 
-    if (i === 0 && initialResumeBoundarySkipIndex !== null) {
-      i = initialResumeBoundarySkipIndex
+    const resumeBoundarySkipIndex = conditionStack.length === 0
+      ? getResumeBoundarySkipIndex(contentNodes, i, options)
+      : null
+    if (resumeBoundarySkipIndex !== null) {
+      i = resumeBoundarySkipIndex
       continue
     }
-
-    if (isResumeBoundary(node, options) && conditionStack.length === 0) break
 
     if (node.type === "if") {
       const conditionNode = node as ConditionNode
@@ -445,10 +443,6 @@ export function evaluateVisibleNodesSequentially(
   const onceStack: Array<{ active: boolean }> = []
   let blockingChoiceBlockId: number | null = null
   let currentVariables = new Map(context.variables)
-  const initialResumeBoundarySkipIndex = getInitialResumeBoundarySkipIndex(
-    contentNodes,
-    options,
-  )
 
   const allConditionsActive = (): boolean =>
     conditionStack.every((condition) => condition.active)
@@ -458,12 +452,13 @@ export function evaluateVisibleNodesSequentially(
   while (i < contentNodes.length) {
     const node = contentNodes[i]
 
-    if (i === 0 && initialResumeBoundarySkipIndex !== null) {
-      i = initialResumeBoundarySkipIndex
+    const resumeBoundarySkipIndex = conditionStack.length === 0
+      ? getResumeBoundarySkipIndex(contentNodes, i, options)
+      : null
+    if (resumeBoundarySkipIndex !== null) {
+      i = resumeBoundarySkipIndex
       continue
     }
-
-    if (isResumeBoundary(node, options) && conditionStack.length === 0) break
 
     if (node.type === "if") {
       const conditionNode = node as ConditionNode

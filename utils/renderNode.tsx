@@ -15,13 +15,12 @@ import {
 } from "@/utils/storyTypes.tsx"
 import { JSX } from "preact/jsx-runtime"
 
-const SHOW_FLOW_DEBUG = false
-
 export interface RenderConfig {
   choices: ChoiceState
   context: RenderContext
   nodeVariables?: WeakMap<ContentNode, Map<string, string | number | boolean>>
   isHistorical?: boolean
+  showDetourDebug?: boolean
   getChoiceShortcutLabel?: (choiceLevel?: number) => string | null
 }
 
@@ -179,7 +178,7 @@ export function renderNode(
       ]
 
     case "detour":
-      if (!config.isHistorical || !SHOW_FLOW_DEBUG) return []
+      if (!config.isHistorical || !config.showDetourDebug) return []
       return [
         <div
           key={`DETOUR_${index}`}

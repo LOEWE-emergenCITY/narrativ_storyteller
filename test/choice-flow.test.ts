@@ -548,6 +548,28 @@ Deno.test("historical detour debug artifact is hidden by default", () => {
   assertEquals(rendered, [])
 })
 
+Deno.test("historical detour debug artifact is shown when enabled", () => {
+  const node: ActionNode = {
+    type: "detour",
+    identionLevel: 0,
+    choicePath: [],
+    jumpTarget: "DebugTarget",
+  }
+
+  const rendered = renderNode(node, 0, [node], {
+    choices: {},
+    context: {
+      visitedBlocks: new Set<string>(),
+      seenOnceSections: new Set<string>(),
+      variables: new Map<string, string | number | boolean>(),
+    },
+    isHistorical: true,
+    showDetourDebug: true,
+  }, [node])
+
+  assertEquals(rendered.length, 1)
+})
+
 Deno.test("inline if gates set node side effects", async () => {
   const storyText = `title: Start
 ---

@@ -1,8 +1,9 @@
 import { define } from "@/utils.ts"
+import { Header } from "@/components/Header.tsx"
 import { Text } from "@/components/Text.tsx"
 import { Button, ContinueButton } from "@/components/Button.tsx"
 import { Chat } from "../components/Chat.tsx"
-import { MoodImage } from "../components/MoodImage.tsx"
+import { Image } from "@/components/Image.tsx"
 import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 import { loadScienceFacts } from "@/utils/storyStore.ts"
 
@@ -14,53 +15,57 @@ export default define.page(async function Home() {
   loadScienceFacts(scienceFacts)
 
   return (
-    <div class="px-4 py-8 mx-auto bg-[#f9f9f9] min-h-screen">
-      <div class="max-w-3xl mx-auto flex flex-col items-center justify-start">
-        <h1 class="text-4xl font-bold">Storyteller</h1>
-        <Text html="Lorem <b>ipsum</b> dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod <i>tempor</i> invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet." />
-        <Text>
-          Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
-          nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat,
-          sed diam voluptua. At vero eos et accusam et justo duo dolores et ea
-          rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem
-          ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur
-          sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et
-          dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam
-          et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea
-          takimata sanctus est Lorem ipsum dolor sit amet.
-        </Text>
-        <Chat isAngela={false} sender="Kathrin">
-          Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
-          dolor sit amet.
-        </Chat>
-        <Chat isAngela sender="Angela">
-          Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
-          dolor sit amet. Stet clita kasd gubergren, no sea takimata sanctus est
-          Lorem ipsum dolor sit amet.
-        </Chat>
+    <>
+      <Header />
+      <div class="mx-auto min-h-[calc(100dvh-var(--app-header-height)-var(--app-footer-height))] bg-app-bg px-4 py-8 text-theme">
+        <div class="mx-auto flex max-w-3xl flex-col items-center justify-start">
+          <h1 class="text-4xl font-bold">Storyteller</h1>
+          <Text html="Lorem <b>ipsum</b> dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod <i>tempor</i> invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet." />
+          <Text>
+            Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+            nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam
+            erat, sed diam voluptua. At vero eos et accusam et justo duo dolores
+            et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est
+            Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur
+            sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore
+            et dolore magna aliquyam erat, sed diam voluptua. At vero eos et
+            accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren,
+            no sea takimata sanctus est Lorem ipsum dolor sit amet.
+          </Text>
+          <Chat isAngela={false} sender="Kathrin">
+            Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
+            dolor sit amet.
+          </Chat>
+          <Chat isAngela sender="Angela">
+            Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum
+            dolor sit amet. Stet clita kasd gubergren, no sea takimata sanctus
+            est Lorem ipsum dolor sit amet.
+          </Chat>
 
-        <Chat isAngela sender="Angela">
-          NVM MEIS.
-        </Chat>
-        <Chat isAngela={false} sender="Angela">
-          bla bla.
-        </Chat>
-        <MoodImage name="kathrin_regular" />
-        <MoodImage name="angela_annoyed" />
-        <Button choiceId="1">
-          orem ipsum dolor sit amet, consetetur sadipscing elitr
-        </Button>
-        <Button choiceId="2">
-          orem ipsum dolor sit amet, consetetur sadipscing elitr
-        </Button>
-        <Button className="justify-end" choiceId="3">
-          orem ipsum dolor sit amet, consetetur sadipscing elitr
-        </Button>
-        <ContinueButton />
-        <Text html="<i>italic</i> <b>bold</b> <br /> now a break <br /> not italic not bold" />
+          <Chat isAngela sender="Angela">
+            NVM MEIS.
+          </Chat>
+          <Chat isAngela={false} sender="Angela">
+            bla bla.
+          </Chat>
+          <Image name="kathrin_regular" type="mood" />
+          <Image name="angela_annoyed" type="mood" />
+          <Image name="breakfast" type="scene" />
+          <Button choiceId="1">
+            orem ipsum dolor sit amet, consetetur sadipscing elitr
+          </Button>
+          <Button choiceId="2">
+            orem ipsum dolor sit amet, consetetur sadipscing elitr
+          </Button>
+          <Button className="justify-end" choiceId="3">
+            orem ipsum dolor sit amet, consetetur sadipscing elitr
+          </Button>
+          <ContinueButton />
+          <Text html="<i>italic</i> <b>bold</b> <br /> now a break <br /> not italic not bold" />
 
-        <ScienceFactBadge name="LoraWAN" />
+          <ScienceFactBadge name="LoraWAN" />
+        </div>
       </div>
-    </div>
+    </>
   )
 })

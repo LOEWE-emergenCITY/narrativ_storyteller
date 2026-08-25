@@ -25,8 +25,10 @@ export function Chat(props: ChatProps) {
       >
         <div
           class={clsx(
-            "inline-block py-1 border rounded-md px-2 border-gray-300 bg-opacity-60 shadow-sm wrap-break-words",
-            props.isAngela ? "bg-[#f2f2f2]" : "bg-[#5f2869] text-white ",
+            "inline-block wrap-break-words rounded-md border border-theme px-2 py-1 shadow-sm",
+            props.isAngela
+              ? "bg-chat-self text-chat-self"
+              : "bg-chat-other text-chat-other",
           )}
         >
           {props.children}
@@ -34,8 +36,8 @@ export function Chat(props: ChatProps) {
             class={clsx(
               "text-sm font-serif",
               props.isAngela
-                ? "text-right text-gray-500"
-                : "text-left text-white/70",
+                ? "text-right text-chat-self-muted"
+                : "text-left text-chat-other-muted",
             )}
           >
             {`${props.sender}`}

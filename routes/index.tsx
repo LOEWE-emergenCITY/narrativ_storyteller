@@ -1,16 +1,20 @@
-import { parseStory } from "@/utils/storyParser.ts"
-import Login from "@/islands/Login.tsx"
 import { define } from "@/utils.ts"
+import { Header } from "@/components/Header.tsx"
+import StoryApp from "@/islands/StoryApp.tsx"
+import { getLatestStoryFile } from "@/utils/storyFiles.ts"
+import { parseStory } from "@/utils/storyParser.ts"
 
 export default define.page(async () => {
-  const story = await parseStory("data/stories/level3cbs-5.yarn")
+  const storyFile = await getLatestStoryFile()
+  const story = await parseStory(storyFile.path)
   const scienceFacts = JSON.parse(
     await Deno.readTextFile("data/science_facts.json"),
   ) as Record<string, string>
 
   return (
     <>
-      <Login initialStory={story} initialScienceFacts={scienceFacts} />
+      <Header versionLabel={storyFile.label} />
+      <StoryApp story={story} scienceFacts={scienceFacts} />
     </>
   )
 })

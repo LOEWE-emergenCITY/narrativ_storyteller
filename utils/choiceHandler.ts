@@ -1,11 +1,31 @@
 // ===== CHOICE HANDLER =====
 
-import { selectChoice } from "@/utils/storyStore.ts"
+import {
+  evaluateActiveBlockProgress,
+  evaluateVisibleNodesSequentially,
+} from "@/utils/nodeVisibility.ts"
+import {
+  applyVariables,
+  blockEntryVariables,
+  choices,
+  currentBlockTitle,
+  detourReturnStack,
+  navigateToBlock,
+  navigateToDetour,
+  navigateWithinDetour,
+  randomChoices,
+  resolveRandomChoices,
+  resumeFromLine,
+  seenOnceSections,
+  selectChoice,
+  storyBlocks,
+  updateActiveRenderSnapshot,
+  visitedBlocks,
+} from "@/utils/storyStore.ts"
 import { ActionNode, ContentNode } from "@/utils/storyTypes.tsx"
 
 /**
  * Handle a choice click as a single batched store action.
- * Checks if the next node is a jump to resolve the navigation target.
  */
 export function handleChoiceClick(
   contentNodes: ContentNode[],
@@ -27,10 +47,84 @@ export function handleChoiceClick(
     return
   }
 
-  const nextNode = contentNodes[currentIndex + 1]
-  const jumpTarget = nextNode?.type === "jump"
-    ? (nextNode as ActionNode).jumpTarget
-    : undefined
+  if (choiceNode.choiceBlockId === undefined) {
+    console.error(`Choice node at index ${currentIndex} missing choiceBlockId`)
+    return
+  }
 
-  selectChoice(choiceNode.myChoiceLevel, jumpTarget)
+  const nextChoices = {
+    ...choices.value,
+    [choiceNode.choiceBlockId]: choiceNode.myChoiceLevel,
+  }
+  const activeBlock = storyBlocks.value.get(currentBlockTitle.value)
+  // Apply the same resume-from-line slice that StoryViewer uses so evaluation
+  // is consistent with what is actually visible on screen.
+  const fullNodes = activeBlock?.contentNodes ?? contentNodes
+  const resolvedContentNodes = resumeFromLine.value > 0
+    ? fullNodes.slice(resumeFromLine.value)
+    : fullNodes
+  const resumeOptions = resumeFromLine.value > 0
+    ? {
+      resumeStartIndent: fullNodes[resumeFromLine.value]?.identionLevel,
+    }
+    : undefined
+  const context = {
+    visitedBlocks: visitedBlocks.value,
+    seenOnceSections: seenOnceSections.value,
+    variables: blockEntryVariables.value,
+  }
+  const visibleResult = evaluateVisibleNodesSequentially(
+    resolvedContentNodes,
+    nextChoices,
+    randomChoices.value,
+    context,
+    resumeOptions,
+  )
+  const progress = evaluateActiveBlockProgress(
+    resolvedContentNodes,
+    visibleResult.visibleNodes,
+    nextChoices,
+  )
+
+  const updateSelectedRenderSnapshot = () => {
+    updateActiveRenderSnapshot({
+      visibleNodes: visibleResult.visibleNodes.map((node) => ({
+        index: resumeFromLine.value + resolvedContentNodes.indexOf(node),
+        variables: Object.fromEntries(
+          (visibleResult.nodeVariables.get(node) ?? context.variables).entries(),
+        ),
+      })),
+      visibleOnceKeys: [...visibleResult.visibleOnceKeys],
+    })
+  }
+
+  if (progress.status === "auto_jump_now" && progress.continueTarget) {
+    applyVariables(visibleResult.finalVariables)
+    resolveRandomChoices(visibleResult.resolvedRandomChoices)
+    selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
+    updateSelectedRenderSnapshot()
+    if (detourReturnStack.value.length > 0) {
+      navigateWithinDetour(progress.continueTarget)
+    } else {
+      navigateToBlock(progress.continueTarget)
+    }
+    return
+  }
+
+  if (progress.status === "auto_detour_now" && progress.continueTarget) {
+    applyVariables(visibleResult.finalVariables)
+    resolveRandomChoices(visibleResult.resolvedRandomChoices)
+    selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
+    updateSelectedRenderSnapshot()
+    // choices and currentIndentionLevel are updated synchronously by selectChoice.
+    navigateToDetour(progress.continueTarget, {
+      title: currentBlockTitle.value,
+      line: progress.detourReturnLine ?? 0,
+      choices: { ...choices.value },
+      randomChoices: { ...randomChoices.value },
+    })
+    return
+  }
+
+  selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
 }

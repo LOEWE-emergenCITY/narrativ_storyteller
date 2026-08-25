@@ -1,6 +1,7 @@
 import {
   ActionNode,
   Block,
+  ChoicePathEntry,
   CommandNode,
   ConditionNode,
   ContentNode,
@@ -79,6 +80,79 @@ function extractInlineOnce(
   return {
     line: match[1].trimEnd(),
     onceKey: getOnceKey(currentBlockTitle, lineIndex),
+  }
+}
+
+function extractInlineCondition(
+  trimmedLine: string,
+): { line: string; condition?: string } {
+  const lineWithoutComment = stripTrailingComment(trimmedLine).trim()
+
+  if (lineWithoutComment.startsWith("<<if ")) {
+    return { line: lineWithoutComment }
+  }
+
+  const match = lineWithoutComment.match(/^(.*?)(?:\s*<<if\s+(.+)>>)$/)
+  if (!match) {
+    return { line: lineWithoutComment }
+  }
+
+  return {
+    line: match[1].trimEnd(),
+    condition: match[2].trim(),
+  }
+}
+
+interface InlineChoiceMetadata {
+  text: string
+  condition?: string
+  onceKey?: string
+  inlineSetCommands: string[]
+}
+
+function parseInlineChoiceMetadata(
+  trimmedLine: string,
+  currentBlockTitle: string,
+  lineIndex: number,
+): InlineChoiceMetadata {
+  const rawContent = stripTrailingComment(trimmedLine.substring(3)).trim()
+  const inlineSetCommands: string[] = []
+  let condition: string | undefined
+  let onceKey: string | undefined
+
+  const text = rawContent.replace(/\s*<<(if\s+.+?|once|set\s+.+?)>>/g, (
+    match,
+    command,
+  ) => {
+    const trimmedCommand = String(command).trim()
+
+    if (trimmedCommand.startsWith("if ")) {
+      if (!condition) {
+        condition = trimmedCommand.substring(3).trim()
+      }
+      return ""
+    }
+
+    if (trimmedCommand === "once") {
+      if (!onceKey) {
+        onceKey = getOnceKey(currentBlockTitle, lineIndex)
+      }
+      return ""
+    }
+
+    if (trimmedCommand.startsWith("set ")) {
+      inlineSetCommands.push(trimmedCommand.substring(4).trim())
+      return ""
+    }
+
+    return match
+  }).replace(/\s{2,}/g, " ").trim()
+
+  return {
+    text,
+    condition,
+    onceKey,
+    inlineSetCommands,
   }
 }
 
@@ -195,8 +269,9 @@ function parseBlockMetadata(line: string, currentBlock: Block): boolean {
 function parseCommandNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   onceKey?: string,
+  condition?: string,
 ): CommandNode | null {
   if (trimmedLine.startsWith("<<set ")) {
     return {
@@ -204,6 +279,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(5).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -214,6 +290,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(7).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -224,6 +301,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(8).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -234,6 +312,7 @@ function parseCommandNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       command: trimmedLine.substring(20).split(">>")[0].trim(),
     } as CommandNode
   }
@@ -244,10 +323,11 @@ function parseCommandNode(
 function parseActionNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   currentBlockTitle: string,
-  currentLineIndex: number,
+  currentContentNodeIndex: number,
   onceKey?: string,
+  condition?: string,
 ): ActionNode | null {
   if (trimmedLine.startsWith("<<jump ")) {
     return {
@@ -255,6 +335,7 @@ function parseActionNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       jumpTarget: trimmedLine.substring(7).split(">>")[0].trim(),
     } as ActionNode
   }
@@ -265,10 +346,11 @@ function parseActionNode(
       identionLevel,
       choicePath,
       onceKey,
+      condition,
       jumpTarget: trimmedLine.substring(9).split(">>")[0].trim(),
       returnTargetLine: {
         title: currentBlockTitle,
-        line: currentLineIndex + 1,
+        line: currentContentNodeIndex + 1,
       }, // after detour, return to the line following the detour command
     } as ActionNode
   }
@@ -279,7 +361,7 @@ function parseActionNode(
 function parseConditionNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   lines: string[],
   currentIndex: number,
   filePath: string,
@@ -373,43 +455,73 @@ function parseConditionNode(
 function parseChoiceNode(
   trimmedLine: string,
   identionLevel: number,
-  effectiveLevel: number,
-  choicePath: number[],
+  activeChoicePath: ChoicePathEntry[],
+  choiceGroup: { choiceBlockId: number; nextChoiceLevel: number },
+  currentBlockTitle: string,
+  lineIndex: number,
   onceKey?: string,
-): [ContentNode | null, number[]] {
-  // Read parent's sibling counter (one level up) to seed myChoiceLevel
-  let newChoiceLevel = (choicePath[effectiveLevel - 1] ?? 0) + 1
-
-  // If a sibling at this effective level already exists, increment from it
-  if (choicePath[effectiveLevel] !== undefined) {
-    newChoiceLevel = choicePath[effectiveLevel] + 1
-  }
-
-  if (choicePath.length > effectiveLevel) {
-    // Reset sibling counters for this level and deeper — they are independent of the current choice
-    choicePath.splice(effectiveLevel)
-  }
+): [ContentNode | null, ChoicePathEntry[]] {
+  const newChoiceLevel = choiceGroup.nextChoiceLevel
+  const inlineChoice = parseInlineChoiceMetadata(
+    trimmedLine,
+    currentBlockTitle,
+    lineIndex,
+  )
 
   const choiceNode = {
     type: "choice",
     identionLevel,
-    choicePath: [...choicePath], // ancestor sibling counters (depth = choicePath.length)
-    onceKey,
+    choicePath: [...activeChoicePath],
+    choiceBlockId: choiceGroup.choiceBlockId,
+    onceKey: onceKey ?? inlineChoice.onceKey,
     myChoiceLevel: newChoiceLevel,
-    text: stripTrailingComment(trimmedLine.substring(3)).trim(),
+    text: inlineChoice.text,
+    condition: inlineChoice.condition,
+    inlineSetCommands: inlineChoice.inlineSetCommands,
   } as ActionNode
 
-  // Store sibling counter at effectiveLevel (direct assignment avoids sparse-array push bugs)
-  choicePath[effectiveLevel] = newChoiceLevel
+  const nextActiveChoicePath = [
+    ...activeChoicePath,
+    {
+      choiceBlockId: choiceGroup.choiceBlockId,
+      choiceLevel: newChoiceLevel,
+    },
+  ]
 
-  return [choiceNode, choicePath]
+  return [choiceNode, nextActiveChoicePath]
+}
+
+function parseRandomChoiceNode(
+  trimmedLine: string,
+  identionLevel: number,
+  choicePath: ChoicePathEntry[],
+  randomChoiceGroup: {
+    randomChoiceBlockId: number
+    nextRandomChoiceLevel: number
+  },
+  onceKey?: string,
+  condition?: string,
+): ActionNode {
+  const newRandomChoiceLevel = randomChoiceGroup.nextRandomChoiceLevel
+
+  return {
+    type: "randomChoice",
+    identionLevel,
+    choicePath,
+    onceKey,
+    condition,
+    randomChoiceBlockId: randomChoiceGroup.randomChoiceBlockId,
+    myRandomChoiceLevel: newRandomChoiceLevel,
+    text: stripTrailingComment(trimmedLine.substring(3)).trim(),
+  } as ActionNode
 }
 
 function parseChatNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   onceKey?: string,
+  condition?: string,
 ): TextNode | null {
   const sanitizedLine = stripTrailingComment(trimmedLine).trim()
   return {
@@ -417,6 +529,7 @@ function parseChatNode(
     identionLevel,
     choicePath,
     onceKey,
+    condition,
     speaker: sanitizedLine.match(/^([^:]+):\s*(.*)$/)?.[1].trim(),
     text: sanitizedLine.match(/^([^:]+):\s*(.*)$/)?.[2].trim(),
   } as TextNode
@@ -425,14 +538,16 @@ function parseChatNode(
 function parseTextNode(
   trimmedLine: string,
   identionLevel: number,
-  choicePath: number[],
+  choicePath: ChoicePathEntry[],
   onceKey?: string,
+  condition?: string,
 ): TextNode {
   return {
     type: "text",
     identionLevel,
     choicePath,
     onceKey,
+    condition,
     text: stripTrailingComment(trimmedLine).trim(),
   } as TextNode
 }
@@ -466,9 +581,24 @@ export async function parseStory(filePath: string): Promise<Story> {
   } as Block
 
   const lines = fileContent.split("\n")
-  let choicePath: number[] = []
-  let baseChoiceIndent = -1
-  let prevIndentionLevel = 0
+  let activeChoicePath: ChoicePathEntry[] = []
+  let activeChoiceIndents: number[] = []
+  let nextChoiceBlockId = 0
+  let choiceGroups = new Map<
+    string,
+    { choiceBlockId: number; nextChoiceLevel: number }
+  >()
+  let nextRandomChoiceBlockId = 0
+  let randomChoiceGroups = new Map<
+    string,
+    { randomChoiceBlockId: number; nextRandomChoiceLevel: number }
+  >()
+  const choiceGroupKey = (path: ChoicePathEntry[], indentionLevel: number) =>
+    `${indentionLevel}:${
+      path.map((entry) => `${entry.choiceBlockId}.${entry.choiceLevel}`).join(
+        "/",
+      )
+    }`
 
   for (const [index, line] of lines.entries()) {
     // Handle block separator
@@ -482,8 +612,12 @@ export async function parseStory(filePath: string): Promise<Story> {
         visited: false,
         contentNodes: [] as ContentNode[],
       } as Block
-      choicePath = []
-      baseChoiceIndent = -1
+      activeChoicePath = []
+      activeChoiceIndents = []
+      nextChoiceBlockId = 0
+      choiceGroups = new Map()
+      nextRandomChoiceBlockId = 0
+      randomChoiceGroups = new Map()
       continue
     }
 
@@ -510,17 +644,20 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     // Calculate nested level
     const indentionLevel = getNestedLevel(line, filePath, index)
-    if (indentionLevel < prevIndentionLevel) {
-      // if we go back to a higher level, reset choice level to 0, because choices on higher levels are independent of the previous choices on lower levels
-      if (!trimmedLine.startsWith("-> ")) {
-        choicePath = [] // reset choice level when going back to a higher level
-        baseChoiceIndent = -1
-      }
+    while (
+      activeChoiceIndents.length > 0 &&
+      activeChoiceIndents[activeChoiceIndents.length - 1] >= indentionLevel
+    ) {
+      activeChoiceIndents.pop()
+      activeChoicePath.pop()
     }
-    prevIndentionLevel = indentionLevel
 
     const inlineOnce = extractInlineOnce(trimmedLine, currentBlock.title, index)
-    const sanitizedLine = inlineOnce.line
+    const inlineCondition = sanitizedLineStartsWithChoice(inlineOnce.line)
+      ? { line: inlineOnce.line }
+      : extractInlineCondition(inlineOnce.line)
+    const sanitizedLine = inlineCondition.line
+    const currentChoicePath = [...activeChoicePath]
 
     let contentNode: ContentNode | null = null
 
@@ -529,21 +666,23 @@ export async function parseStory(filePath: string): Promise<Story> {
       contentNode = parseCommandNode(
         sanitizedLine,
         indentionLevel,
-        choicePath,
+        currentChoicePath,
         inlineOnce.onceKey,
+        inlineCondition.condition,
       ) ||
         parseActionNode(
           sanitizedLine,
           indentionLevel,
-          choicePath,
+          currentChoicePath,
           currentBlock.title,
-          index,
+          currentBlock.contentNodes.length,
           inlineOnce.onceKey,
+          inlineCondition.condition,
         ) ||
         parseConditionNode(
           sanitizedLine,
           indentionLevel,
-          choicePath,
+          currentChoicePath,
           lines,
           index,
           filePath,
@@ -554,21 +693,56 @@ export async function parseStory(filePath: string): Promise<Story> {
 
     if (!contentNode) {
       if (sanitizedLine.startsWith("-> ")) {
-        if (baseChoiceIndent === -1) baseChoiceIndent = indentionLevel
-        const effectiveLevel = indentionLevel - baseChoiceIndent
-        ;[contentNode, choicePath] = parseChoiceNode(
+        const groupKey = choiceGroupKey(currentChoicePath, indentionLevel)
+        let choiceGroup = choiceGroups.get(groupKey)
+        if (!choiceGroup) {
+          choiceGroup = {
+            choiceBlockId: nextChoiceBlockId,
+            nextChoiceLevel: 1,
+          }
+          nextChoiceBlockId++
+          choiceGroups.set(groupKey, choiceGroup)
+        }
+
+        ;[contentNode, activeChoicePath] = parseChoiceNode(
           sanitizedLine,
           indentionLevel,
-          effectiveLevel,
-          JSON.parse(JSON.stringify(choicePath)),
+          currentChoicePath,
+          choiceGroup,
+          currentBlock.title,
+          index,
           inlineOnce.onceKey,
         )
+        choiceGroup.nextChoiceLevel++
+        activeChoiceIndents = [...activeChoiceIndents, indentionLevel]
+      } else if (sanitizedLine.startsWith("=> ")) {
+        const groupKey = choiceGroupKey(currentChoicePath, indentionLevel)
+        let randomChoiceGroup = randomChoiceGroups.get(groupKey)
+        if (!randomChoiceGroup) {
+          randomChoiceGroup = {
+            randomChoiceBlockId: nextRandomChoiceBlockId,
+            nextRandomChoiceLevel: 1,
+          }
+          nextRandomChoiceBlockId++
+          randomChoiceGroups.set(groupKey, randomChoiceGroup)
+        }
+
+        contentNode = parseRandomChoiceNode(
+          sanitizedLine,
+          indentionLevel,
+          currentChoicePath,
+          randomChoiceGroup,
+          inlineOnce.onceKey,
+          inlineCondition.condition,
+        )
+        randomChoiceGroup.nextRandomChoiceLevel++
       } else if (sanitizedLine.match(/^([^:]+):\s*(.*)$/)) {
         contentNode = parseChatNode(
           sanitizedLine,
           indentionLevel,
-          choicePath,
+          currentChoicePath,
           inlineOnce.onceKey,
+          inlineCondition.condition,
         )
       }
     }
@@ -578,8 +752,19 @@ export async function parseStory(filePath: string): Promise<Story> {
       contentNode = parseTextNode(
         sanitizedLine,
         indentionLevel,
-        choicePath,
+        currentChoicePath,
         inlineOnce.onceKey,
+        inlineCondition.condition,
+      )
+    }
+
+    if (contentNode.type !== "choice") {
+      choiceGroups.delete(choiceGroupKey(currentChoicePath, indentionLevel))
+    }
+
+    if (contentNode.type !== "randomChoice") {
+      randomChoiceGroups.delete(
+        choiceGroupKey(currentChoicePath, indentionLevel),
       )
     }
 
@@ -587,4 +772,8 @@ export async function parseStory(filePath: string): Promise<Story> {
   }
 
   return story
+}
+
+function sanitizedLineStartsWithChoice(line: string): boolean {
+  return line.startsWith("-> ")
 }

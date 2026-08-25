@@ -10,8 +10,3 @@ _fresh/
 # npm + other dependencies
 node_modules/
 vendor/
-
-# static customer data
-static/moods/
-static/imgs/
-# data/stories/

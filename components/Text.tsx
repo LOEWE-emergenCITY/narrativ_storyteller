@@ -20,13 +20,13 @@ export function Text(props: TextProps) {
       <div
         // deno-lint-ignore react-no-danger
         dangerouslySetInnerHTML={{ __html: preparedText }}
-        class={clsx("text-lg text-left py-2 px-4", props.className)}
+        class={clsx("px-4 py-2 text-left text-lg text-theme", props.className)}
       />
     )
   }
 
   return (
-    <p class={clsx("text-lg text-left py-2 px-4", props.className)}>
+    <p class={clsx("px-4 py-2 text-left text-lg text-theme", props.className)}>
       {preparedText}
     </p>
   )

@@ -1,26 +1,28 @@
-import { Button, ContinueButton } from "@/components/Button.tsx"
+import { Button } from "@/components/Button.tsx"
 import { Chat } from "@/components/Chat.tsx"
 import { ChoiceTranscript } from "@/components/ChoiceTranscript.tsx"
-import { MoodImage } from "@/components/MoodImage.tsx"
+import { Image } from "@/components/Image.tsx"
 import { ScienceFactBadge } from "@/components/ScienceFactBadge.tsx"
 import { Text } from "@/components/Text.tsx"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
 import { RenderContext } from "@/utils/nodeVisibility.ts"
-import { navigateToBlock } from "@/utils/storyStore.ts"
 import {
   ActionNode,
+  ChoiceState,
   CommandNode,
   ContentNode,
   TextNode,
 } from "@/utils/storyTypes.tsx"
-import { clsx } from "clsx"
 import { JSX } from "preact/jsx-runtime"
 
+const SHOW_FLOW_DEBUG = true
+
 export interface RenderConfig {
-  choices: number[]
+  choices: ChoiceState
   context: RenderContext
   nodeVariables?: WeakMap<ContentNode, Map<string, string | number | boolean>>
   isHistorical?: boolean
+  getChoiceShortcutLabel?: (choiceLevel?: number) => string | null
 }
 
 function getNodeType(
@@ -33,6 +35,7 @@ function getNodeType(
   | "mood"
   | "set"
   | "scienceFact"
+  | "randomChoice"
   | "debug"
   | "detour"
   | "scene" {
@@ -43,14 +46,20 @@ function getNodeType(
   if (node.type === "mood") return "mood"
   if (node.type === "set") return "set"
   if (node.type === "scienceFact") return "scienceFact"
+  if (node.type === "randomChoice") return "randomChoice"
   if (node.type === "detour") return "detour"
   if (node.type === "scene") return "scene"
   return "debug"
 }
 
-function renderTextNode(node: TextNode, config: RenderConfig): JSX.Element {
+function renderTextNode(
+  node: TextNode,
+  config: RenderConfig,
+  index: number,
+): JSX.Element {
   return (
     <Text
+      key={`TEXT_${index}`}
       html={node.text}
       variables={config.nodeVariables?.get(node) ?? config.context.variables}
     />
@@ -60,6 +69,7 @@ function renderTextNode(node: TextNode, config: RenderConfig): JSX.Element {
 function renderChatNode(node: TextNode): JSX.Element {
   return (
     <Chat
+      key={`CHAT_${node.speaker}_${node.text}`}
       isAngela={node.speaker === "Angela"}
       sender={String(node.speaker)}
     >
@@ -85,49 +95,50 @@ function renderChoiceNode(
 
   return (
     <Button
-      choiceId={String(node.myChoiceLevel)}
+      choiceId={config.getChoiceShortcutLabel?.(node.myChoiceLevel) ??
+        String(node.myChoiceLevel)}
       onClick={() => handleChoiceClick(contentNodes, index)}
       html={node.text || ""}
-      disabled={config.choices.length > node.choicePath.length &&
-        config.choices[node.choicePath.length] === node.myChoiceLevel!}
+      disabled={node.choiceBlockId !== undefined &&
+        config.choices[String(node.choiceBlockId)] === node.myChoiceLevel!}
     />
   )
 }
 
 function renderJumpNode(
-  node: ActionNode,
+  _node: ActionNode,
   config: RenderConfig,
 ): JSX.Element | null {
-  if (config.isHistorical) return null
+  if (!config.isHistorical) return null
+  return null
+}
 
-  if (!node.jumpTarget) {
-    console.error("Jump node missing jumpTarget", node)
-    return null
-  }
-
+function renderMoodNode(node: CommandNode): JSX.Element {
   return (
-    <ContinueButton
-      onClick={() => navigateToBlock(node.jumpTarget || "")}
+    <Image
+      key={`MOOD_${node.command}`}
+      name={node.command}
+      type="mood"
     />
   )
 }
 
-function renderSceneNode(node: ContentNode): JSX.Element | null {
-  if (node.type !== "scene") return null
-
+function renderSceneNode(node: CommandNode): JSX.Element {
   return (
-    <div
-      class={clsx(
-        "w-full py-2 px-4 rounded-sm border",
-        "bg-green-100 border-green-300",
-      )}
-    >
-      Type: {node.type}
-      <br />
-      {`NodeCommand: ${(node as CommandNode).command}`}
-      <br />
-      IdentionLevel: {node.identionLevel}
-    </div>
+    <Image
+      key={`SCENE_${node.command}`}
+      name={node.command}
+      type="scene"
+    />
+  )
+}
+
+function renderScienceFactNode(node: CommandNode): JSX.Element {
+  return (
+    <ScienceFactBadge
+      key={`SCIENCE_FACT_${node.command.trim()}`}
+      name={node.command.trim()}
+    />
   )
 }
 
@@ -142,17 +153,16 @@ export function renderNode(
 
   switch (getNodeType(node)) {
     case "text":
-      return [renderTextNode(node as TextNode, config)]
+      return [
+        renderTextNode(node as TextNode, config, index),
+      ]
 
     case "chat":
       return [renderChatNode(node as TextNode)]
 
     case "mood":
       return [
-        <MoodImage
-          key={(node as CommandNode).command}
-          name={(node as CommandNode).command}
-        />,
+        renderMoodNode(node as CommandNode),
       ]
 
     case "set":
@@ -160,14 +170,26 @@ export function renderNode(
 
     case "scienceFact":
       return [
-        <ScienceFactBadge
-          key={(node as CommandNode).command.trim()}
-          name={(node as CommandNode).command.trim()}
-        />,
+        renderScienceFactNode(node as CommandNode),
+      ]
+
+    case "randomChoice":
+      return [
+        renderTextNode(node as TextNode, config, index),
       ]
 
     case "detour":
-      return [<div key={`DETOUR_${index}`}>DETOUR</div>]
+      if (!config.isHistorical || !SHOW_FLOW_DEBUG) return []
+      return [
+        <div
+          key={`DETOUR_${index}`}
+          class="w-full flex px-6 py-1 opacity-50"
+        >
+          <div class="flex items-center gap-2 text-xs text-theme-muted italic">
+            DEBUG: detour -&gt; {(node as ActionNode).jumpTarget ?? "unknown"}
+          </div>
+        </div>,
+      ]
 
     case "choice":
       return [
@@ -180,8 +202,9 @@ export function renderNode(
     }
 
     case "scene": {
-      const scene = renderSceneNode(node)
-      return scene ? [scene] : []
+      return [
+        renderSceneNode(node as CommandNode),
+      ]
     }
 
     case "debug":

@@ -15,7 +15,7 @@ import {
 } from "@/utils/storyTypes.tsx"
 import { JSX } from "preact/jsx-runtime"
 
-const SHOW_FLOW_DEBUG = true
+const SHOW_FLOW_DEBUG = false
 
 export interface RenderConfig {
   choices: ChoiceState

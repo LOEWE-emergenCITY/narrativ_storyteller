@@ -5,7 +5,6 @@ import {
   evaluateVisibleNodesSequentially,
   filterVisibleNodes,
 } from "@/utils/nodeVisibility.ts"
-import { parseStory } from "@/utils/storyParser.ts"
 import {
   activeBlockStatus,
   activeRenderSnapshot,
@@ -35,20 +34,10 @@ import {
 } from "@/islands/StoryViewer.tsx"
 import { renderNode } from "@/utils/renderNode.tsx"
 import { ActionNode, TextNode } from "@/utils/storyTypes.tsx"
-
-async function withTempStory(
-  contents: string,
-  run: (path: string) => Promise<void>,
-): Promise<void> {
-  const tempFile = await Deno.makeTempFile({ suffix: ".yarn" })
-
-  try {
-    await Deno.writeTextFile(tempFile, contents)
-    await run(tempFile)
-  } finally {
-    await Deno.remove(tempFile)
-  }
-}
+import {
+  parseTestStory as parseStory,
+  withTestStory as withTempStory,
+} from "@/test/helpers.ts"
 
 Deno.test("choice flow waits for input, then exposes continue after branch settles", async () => {
   const storyText = `title: Start

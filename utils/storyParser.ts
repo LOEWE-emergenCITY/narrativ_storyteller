@@ -564,6 +564,13 @@ export async function parseStory(filePath: string): Promise<Story> {
     )
   }
 
+  return parseStoryText(fileContent, filePath)
+}
+
+export function parseStoryText(
+  fileContent: string,
+  filePath = "<inline-story>",
+): Story {
   const story: Story = {
     file: filePath,
     blocks: new Map<string, Block>(),

@@ -9,6 +9,7 @@ import {
   choices,
   currentBlockTitle,
   currentIndentionLevel,
+  detourReturnStack,
   getSavedStoryState,
   isSavedStoryState,
   loadStory,
@@ -17,6 +18,7 @@ import {
   randomChoices,
   resolveRandomChoices,
   restoreSavedStoryState,
+  resumeFromLine,
   seenOnceSections,
   STORY_STATE_VERSION,
   storyVariables,
@@ -25,21 +27,10 @@ import {
   visibleOnceSections,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
-import { parseStory } from "@/utils/storyParser.ts"
-
-async function withTempStory(
-  contents: string,
-  run: (path: string) => Promise<void>,
-): Promise<void> {
-  const tempFile = await Deno.makeTempFile({ suffix: ".yarn" })
-
-  try {
-    await Deno.writeTextFile(tempFile, contents)
-    await run(tempFile)
-  } finally {
-    await Deno.remove(tempFile)
-  }
-}
+import {
+  parseTestStory as parseStory,
+  withTestStory as withTempStory,
+} from "@/test/helpers.ts"
 
 Deno.test("saved story state is valid and restores exact runtime state", async () => {
   const storyText = `title: Start
@@ -75,6 +66,13 @@ Next block
     resolveRandomChoices({ 0: 1 })
     currentIndentionLevel.value = 1
     visibleOnceSections.value = new Set(["Next:5"])
+    detourReturnStack.value = [{
+      title: "Start",
+      line: 4,
+      choices: { 0: 1 },
+      randomChoices: { 0: 2 },
+    }]
+    resumeFromLine.value = 2
     updateActiveBlockState("waiting_for_choice", null)
 
     const savedState = getSavedStoryState(story.file, true)
@@ -96,6 +94,13 @@ Next block
     assertEquals(Object.fromEntries(blockEntryVariables.value), { "$trust": 1 })
     assertEquals(activeBlockStatus.value, "waiting_for_choice")
     assertEquals(pendingContinueTarget.value, null)
+    assertEquals(detourReturnStack.value, [{
+      title: "Start",
+      line: 4,
+      choices: { 0: 1 },
+      randomChoices: { 0: 2 },
+    }])
+    assertEquals(resumeFromLine.value, 2)
     assertEquals(blockHistory.value.length, 1)
     assertEquals(blockHistory.value[0].title, "Start")
     assertEquals(blockHistory.value[0].choices, { 0: 1 })
@@ -112,6 +117,28 @@ Next block
     assertEquals(activeRenderSnapshot.value, null)
   })
 })
+
+function validSavedStoryState() {
+  return {
+    version: STORY_STATE_VERSION,
+    storyFile: "demo.yarn",
+    hasStarted: true,
+    currentBlockTitle: "Start",
+    currentIndentionLevel: 0,
+    choices: {},
+    randomChoices: {},
+    storyVariables: {},
+    visitedBlocks: [],
+    seenOnceSections: [],
+    visibleOnceSections: [],
+    blockEntryVariables: {},
+    activeBlockStatus: "complete_without_continue",
+    pendingContinueTarget: null,
+    blockHistory: [],
+    detourReturnStack: [],
+    resumeFromLine: 0,
+  }
+}
 
 Deno.test("navigation stores active render snapshot without re-evaluating visibility", async () => {
   const storyText = `title: Start
@@ -188,6 +215,54 @@ Deno.test("saved story state validator rejects malformed payloads", () => {
       activeBlockStatus: "not_valid",
       pendingContinueTarget: null,
       blockHistory: [],
+    }),
+    false,
+  )
+  assertEquals(
+    isSavedStoryState({ ...validSavedStoryState(), randomChoices: { 0: "x" } }),
+    false,
+  )
+  assertEquals(
+    isSavedStoryState({
+      ...validSavedStoryState(),
+      blockHistory: [{
+        title: "Start",
+        startFromLine: 0,
+        choices: {},
+        randomChoices: { 0: "x" },
+        variables: {},
+        visitedBlocks: [],
+        seenOnceSections: [],
+      }],
+    }),
+    false,
+  )
+  assertEquals(
+    isSavedStoryState({
+      ...validSavedStoryState(),
+      blockHistory: [{
+        title: "Start",
+        startFromLine: 0,
+        choices: {},
+        variables: {},
+        visitedBlocks: [],
+        seenOnceSections: [],
+        renderSnapshot: {
+          visibleNodes: [{ index: "0", variables: {} }],
+          visibleOnceKeys: [],
+        },
+      }],
+    }),
+    false,
+  )
+  assertEquals(
+    isSavedStoryState({ ...validSavedStoryState(), resumeFromLine: "0" }),
+    false,
+  )
+  assertEquals(
+    isSavedStoryState({
+      ...validSavedStoryState(),
+      detourReturnStack: [{ title: "Start", line: "1", choices: {} }],
     }),
     false,
   )

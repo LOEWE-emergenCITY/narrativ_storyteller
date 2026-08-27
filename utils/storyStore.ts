@@ -367,6 +367,16 @@ function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
       isActiveRenderSnapshot(snapshot.renderSnapshot))
 }
 
+function isSavedDetourReturn(value: unknown): value is DetourReturn {
+  if (typeof value !== "object" || value === null) return false
+
+  const entry = value as Partial<DetourReturn>
+  return typeof entry.title === "string" &&
+    typeof entry.line === "number" &&
+    isChoiceState(entry.choices) &&
+    (entry.randomChoices === undefined || isChoiceState(entry.randomChoices))
+}
+
 function isRenderedNodeSnapshot(value: unknown): value is RenderedNodeSnapshot {
   if (typeof value !== "object" || value === null) return false
 
@@ -493,7 +503,8 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
     Array.isArray(savedState.blockHistory) &&
     savedState.blockHistory.every(isSavedBlockSnapshot) &&
     (savedState.detourReturnStack === undefined ||
-      Array.isArray(savedState.detourReturnStack)) &&
+      (Array.isArray(savedState.detourReturnStack) &&
+        savedState.detourReturnStack.every(isSavedDetourReturn))) &&
     (savedState.resumeFromLine === undefined ||
       typeof savedState.resumeFromLine === "number")
 }

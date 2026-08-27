@@ -140,6 +140,9 @@ function StoryViewer() {
   const history = blockHistory.value
   const currentResumeFromLine = resumeFromLine.value
   const detourStack = detourReturnStack.value
+  const showDetourDebug = new URLSearchParams(globalThis.location.search).get(
+    "detourDebug",
+  ) === "1"
 
   // storyBlocks is populated by loadStory() before isLoggedIn is set to true,
   // so it is always available on the first render of this component.
@@ -366,6 +369,7 @@ function StoryViewer() {
       context: frozenContext,
       nodeVariables: frozenNodeVariables,
       isHistorical: true,
+      showDetourDebug,
     }
 
     const renderedHistoric = snapshotNodes

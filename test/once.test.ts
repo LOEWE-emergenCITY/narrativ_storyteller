@@ -1,7 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import { filterVisibleNodes } from "@/utils/nodeVisibility.ts"
-import { parseStory } from "@/utils/storyParser.ts"
 import {
   blockEntryVariables,
   currentBlockTitle,
@@ -10,20 +9,10 @@ import {
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { ActionNode, ConditionNode, TextNode } from "@/utils/storyTypes.tsx"
-
-async function withTempStory(
-  contents: string,
-  run: (path: string) => Promise<void>,
-): Promise<void> {
-  const tempFile = await Deno.makeTempFile({ suffix: ".yarn" })
-
-  try {
-    await Deno.writeTextFile(tempFile, contents)
-    await run(tempFile)
-  } finally {
-    await Deno.remove(tempFile)
-  }
-}
+import {
+  parseTestStory as parseStory,
+  withTestStory as withTempStory,
+} from "@/test/helpers.ts"
 
 Deno.test("parseStory attaches once keys to inline and block once nodes", async () => {
   const storyText = `title: Start

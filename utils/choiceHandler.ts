@@ -91,7 +91,8 @@ export function handleChoiceClick(
       visibleNodes: visibleResult.visibleNodes.map((node) => ({
         index: resumeFromLine.value + resolvedContentNodes.indexOf(node),
         variables: Object.fromEntries(
-          (visibleResult.nodeVariables.get(node) ?? context.variables).entries(),
+          (visibleResult.nodeVariables.get(node) ?? context.variables)
+            .entries(),
         ),
       })),
       visibleOnceKeys: [...visibleResult.visibleOnceKeys],

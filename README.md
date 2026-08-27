@@ -1,23 +1,78 @@
-# Fresh project
+# Narrativ Storyteller
 
-Your new Fresh project is ready to go. You can follow the Fresh "Getting
-Started" guide here: https://fresh.deno.dev/docs/getting-started
+Narrativ Storyteller is an interactive story player built with Deno, Fresh,
+Vite, Preact, and Tailwind CSS. It parses Yarn Spinner-style `.yarn` story files
+and renders branching narrative content with choices, variables, conditions,
+scenes, mood images, science fact badges, and session persistence.
 
-### Usage
+Feature details and implementation status are tracked in
+[`FEATURES.md`](./FEATURES.md).
 
-Make sure to install Deno:
+## Requirements
+
+Install Deno:
+
 https://docs.deno.com/runtime/getting_started/installation
 
-Then start the project in development mode:
+## Setup
 
+Install and cache dependencies:
+
+```sh
+deno install
 ```
+
+## Development
+
+Start the Fresh development server:
+
+```sh
 deno task dev
 ```
 
-This will watch the project directory and restart as necessary.
+This runs Vite in development mode and watches for changes.
 
-# Features
+## Quality Checks
 
-## Parse .yarn file
+Run formatting checks, linting, and type checking:
 
-[x] Read file [] interpret [x] render simple HTML tags like <i>,<b>, <br> []
+```sh
+deno task check
+```
+
+Run the test suite:
+
+```sh
+deno task test
+```
+
+## Build And Run
+
+Create a production build:
+
+```sh
+deno task build
+```
+
+Run the built Fresh server:
+
+```sh
+deno task start
+```
+
+## Updating Fresh
+
+Update Fresh dependencies and project files:
+
+```sh
+deno task update
+```
+
+## Project Structure
+
+- `routes/`: Fresh routes and pages
+- `islands/`: Interactive Preact islands
+- `components/`: Shared UI components
+- `utils/`: Story parsing, rendering, state, and runtime helpers
+- `test/`: Deno test suite
+- `data/`: Runtime data such as science facts

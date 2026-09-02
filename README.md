@@ -60,6 +60,25 @@ Run the built Fresh server:
 deno task start
 ```
 
+## Dynamic Mood Images
+
+Mood names may use the special `{$state}` suffix. Declare and update `$state` in
+Yarn to select a corresponding image variant:
+
+```yarn
+<<declare $state = "morning">>
+<<Mood angela_worried_{$state}>>
+
+<<set $state to "evening">>
+<<Mood angela_worried_{$state}>>
+```
+
+The example loads `eHub_moods_angela_worried_morning_72dpi.jpg` and then
+`eHub_moods_angela_worried_evening_72dpi.jpg`. If `$state` is missing or not a
+non-empty string, or if a variant cannot be loaded, the player falls back to
+`eHub_moods_angela_worried_72dpi.jpg`. Mood names without `{$state}` continue to
+work unchanged.
+
 ## Updating Fresh
 
 Update Fresh dependencies and project files:

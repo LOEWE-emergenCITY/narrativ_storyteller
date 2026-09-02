@@ -112,11 +112,39 @@ function renderJumpNode(
   return null
 }
 
-function renderMoodNode(node: CommandNode): JSX.Element {
+export function resolveMoodName(
+  command: string,
+  variables: Map<string, string | number | boolean>,
+): { name: string; fallbackName?: string } {
+  const placeholder = "_{$state}"
+  if (!command.endsWith(placeholder)) return { name: command }
+
+  const fallbackName = command.slice(0, -placeholder.length)
+  const state = variables.get("$state")
+  if (typeof state !== "string" || state.length === 0) {
+    return { name: fallbackName }
+  }
+
+  return {
+    name: `${fallbackName}_${state}`,
+    fallbackName,
+  }
+}
+
+function renderMoodNode(
+  node: CommandNode,
+  config: RenderConfig,
+): JSX.Element {
+  const mood = resolveMoodName(
+    node.command,
+    config.nodeVariables?.get(node) ?? config.context.variables,
+  )
+
   return (
     <Image
-      key={`MOOD_${node.command}`}
-      name={node.command}
+      key={`MOOD_${mood.name}`}
+      name={mood.name}
+      fallbackName={mood.fallbackName}
       type="mood"
     />
   )
@@ -161,7 +189,7 @@ export function renderNode(
 
     case "mood":
       return [
-        renderMoodNode(node as CommandNode),
+        renderMoodNode(node as CommandNode, config),
       ]
 
     case "set":

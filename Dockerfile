@@ -1,9 +1,23 @@
-FROM denoland/deno:latest
-
+# Build stage
+FROM denoland/deno:latest AS builder
+# Point Deno's cache at a known location so it can be copied to the next stage
+ENV DENO_DIR=/deno-dir
 WORKDIR /app
+
+# Copy manifests first so the dependency install layer caches across
+# source-only edits
+COPY deno.json deno.lock package.json* ./
+RUN deno ci --prod --skip-types
+
+# Then copy the rest of the source
 COPY . .
 
-RUN deno cache main.ts
-
-EXPOSE 8000
-CMD ["run", "--allow-net", "main.ts"]
+# Production stage
+FROM denoland/deno:latest
+ENV DENO_DIR=/deno-dir
+WORKDIR /app
+COPY --from=builder /app .
+# Copy the populated Deno cache so the runtime stage has the dependencies
+COPY --from=builder /deno-dir /deno-dir
+RUN deno task build
+CMD ["task", "start"]

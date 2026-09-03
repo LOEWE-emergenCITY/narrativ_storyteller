@@ -50,7 +50,7 @@ jobs:
           script: |
             cd /home/deploy/data
             git pull origin main
-            
+
             # Falls du Docker auf dem VPS nutzt:
             docker compose down
             docker compose up -d --build

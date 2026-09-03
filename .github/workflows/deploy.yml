@@ -48,7 +48,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            cd /home/deploy/data
+            cd /home/deploy/narrativ_storyteller
             git pull origin main
 
             # Falls du Docker auf dem VPS nutzt:

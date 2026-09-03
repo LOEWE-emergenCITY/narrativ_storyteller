@@ -54,7 +54,3 @@ jobs:
             # Falls du Docker auf dem VPS nutzt:
             docker compose down
             docker compose up -d --build
-            
-            # ODER falls Deno direkt über systemd / PM2 läuft:
-            # deno compile --allow-net main.ts -o app
-            # systemctl restart my-deno-app

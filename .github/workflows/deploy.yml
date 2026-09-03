@@ -56,5 +56,5 @@ jobs:
             docker compose up -d --build
             
             # ODER falls Deno direkt über systemd / PM2 läuft:
-            #deno compile --allow-net main.ts -o app
-            #systemctl restart my-deno-app
+            # deno compile --allow-net main.ts -o app
+            # systemctl restart my-deno-app

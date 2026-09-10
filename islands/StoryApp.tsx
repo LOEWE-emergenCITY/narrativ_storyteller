@@ -50,7 +50,9 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
       const parsedState = JSON.parse(savedStateJson)
 
       if (
-        isSavedStoryState(parsedState) && parsedState.storyFile === story.file
+        isSavedStoryState(parsedState) &&
+        parsedState.storyFile === story.file &&
+        parsedState.storyVersion === story.version
       ) {
         return parsedState
       }
@@ -97,7 +99,13 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
   useEffect(() => {
     if (!shouldPersistStoryState(startupResolved, hasStarted)) return
 
-    const savedState = getSavedStoryState(story.file, hasStarted)
+    if (story.version === null) return
+
+    const savedState = getSavedStoryState(
+      story.file,
+      story.version,
+      hasStarted,
+    )
     globalThis.localStorage?.setItem(
       STORY_STATE_STORAGE_KEY,
       JSON.stringify(savedState, null, 2),
@@ -117,6 +125,7 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
     pendingContinueTarget.value,
     blockHistory.value,
     story.file,
+    story.version,
   ])
 
   if (!hasStarted) {

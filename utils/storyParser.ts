@@ -28,6 +28,8 @@ function parseDeclaredValue(value: string): string | number | boolean {
   return trimmed.replace(/^"(.*)"$/, "$1") // remove surrounding quotes if present
 }
 
+const STORY_VERSION_VARIABLE = "$story_version"
+
 // ===== SECTION 1: UTILITY & VALIDATION FUNCTIONS =====
 
 function getNestedLevel(
@@ -573,6 +575,7 @@ export function parseStoryText(
 ): Story {
   const story: Story = {
     file: filePath,
+    version: null,
     blocks: new Map<string, Block>(),
     variables: new Map<string, string | number>(),
     visitedBlocks: new Set<string>(),
@@ -645,6 +648,25 @@ export function parseStoryText(
       const content = trimmedLine.substring(10).split(">>")[0].split("=")
       const key = content[0].trim()
       const value = content[1] ? parseDeclaredValue(content[1]) : ""
+
+      if (key === STORY_VERSION_VARIABLE) {
+        if (story.version !== null) {
+          throw new Error(
+            `Duplicate ${STORY_VERSION_VARIABLE} declaration in ${filePath}`,
+          )
+        }
+
+        if (
+          typeof value !== "number" || !Number.isInteger(value) || value < 1
+        ) {
+          throw new Error(
+            `${STORY_VERSION_VARIABLE} must be a positive integer in ${filePath}`,
+          )
+        }
+
+        story.version = value
+      }
+
       story.variables.set(key, value)
       continue
     }

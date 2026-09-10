@@ -17,6 +17,7 @@ export interface DetourReturn {
 
 export interface Story {
   file: string
+  version: number | null
   blocks: Map<string, Block>
   visitedBlocks: Set<string>
   variables: Map<string, string | number | boolean>

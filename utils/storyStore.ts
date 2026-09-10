@@ -16,7 +16,7 @@ import {
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 export const STORY_STATE_STORAGE_KEY = "narrativ.storyState"
-export const STORY_STATE_VERSION = 3
+export const STORY_STATE_VERSION = 4
 
 // ===== SIGNALS =====
 
@@ -190,6 +190,7 @@ export interface SavedBlockSnapshot {
 export interface SavedStoryState {
   version: number
   storyFile: string
+  storyVersion: number
   hasStarted: boolean
   currentBlockTitle: string
   currentIndentionLevel: number
@@ -403,11 +404,13 @@ function isActiveBlockStatus(value: unknown): value is ActiveBlockStatus {
 
 export function getSavedStoryState(
   storyFile: string,
+  storyVersion: number,
   hasStarted: boolean,
 ): SavedStoryState {
   return {
     version: STORY_STATE_VERSION,
     storyFile,
+    storyVersion,
     hasStarted,
     currentBlockTitle: currentBlockTitle.value,
     currentIndentionLevel: currentIndentionLevel.value,
@@ -486,6 +489,7 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
   const savedState = value as Partial<SavedStoryState>
   return savedState.version === STORY_STATE_VERSION &&
     typeof savedState.storyFile === "string" &&
+    typeof savedState.storyVersion === "number" &&
     typeof savedState.hasStarted === "boolean" &&
     typeof savedState.currentBlockTitle === "string" &&
     typeof savedState.currentIndentionLevel === "number" &&

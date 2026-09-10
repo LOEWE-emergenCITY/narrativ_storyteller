@@ -6,12 +6,7 @@ import {
   clearGlow,
   updateGlowPosition,
 } from "@/utils/buttonGlow.ts"
-import {
-  ArrowBigDownDash,
-  CornerDownRight,
-  CornerUpLeft,
-  RotateCcw,
-} from "lucide-preact"
+import { ArrowBigDownDash, RotateCcw } from "lucide-preact"
 
 export interface ButtonProps {
   onClick?: () => void
@@ -83,58 +78,6 @@ export function ContinueButton(
       >
         <span class="interactive-glow__content">
           <ArrowBigDownDash class="size-10" />
-        </span>
-      </button>
-    </div>
-  )
-}
-
-/** Button shown when the story is about to enter a detour block. */
-export function DetourButton(
-  props: { onClick?: () => void; disabled?: boolean; className?: string },
-) {
-  return (
-    <div class={clsx("w-full py-1 px-4 justify-center flex", props.className)}>
-      <button
-        {...props}
-        onPointerEnter={activateGlow}
-        onPointerMove={updateGlowPosition}
-        onPointerLeave={clearGlow}
-        class={clsx(
-          "interactive-glow flex w-32 items-center justify-center rounded-sm border-2 border-theme-strong bg-surface p-2 text-accent shadow-sm",
-          props.disabled
-            ? "opacity-60"
-            : "transition-colors hover:bg-surface-strong",
-        )}
-      >
-        <span class="interactive-glow__content">
-          <CornerDownRight class="size-10" />
-        </span>
-      </button>
-    </div>
-  )
-}
-
-/** Button shown when a detour block ends and the story can return to its origin. */
-export function ReturnFromDetourButton(
-  props: { onClick?: () => void; disabled?: boolean; className?: string },
-) {
-  return (
-    <div class={clsx("w-full py-1 px-4 justify-center flex", props.className)}>
-      <button
-        {...props}
-        onPointerEnter={activateGlow}
-        onPointerMove={updateGlowPosition}
-        onPointerLeave={clearGlow}
-        class={clsx(
-          "interactive-glow flex w-32 items-center justify-center rounded-sm border-2 border-theme-strong bg-surface p-2 text-accent shadow-sm",
-          props.disabled
-            ? "opacity-60"
-            : "transition-colors hover:bg-surface-strong",
-        )}
-      >
-        <span class="interactive-glow__content">
-          <CornerUpLeft class="size-10" />
         </span>
       </button>
     </div>

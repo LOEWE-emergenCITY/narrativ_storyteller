@@ -1,5 +1,9 @@
 import { useEffect } from "preact/hooks"
-import { ContinueButton, ReturnFromDetourButton } from "@/components/Button.tsx"
+import {
+  ContinueButton,
+  RestartButton,
+  ReturnFromDetourButton,
+} from "@/components/Button.tsx"
 import {
   ActionNode,
   ChoiceState,
@@ -37,6 +41,7 @@ import {
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
+import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 // ── Module-level caches ───────────────────────────────────────────────────────
 
@@ -133,7 +138,16 @@ function isEditableShortcutTarget(target: EventTarget | null): boolean {
     ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
 }
 
-function StoryViewer() {
+export function shouldShowRestartButton(
+  blockTitle: string,
+  status: ActiveBlockStatus,
+  detourStackLength: number,
+): boolean {
+  return blockTitle === "End" && status === "complete_without_continue" &&
+    detourStackLength === 0
+}
+
+function StoryViewer({ onRestart }: { onRestart: () => void }) {
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
   const currentRandomChoices = randomChoices.value
@@ -417,6 +431,12 @@ function StoryViewer() {
     activeBlockProgress.status === "complete_without_continue" &&
     detourStack.length > 0
 
+  const showRestart = shouldShowRestartButton(
+    blockTitle,
+    activeBlockProgress.status,
+    detourStack.length,
+  )
+
   useEffect(() => {
     function handleStoryKeyDown(event: KeyboardEvent) {
       if (
@@ -480,6 +500,7 @@ function StoryViewer() {
         {showReturn && (
           <ReturnFromDetourButton onClick={() => returnFromDetour()} />
         )}
+        {showRestart && <RestartButton onClick={onRestart} />}
       </div>
     </div>
   )

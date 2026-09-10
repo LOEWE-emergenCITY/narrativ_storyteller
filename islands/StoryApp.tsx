@@ -84,6 +84,10 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
     setHasStarted(true)
   }
 
+  function handleRestart() {
+    handleStart()
+  }
+
   function handleContinue() {
     const savedState = readSavedState()
     if (!savedState) {
@@ -139,7 +143,7 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
     )
   }
 
-  return <StoryViewer />
+  return <StoryViewer onRestart={handleRestart} />
 }
 
 export default StoryApp

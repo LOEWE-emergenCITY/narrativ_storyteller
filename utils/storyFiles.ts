@@ -1,30 +1,31 @@
+import { parseStoryText } from "@/utils/storyParser.ts"
+
 export type StoryFileInfo = {
   path: string
   fileName: string
-  version: number
   isDebug: boolean
+  version: number
   label: string
 }
 
-const STORY_FILE_PATTERN = /^(.+)-(\d+)(-debug)?\.yarn$/
+type StoryFileCandidate = Omit<StoryFileInfo, "version" | "label">
+
+const STORY_FILE_PATTERN = /^(?!.*-\d+(?:-debug)?\.yarn$)(.+?)(-debug)?\.yarn$/
 
 export function parseStoryFileName(
   fileName: string,
   storiesDir = "data/stories",
-): StoryFileInfo | null {
+): StoryFileCandidate | null {
   const match = fileName.match(STORY_FILE_PATTERN)
 
   if (!match) return null
 
-  const version = Number(match[2])
-  const isDebug = match[3] !== undefined
+  const isDebug = match[2] !== undefined
 
   return {
     path: `${storiesDir}/${fileName}`,
     fileName,
-    version,
     isDebug,
-    label: `v${version}${isDebug ? "-debug" : ""}`,
   }
 }
 
@@ -41,15 +42,26 @@ export async function getLatestStoryFile(
   return getLatestStoryFileFromNames(fileNames, storiesDir)
 }
 
-export function getLatestStoryFileFromNames(
+export async function getLatestStoryFileFromNames(
   fileNames: string[],
   storiesDir = "data/stories",
-): StoryFileInfo {
+  readFile: (path: string) => Promise<string> = (path) =>
+    Deno.readTextFile(path),
+): Promise<StoryFileInfo> {
   const storyFiles: StoryFileInfo[] = []
 
   for (const fileName of fileNames) {
-    const storyFile = parseStoryFileName(fileName, storiesDir)
-    if (storyFile) storyFiles.push(storyFile)
+    const candidate = parseStoryFileName(fileName, storiesDir)
+    if (!candidate) continue
+
+    const story = parseStoryText(await readFile(candidate.path), candidate.path)
+    if (story.version === null) continue
+
+    storyFiles.push({
+      ...candidate,
+      version: story.version,
+      label: `v${story.version}${candidate.isDebug ? "-debug" : ""}`,
+    })
   }
 
   storyFiles.sort((a, b) => {

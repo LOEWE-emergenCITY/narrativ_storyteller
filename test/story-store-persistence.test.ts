@@ -75,7 +75,7 @@ Next block
     resumeFromLine.value = 2
     updateActiveBlockState("waiting_for_choice", null)
 
-    const savedState = getSavedStoryState(story.file, true)
+    const savedState = getSavedStoryState(story.file, 1, true)
 
     assert(isSavedStoryState(savedState))
     assertEquals(savedState.version, STORY_STATE_VERSION)
@@ -118,10 +118,18 @@ Next block
   })
 })
 
+Deno.test("saved story state includes the story content version", () => {
+  const savedState = getSavedStoryState("demo.yarn", 25, true)
+
+  assertEquals(savedState.storyVersion, 25)
+  assertEquals(isSavedStoryState({ ...savedState, storyVersion: 26 }), true)
+})
+
 function validSavedStoryState() {
   return {
     version: STORY_STATE_VERSION,
     storyFile: "demo.yarn",
+    storyVersion: 1,
     hasStarted: true,
     currentBlockTitle: "Start",
     currentIndentionLevel: 0,
@@ -203,6 +211,7 @@ Deno.test("saved story state validator rejects malformed payloads", () => {
     isSavedStoryState({
       version: STORY_STATE_VERSION,
       storyFile: "demo.yarn",
+      storyVersion: 1,
       hasStarted: true,
       currentBlockTitle: "Start",
       currentIndentionLevel: 0,

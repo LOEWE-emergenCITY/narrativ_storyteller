@@ -1,6 +1,7 @@
 title: Start
 position: -120,-1118
 ---
+<<declare $story_version = 25>>
 <<set $time_passes to $time_passes + 1>>
 
 <<declare $player_name = "Angela">>
@@ -93,11 +94,11 @@ position: -120,-1118
 <<declare $power_sharing = false>> //TODO changes whether eHUB shares power with neighbors, track in game, partly defined or used in story
 <<declare $drohnenkomm_freigeschaltet = false>> //TODO track by game -> set to true if activating the drone on the laptop after SpielerAuftragRedeMitTimUeberDrohne is true
 <<declare $AngelasPosition = "Tisch">>
-<<declare $Batterielevel = 98>>
+<<declare $lorawanIsActive = false>>
 
 // time and event tracking
 <<declare $time_passes = 0>>
-<<declare $total_time = 520>> // about 9 hours
+<<declare $total_time = 520>> // 520 about 9 hours //TODO balance // 350 wasn't enough!
 <<declare $last_chance = false>> // allows to stretch total_time a bit with significant progress
 <<declare $neighbors_complain_time = 6>> // zählt runter bis auf 0 während power nicht geshared ist
 <<declare $KathrinGehtZuJochenTime = 0>>
@@ -109,6 +110,14 @@ position: -120,-1118
 <<declare $KathrinFragtJochenImChatNachPlanTime = 0>>
 <<declare $WartetAufeHUBPlanThiloTime = 0>>
 <<declare $KathrinLangweiltSichTime = 0>>
+
+// power level tracking
+<<declare $Batterielevel = 98>>
+<<declare $drain_battery_speed = 0>>
+<<declare $drain_battery_speed_no_shared_power = 0>>
+<<declare $drain_battery_speed_modifier = 0>>
+<<declare $drain_battery_speed_modifier_max = 3>>
+<<declare $dthreshold = 0.70>> // percentage of time passed after which battery may run out
 
 // track other states from Kathrins goal
 <<declare $RecordTimeCounter = 12>>
@@ -141,6 +150,8 @@ position: -120,-1118
 <<declare $GehtZuJochenWegenPlan = "">> // has effect on who goes to Jochen (or can go), else local
 <<declare $KathrinUndAngelaImStreit = false>>
 <<declare $WartetAufeHUBPlanThilo = false>>
+<<declare $KathrinEntschuldigtSich = false>>
+<<declare $KathrinRedetTrotzAerger = false>>
 
 <<declare $KathrinWeissVonLichteffekt = false>>
 <<declare $KathrinWeissVonHackervermutung = false>> // knows but does not really believe
@@ -337,16 +348,40 @@ tags: scene:AsStoryWrapUpInTheEndBeforeRating
             Mitten in der Nacht leuchtet ihr Telefon auf. Angela schreibt, dass sie mit Tim im Nachtzug nach Berlin sitzt und nicht weiß, wann sie zurückkommt.
         <<endif>>
     <<endif>>
+    // Wassermangel
+    <<if visited("AngelaFaehrtNichtZumUmspannwerk") or $TimIsstBeiKathrinUndAngela>>
+        <<if visited("Wasservorrat")>>
+            Am Sonntagabend geht ihr Wasservorrat zur Neige. Angela wird nervös.
+        <<elseif visited("KleinerWasservorrat")>>
+            Am Sonntagabend geht ihnen das Trinkwasser aus. Zum Glück haben die Nachbarn noch etwas.
+        <<else>>
+            Am Sonntagmorgen geht ihnen das Trinkwasser aus. Kathrin und Angela verbringen den Tag in einer der Notfallversorgungsstationen.
+        <<endif>>
+    <<else>>
+        <<if visited("Wasservorrat")>>
+            Am Sonntagabend wünscht sich Kathrin wirklich, sie könnte duschen. Aber immerhin hat sie genug Trinkwasser. Sie kann sogar den Nachbarn etwas abgeben.
+        <<elseif visited("KleinerWasservorrat")>>
+            Am Sonntagabend geht das Trinkwasser aus. Zum Glück haben die Nachbarn noch etwas.
+        <<else>>
+            Am Sonntagmittag geht das Trinkwasser aus. Zum Glück haben die Nachbarn noch etwas.
+        <<endif>>
+    <<endif>>
     // Der Strom ist am Montag wieder da.
     Während der Nacht von Sonntag auf Montag wird die Stromversorgung wiederhergestellt.
+    Am Montagmorgen verschwindet Kathrin sofort unter der Dusche.
+    <<if visited("AngelaFaehrtNichtZumUmspannwerk") or $TimIsstBeiKathrinUndAngela>>
+        Angela kocht Kaffee. Frischen, duftenden Kaffee.
+    <<endif>>
     <<if $KathrinsGeschenkFastFertig or $Track2IstNichtSoGut or $lastMinuteAufnahme>>
         <<if $TimIsstBeiKathrinUndAngela or visited("AngelaFaehrtNichtZumUmspannwerk")>>
             // Angela und Kathrin gehen zu Patricks Geburtstag
-            Angela und Kathrin gehen gemeinsam zu Patricks Geburtstag.
+            Später gehen Angela und Kathrin gemeinsam zu Patricks Geburtstag.
         <<else>>
             // Kathrin geht allein zu Patricks Geburtstag.
             // Wenn sie mit dem Geschenk zufrieden war, sind Patrick und Kathrin glücklich.
-            Kathrin geht zu Patricks Geburtstag. Sie hofft, dass Angela noch nachkommt, aber es sieht nicht danach aus. 'Viel zu tun', schreibt sie. Patrick ist enttäuscht, dass sie nicht da ist.
+            Später geht sie zu Patricks Geburtstag. Sie hofft, dass Angela noch nachkommt, aber es sieht nicht danach aus.
+            'Viel zu tun', schreibt sie.
+            Patrick ist enttäuscht, dass sie nicht da ist.
         <<endif>>
     <<endif>>
     <<if $KathrinsGeschenkFastFertig>>
@@ -371,6 +406,12 @@ tags: scene:AsStoryWrapUpInTheEndBeforeRating
         // Kathrin kauft ein Spielzeugauto, das ihn nicht interessiert, und ist unglücklich.
         <<Scene end_patrick_failure>>
         Kathrin kauft ein Spielzeugauto in der Stadt.
+        <<if visited("KathrinNimmtMusikFuerPatrickAuf")>>
+            Die Idee mit den Musikaufnahmen war schön und gut. Aber es war einfach zu wenig Zeit gewesen. Und ohne Strom ...
+            <<if $TimIsstBeiKathrinUndAngela or visited("AngelaFaehrtNichtZumUmspannwerk")>>
+                Angela hält Kathrins Argumente für Ausflüchte. Aber sie schweigt.
+            <<endif>>
+        <<endif>>
         <<if $TimIsstBeiKathrinUndAngela or visited("AngelaFaehrtNichtZumUmspannwerk")>>
             // Angela und Kathrin gehen zu Patricks Geburtstag
             Angela und Kathrin gehen gemeinsam zu Patricks Geburtstag. Sie sind zu spät und Patrick ist an dem Geschenk nicht interessiert. Julia wirkt beleidigt.
@@ -428,6 +469,9 @@ tags: scene:AsStoryWrapUpInTheEndBeforeRating
             Kathrin gratuliert ihr herzlich und die beiden feiern den Erfolg bei selbstgemachter Lasagne und im beruhigenden Licht unzähliger LEDs.
         <<else>>
             Kathrin gratuliert ihr und Angela führt sie zu einem feierlichen Essen aus.
+            <<if $KathrinsGeschenkFastFertig == false>>
+                Kathrin kann den Abend nicht so recht genießen. Sie fühlt sich alleingelassen. Auch wenn sie nicht sagen kann, wieso.
+            <<endif>>
         <<endif>>
     <<endif>>
 <<endif>>
@@ -843,7 +887,17 @@ title: Energiesparen1
 group: Setup
 ---
 <<set $time_passes to $time_passes + 1>>
-<<set $Batterielevel to 98>>
+//<<set $Batterielevel to 98>>
+// update battery level based on time passed
+<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
+<<if $power_sharing == false>>
+    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
+<<endif>>
+<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+// update modifier for visiting
+<<if $drain_battery_speed_modifier < $drain_battery_speed_modifier_max>>
+    <<set $drain_battery_speed_modifier to $drain_battery_speed_modifier + 1>>
+<<endif>>
 Danach prüft sie, was sonst alles unnötig Strom verbraucht.
 Der Akku hat sich auf {$Batterielevel}% entladen. Nicht ungewöhnlich, wenn die Nachbarn erst ihren Strombedarf anpassen müssen. Aber sie sollte das im Auge behalten.
 Eine Nachricht von Tim erscheint auf ihrem Display.
@@ -870,6 +924,7 @@ Angela loggt sich in ihr System ein und wirft einen Blick auf ihr Smartphone, da
 -> Angela prüft, ob irgendeine Nachricht angekommen ist.
     Tim hat etwas geschrieben. Angela öffnet den Chat.
     <<if visited("UeberblickNachrichten") == false>>
+        <<Mood tim_sternly>>
         Tim: NVM MEIS.
     <<elseif visited("Energiesparen1") == false>>
         <<Scene tim_laptop>>
@@ -929,11 +984,10 @@ title: Laptop
 <<detour CheckEnding>>
 
 // once all that is needed is the plans, you don't need the laptop any more
-<<if visited("GetBusy")>>
-    Angela zögert, die Finger an der Tastatur. Ihr Automatismus schon wieder. Was will sie eigentlich hier?
-    <<jump GetBusy>>
-<<endif>>
-<<if $checkEHUBLog <= 0 and $SpielerHasOwnEHUBPlan and ($SpielerHasJochensEHUBPlan == false or $SpielerHasThilosEHUBPlan == false)>>
+<<if $checkEHUBLog <= 0 and $SpielerHasOwnEHUBPlan and ($SpielerHasJochensEHUBPlan == false or $SpielerHasThilosEHUBPlan == false) or visited("Loesung")>>
+    <<if visited("GetBusy")>>
+        Angela zögert, die Finger an der Tastatur. Ihr Automatismus schon wieder. Was will sie eigentlich hier?
+    <<endif>>
     <<jump GetBusy>>
 <<endif>>
 
@@ -1022,7 +1076,7 @@ title: Laptop
         <<jump Laptop>>
     -> Sie entscheidet sich dafür, den FINK zu programmieren, um mit Tim über DTN chatten zu können. <<if $drohnenkomm_freigeschaltet == false and $SpielerAuftragRedeMitTimUeberDrohne == true>>
         <<jump StartFINK>>
-    -> Sie entscheidet sich dafür, nach ihrem eHUB-Schaltplan zu suchen. Irgendwo auf einer ihrer Festplatten musste eine Kopie sein ... <<if $findEHUBPlans > 0 and $SpielerWantsEHUBPlans and $SpielerHasOwnEHUBPlan == false and $currentTask != "findEHUBPlans">>
+    -> Sie entscheidet sich dafür, nach ihrem eHUB-Schaltplan zu suchen. Irgendwo auf einer ihrer Festplatten müsste eine Kopie sein ... <<if $findEHUBPlans > 0 and $SpielerWantsEHUBPlans and $SpielerHasOwnEHUBPlan == false and $currentTask != "findEHUBPlans">>
         <<jump FindEHUBPlansTask>>
     -> Sie entscheidet sich dafür, Thilos und ihren eigenen eHUB-Schaltplan zu vergleichen. <<if $compareEHUBPlansToThilosPlans > 0 and $SpielerHasThilosEHUBPlan and $SpielerHasOwnEHUBPlan and $SpielerAuftrageHUBPlaeneVergleichen and $currentTask != "compareEHUBPlansToThilosPlans">>
         <<jump CompareEHUBPlansToThilosPlansTask>>
@@ -1032,11 +1086,20 @@ title: Laptop
         <<jump SelectNextChat>>
     -> Sie beschließt, mit Kathrin zu reden. <<if $KathrinWillAlleinSein == false and $KathrinZuhause and $checkEHUBLog <= 0>>
         <<jump SpielerRedetMitKathrin>>
+    -> Sie starrt wartend auf den Bildschirm. <<if $checkEHUBLog < 0 and ($WartetAufeHUBPlanThilo or $KathrinWartetAufAntwortVonJochen or $KathrinWartetAufEHUBPlanVonJochen)>>
+        <<set $time_passes to $time_passes + 10>>
+        <<once>>
+            Sie hasst warten ...
+            <<set $mental_health_angela to $mental_health_angela - 1>>
+        <<endonce>>
+        <<detour Scheduler>>
+        <<jump Laptop>>
 <<endif>>
 ===
 
 title: CheckEnding
 ---
+<<set $KathrinImRaum to false>>
 // check for ending
 <<if $SpielerHasThilosEHUBPlan and $SpielerHasJochensEHUBPlan and $SpielerHasOwnEHUBPlan and $ClueInNeuerenEHUBsSpezialisierteSchalterVerbaut == false>>
     Endlich hat sie alle drei Pläne der eHUBs.
@@ -1265,7 +1328,7 @@ Sie wünschte, sie würde sich an den Dateinamen erinnern. Oder an irgendetwas, 
 <<set $findEHUBPlans to $findEHUBPlans - $new_random>>
 // if task is finished, select next, else return to task after checking for event or allow new selection or call event
 <<if $findEHUBPlans <= 0>>
-    Endlich findet sie einen Ordner mit dem vielversprechenden Namen 'Umzug'. Darin findet sie mehrere Dateien mit den vielsagenden Namen 'BRN3C14A159F26E_0017.pdf' Natürlich.
+    Endlich findet sie einen Ordner mit dem vielversprechenden Namen 'Umzug'. Darin findet sie mehrere Dateien mit Namen wie 'BRN3C14A159F26E_0017.pdf'. Natürlich.
     Sie öffnet eine der Dateien.
     <<Mood angela_happy_talking>>
     "Endlich!"
@@ -1367,6 +1430,12 @@ title: Scheduler
 <<if $power_sharing == false>>
     <<set $neighbors_complain_time to $neighbors_complain_time - 1>>
 <<endif>>
+//update battery level for checks
+<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
+<<if $power_sharing == false>>
+    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
+<<endif>>
+<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
 
 // generic event - priority as last bottleneck that sets off the rest
 <<if visited("JuliaSagtAb") == false>>
@@ -1394,7 +1463,7 @@ title: Scheduler
 <<endif>>
 
 //Kathrins event - existential crisis likely close to successfully recording something
-<<if $KathrinZuhause and $RecordTimeCounter <= $InitialRecordTimeCounter - 3 and visited("KathrinNimmtNichtMehrAuf") == false and random() < 0.9>>
+<<if $KathrinZuhause and $RecordTimeCounter == $InitialRecordTimeCounter - 3 and visited("KathrinNimmtNichtMehrAuf") == false and random() < 0.9>>
     <<jump KathrinNimmtNichtMehrAuf>>
 <<endif>>
 // Kathrins event - priority once Kathrin is almost finished recording
@@ -1412,6 +1481,10 @@ title: Scheduler
         <<set $total_time to $time_passes + 20>>
     <<endif>>
     <<jump StromGehtAus>>
+<<endif>>
+// generic event - it's more likely the power will go low if the reader ignores the power regulation
+<<if $KathrinZuhause and visited("StromWirdKnapp") == false and $Batterielevel <= 10>>
+    <<jump StromWirdKnapp>>
 <<endif>>
 // Kathrins event - Internetdown-Bottleneck for getting her to do a present
 <<if $KathrinZuhause and visited("KathrinMerktDassInternetWegIst") == false and visited("KathrinBrowstNachGeschenk") and $time_passes >= $KathrinBrowstNachGeschenkTime>>
@@ -1445,14 +1518,6 @@ title: Scheduler
 <<if visited("InformationNotfallUnterkuenfte") == false and $time_passes >= $total_time/3>>
     <<jump InformationNotfallUnterkuenfte>>
 <<endif>>
-// generic event - it's more likely the power will go low if the reader ignores the power regulation
-<<if $KathrinZuhause and visited("StromWirdKnapp") == false and $time_passes >= $total_time*(3/4) and $power_sharing>>
-    <<if visited("Energiesparen1") == false and visited("Energiesparen2") == false and visited("Energiesparen3") == false>>
-        <<jump StromWirdKnapp>>
-    <<elseif random() < 0.2 and (visited("Energiesparen1") == false or visited("Energiesparen2") == false or visited("Energiesparen3") == false)>>
-        <<jump StromWirdKnapp>>
-    <<endif>>
-<<endif>>
 // generic event - VierteWarnung becomes more likely the more time has passed
 <<if $KathrinZuhause and visited("VierteWarnung") == false and $time_passes >= $total_time*(9/10) and visited("InformationNotfallUnterkuenfte")>>
     <<jump VierteWarnung>>
@@ -1460,10 +1525,6 @@ title: Scheduler
 // generic event - VierteWarnung can trigger in the last quarter of the day
 <<if $KathrinZuhause and visited("VierteWarnung") == false and $time_passes >= $total_time*(3/4) and random() < 0.9 and visited("InformationNotfallUnterkuenfte")>>
     <<jump VierteWarnung>>
-<<endif>>
-// generic event - after VierteWarnung the power will go low eventually
-<<if $KathrinZuhause and visited("StromWirdKnapp") == false and visited("VierteWarnung") and $power_sharing>>
-    <<jump StromWirdKnapp>>
 <<endif>>
 ===
 
@@ -1495,18 +1556,23 @@ title: GetBusy
     <<if random() < chanceOfTalking>>
         <<jump KathrinRedetMitSpieler>>
     <<endif>>
-    => In der Küche stapelt sich das Geschirr. Angela räumt auf.
+    <<set $toss_a_dice to random()>>
+    <<if $toss_a_dice < 0.3>>
+        In der Küche stapelt sich das Geschirr. Angela räumt ein wenig auf.
         <<set $social_score to $social_score + 1>> <<once>>
         <<set $time_passes to $time_passes + 15>>
-    => Sie geht eine Weile ziellos durch die Gegend.
+    <<elseif $toss_a_dice < 0.7>>
+        Sie geht eine Weile ziellos durch die Gegend.
         Als sie an ihrem Boxsack vorbeikommt, zieht sie ihre Handschuhe an.
         <<Mood angela_angry>>
         'Etwas Adrenalin abzubauen ist keine schlechte Idee', denkt sie, und schlägt auf den Sack ein. Sie hasst es, zu warten.
         Ein paar Minuten später fühlt sie sich ruhiger.
         <<set $time_passes to $time_passes + 10>>
-    => Doch als sie an der Couch vorbeikommt, wirft sie sich darauf und zieht ihr Smartphone hervor.
+    <<else>>
+        Doch als sie an der Couch vorbeikommt, wirft sie sich darauf und zieht ihr Smartphone hervor.
         Sie wollte noch einen Blogartikel lesen. Zum Glück ist der Browsertab noch offen.
         <<set $time_passes to $time_passes + 20>>
+    <<endif>>
 -> Angela beschließt, mit Kathrin zu reden. <<if $KathrinWillAlleinSein == false and $KathrinZuhause and $SpielerAuftragMusikAnhoeren == false and $SpielerHasJochensEHUBPlan>>
     <<jump SpielerRedetMitKathrin>>
 -> Angela beschließt, mit Kathrin zu reden. <<if $KathrinUndAngelaImStreit and $KathrinWillAlleinSein == false and $KathrinZuhause and $SpielerHasJochensEHUBPlan and $last_chance == false>>
@@ -1582,11 +1648,16 @@ title: Pause
         <<else>>
             Sie brüht sich einen Kaffee und kehrt mit der Tasse zu ihrem Laptop zurück.
             <<set $AngelasPosition to "Laptop">>
+            <<once>>
+                <<set $mental_health_angela to $mental_health_angela + 2>>
+            <<endonce>>
+            <<detour Scheduler>>
             <<jump Laptop>>
         <<endif>>
     <<endonce>>
     Sie brüht sich noch einen Kaffee und kehrt mit der Tasse zu ihrem Laptop zurück.
     <<set $AngelasPosition to "Laptop">>
+    <<detour Scheduler>>
     <<jump Laptop>>
 -> Angela überlegt, mit Kathrin zu reden. Ausnahmsweise würde ihr etwas Ablenkung gut tun. <<if $KathrinWillAlleinSein == false and $KathrinZuhause and $last_chance == false>>
     <<jump SpielerRedetMitKathrin>>
@@ -1603,8 +1674,12 @@ title: Pause
     <<if random() < $chanceOfTalking and $KathrinZuhause>>
         <<jump KathrinRedetMitSpieler>>
     <<endif>>
+    <<once>>
+        <<set $mental_health_angela to $mental_health_angela + 1>>
+    <<endonce>>
     <<Mood angela_relieved>>
     Sie lehnt sich in ihrem Stuhl zurück. Als die Musik verklingt, setzt sie sich auf und beugt sich wieder über ihren Laptop.
+    <<detour Scheduler>>
     <<jump Laptop>>
 ===
 
@@ -1641,7 +1716,6 @@ position: 1260,125
 ---
 <<set $time_passes to $time_passes + 1>>
 // triggered by time - etwa 10 min nach der ersten Warnung, mindestens 15 vor der zweiten
-<<Mood tim_sternly>>
 Tim: Wir haben ein Problem.
 // Spieler answers whenever (if at all)
 // wenn man antwortet: gefolgt von SpielerAntwortetAufNachrichtVonTim
@@ -1657,6 +1731,9 @@ Tim: Wir haben ein Problem.
 -> Angela ignoriert die Nachricht, legt ihr Smartphone weg und wendet sich ihrem Laptop zu. <<if $AngelasPosition == "Laptop">>
     <<jump Laptop>>
 -> Angela ignoriert die Nachricht, steckt ihr Smartphone weg und setzt sich an den Laptop in ihrem Büro. <<if $AngelasPosition != "Laptop">>
+    <<if $AngelasPosition != "Buero">>
+        <<set $KathrinImRaum to false>>
+    <<endif>>
     <<set $AngelasPosition to "Laptop">>
     <<jump Laptop>>
 -> Angela tippt eine Antwort.
@@ -1888,6 +1965,7 @@ title: KathrinErstmalBusy
 -> Doch ein anderer Gedanke drängt sich ihr auf. Was wollte Tim eigentlich von ihr? Sie öffnet den Chat. <<if visited("NachrichtVonTim")>>
     <<jump SpielerAntwortetAufNachrichtVonTim>>
 -> Sie steht auf und setzt sich an den Laptop in ihrem Büro. <<if $AngelasPosition == "Tisch">>
+    <<set $KathrinImRaum to false>>
     <<set $AngelasPosition to "Laptop">>
     <<jump Laptop>>
 -> Sie wendet sich wieder ihrem Laptop zu. <<if $AngelasPosition == "Laptop">>
@@ -2016,10 +2094,11 @@ title:AngelaGehtZumLaptop
 <<set $time_passes to $time_passes + 1>>
 <<if visited("GetBusy")>>
     <<jump GetBusy>>
-<<elseif $AngelasPosition == "Laptop">>
+<<elseif $AngelasPosition == "Laptop" or $AngelasPosition == "Buero">>
     Sie wendet sich wieder ihrem Laptop zu.
 <<else>>
     Sie setzt sich an den Laptop in ihrem Büro.
+    <<set $KathrinImRaum to false>>
     <<set $AngelasPosition to "Laptop">>
 <<endif>>
 <<jump Laptop>>
@@ -2031,14 +2110,20 @@ title:AngelaGehtVomSmartPhoneZumLaptop
 <<if visited("GetBusy")>>
     <<jump GetBusy>>
 <<elseif $checkEHUBLog <= 0 and $drohnenkomm_freigeschaltet>>
-    Angela seufzt. Wenn DTN nur nicht so langsam wäre ...
-    -> Aber das ist nicht zu ändern, wenn sie mit Tim sprechen will.
+    <<once>>
+        Wenn DTN nur nicht so langsam wäre ...
+        Aber das ist nicht zu ändern, wenn sie mit Tim sprechen will.
+    <<endonce>>
+    -> Sie starrt auf ihr Smartphone.
         <<jump SelectNextChat>>
-    -> Sie legt ihr Smartphone weg und setzt sich an ihren Laptop.
+    -> Sie steckt ihr Smartphone weg und setzt sich an ihren Laptop.
 <<elseif $AngelasPosition == "Laptop">>
     Angela legt ihr Smartphone weg und wendet sich wieder ihrem Laptop zu.
 <<else>>
     Angela steckt ihr Smartphone weg und setzt sich an den Laptop in ihrem Büro.
+    <<if $AngelasPosition != "Buero">>
+        <<set $KathrinImRaum to false>>
+    <<endif>>
     <<set $AngelasPosition to "Laptop">>
 <<endif>>
 <<jump Laptop>>
@@ -2047,28 +2132,41 @@ title:AngelaGehtVomSmartPhoneZumLaptop
 title:Energiesparen2
 ---
 <<set $time_passes to $time_passes + 1>>
+// update battery level based on time passed
+<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
+<<if $power_sharing == false>>
+    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
+<<endif>>
+<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+// update modifier for visiting
+<<if $drain_battery_speed_modifier < $drain_battery_speed_modifier_max>>
+    <<set $drain_battery_speed_modifier to $drain_battery_speed_modifier + 1>>
+<<endif>>
 <<if visited("Energiesparen1")>>
     <<if random() < 0.5>>
         <<detour WenigerStrom1>>
     <<else>>
-        <<set $Batterielevel to 99>>
-        Der Batteriestand ist auf {$Batterielevel}%. Alles in Ordnung.
+        Der Batteriestand ist auf {$Batterielevel}%. Angela wirft einen Blick aus dem Fenster. Es sind Wolken aufgezogen. Aber dafür liegt der Verbrauch noch im Rahmen.
     <<endif>>
 <<else>>
-    <<set $Batterielevel to 95>>
     Der Batteriestand ist gesunken. {$Batterielevel}%. Außerdem sind noch alle Lichter an. Rasch schaltet Angela alle Geräte aus, die unnötig Strom verbrauchen.
     <<Mood angela_regular>>
-    Gut, dass sie den Verbrauch geprüft hat.
+    Gut, dass sie den Verbrauch geprüft hat. Zumal, da Wolken aufgezogen sind.
 <<endif>>
 <<jump AngelaGehtZumLaptop>>
 ===
 
 title: WenigerStrom1
 ---
-<<set $Batterielevel to 95>>
-Der Batteriestand ist gesunken. {$Batterielevel}%. Aber in der Smart Home App lässt sich nicht mehr viel optimieren. Was tun die Nachbarn? // being non- energy-responsible?
-<<Mood angela_annoyed>>
--> Angela ignoriert den Verbrauch. Noch ist es unkritisch.
+<<if visited("Energiesparen1") or visited("Energiesparen2") or visited("Energiesparen2Ersatz")>>
+    Der Batteriestand ist gesunken. {$Batterielevel}%. Aber in der Smart Home App lässt sich nicht mehr viel optimieren. Was tun die Nachbarn? // being non- energy-responsible?
+    <<Mood angela_annoyed>>
+<<else>>
+    <<Mood angela_embarrassed>>
+    Sie hätte früher nachsehen sollen. Der Batteriestand ist auf {$Batterielevel}%. Und das trotz des Sonnenscheins am Morgen! Inzwischen sind allerdings Wolken aufgezogen. Kein gutes Zeichen ...
+    Hastig schaltet Angela alle entbehrlichen Geräte ab. Sie zögert wegen der Heizung und des Kühlschranks. Lieber nicht ...
+<<endif>>
+-> Angela ignoriert den Verbrauch. Noch ist es unkritisch. Vermutlich liegt es daran, dass Wolken aufgezogen sind. <<if (visited("Energiesparen1") or visited("Energiesparen2") or visited("Energiesparen2Ersatz")) and $Batterielevel > 0.85>>
 -> Kathrin soll den Nachbarn schreiben, dass sie ihren Bedarf anpassen sollen.
     Angela schreibt Kathrin eine Nachricht.
     <<set $Energiesparwarnung to $Energiesparwarnung + 1>>
@@ -2080,6 +2178,7 @@ Der Batteriestand ist gesunken. {$Batterielevel}%. Aber in der Smart Home App l�
         Sie will Kathrin gerade nicht stören.
     <<endif>>
     Manchmal wäre es doch praktisch, im Nachbarschaftschat zu sein. Andererseits ist Angela froh, dass sie den ganzen Tratsch nicht mitbekommt.
+-> Angela seufzt und schließt die App. Hoffentlich scheint die Sonne bald wieder.
 ===
 
 title: KomischerEffekt
@@ -2185,7 +2284,7 @@ position: 113,1116
         "Aber das Wasser ist bisher noch nie ausgefallen."
         -> "Vertrau mir." <<if $social_score >= 0>>
             <<Mood kathrin_regular>>
-            "Ja, na gut. Was soll ich machen?"
+            "Ja, klar. Was soll ich machen?"
             <<set $mental_health_angela to $mental_health_angela + 1>>
         -> "Bisher nicht. Die Möglichkeit besteht aber immer. Wir sollten vorsichtig sein."
             <<Mood kathrin_regular_unhappy>>
@@ -2633,7 +2732,7 @@ position: 815,2301
 <<set $time_passes to $time_passes + 1>>
 <<set $KathrinWeissVonHackervermutung to true>>
 "Eigentlich sollte ich dir das nicht erzählen ..."
-<<Mood kathrin_thinking>>
+//<<Mood kathrin_thinking>>
 //Kathrin winkt ab.
 "Ja ja, bla bla. Sag schon, was ist los?"
 "Tim sagt, halb Europa wäre betroffen und dass es sich um einen Hackerangriff handelt."
@@ -3179,31 +3278,43 @@ Kathrin verschwindet im Musikzimmer. Angela seufzt.
 title: NachErsterEskalation
 ---
 <<set $time_passes to $time_passes + 1>>
-<<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false and $KathrinZuhause and random() < 0.95>> //TODO maybe remove random?
+<<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false and $KathrinZuhause>>// and random() < 0.95>> //TODO maybe remove random?
     <<set $KathrinRecordsMusic to true>>
 <<endif>>
 <<if visited("Loesung") or visited("GetBusy")>>
     <<jump GetBusy>>
 <<else>>
-    -> Vielleicht hat Tim etwas geschrieben. <<if visited("Raten") or visited("SelectNextChat")>> //visited("Raten") sollte true sein, sonst kommt man hier nicht an
+    -> Vielleicht hat Tim etwas geschrieben. <<if visited("Raten") and visited("DritteWarnung") == false>>
         Angela nimmt ihr Smartphone zur Hand und prüft den Chat.
         <<jump SelectNextChat>>
-    -> Erstmal nimmt Angela ihr Smartphone zur Hand, um Tim zu schreiben. <<if ((visited("SelectNextChat") == false and visited("Raten") == false) or $checkEHUBLog <= 0) and $SpielerAuftragRedeMitTimUeberDrohne and $drohnenkomm_freigeschaltet>>
+    -> Erstmal prüft Angela den Chat. <<if $drohnenkomm_freigeschaltet>>//<<if ((visited("SelectNextChat") == false and visited("Raten") == false) or $checkEHUBLog <= 0) and $SpielerAuftragRedeMitTimUeberDrohne and $drohnenkomm_freigeschaltet>>
         <<jump SelectNextChat>>
     -> Angela entschließt sich, an den Laptop zurückzukehren. Von dort aus könnte sie auch den FINK starten. <<if $SpielerAuftragRedeMitTimUeberDrohne and $drohnenkomm_freigeschaltet == false>> //visited("Raten") sollte true sein, sonst kommt man hier nicht an
+        <<set $KathrinImRaum to false>>
         <<jump AngelaGehtZumLaptop>>
-    -> Die Analyse wartet ... <<if $SpielerAuftragRedeMitTimUeberDrohne == false>>
+    -> Die Analyse wartet ... <<if ($SpielerAuftragRedeMitTimUeberDrohne == false or $drohnenkomm_freigeschaltet) and $checkEHUBLog > 0>>
+        <<set $KathrinImRaum to false>>
         <<jump AngelaGehtZumLaptop>> //Zeit, zu ihrer Arbeit zurückzukehren.
-    -> Vielleicht sollte sie mal den Energieverbrauch prüfen. <<if ($HeizungAus == false or $power_sharing == true or $Energiesparwarnung < 3) and visited("StromWirdKnapp") == false>> //TODO check if this if is also needed in Pause and GetBusy
+    -> Und weiter gehts ... <<if ($SpielerAuftragRedeMitTimUeberDrohne == false or $drohnenkomm_freigeschaltet) and $checkEHUBLog <= 0>>
+        <<set $KathrinImRaum to false>>
+        <<jump AngelaGehtZumLaptop>>
+    -> Vielleicht sollte sie mal den Energieverbrauch prüfen. <<if $HeizungAus == false or $power_sharing == true or $Energiesparwarnung < 3>> //TODO check if this is also needed in Pause and GetBusy
         Angela öffnet die Smart Home App.
         <<jump Energiesparen3>>
+    -> Eigentlich wollte sie noch etwas mit Kathrin besprechen. <<if $KathrinImRaum and $KathrinWillAlleinSein == false>>
+        <<set $KathrinRecordsMusic to false>>
+        <<jump FragKathrinUmRat>>
 <<endif>>
+<<jump KathrinRedetMitSpieler>>
 ===
 
 title: SelectNextChat
 tags: phone, chat_Tim, dtn
 ---
 <<set $time_passes to $time_passes + 1>>
+<<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false and $KathrinZuhause and random() < 0.95>> //TODO maybe remove random?
+    <<set $KathrinRecordsMusic to true>>
+<<endif>>
 <<if visited("KathrinBrowstNachGeschenk") and visited("KathrinMerktDassInternetWegIst") == false>>
     <<jump KathrinMerktDassInternetWegIst>>
 <<else>>
@@ -3224,6 +3335,7 @@ tags: phone, chat_Tim, dtn
                 <<jump Loesung>> //TODO direkt hier hinspringen?
             <<endif>>
         <<endif>>
+        <<detour Scheduler>>
     <<else>>
         <<if visited("SelectNextChatFirstTime")>>
             => Keine neue Nachricht.
@@ -3300,10 +3412,19 @@ Tim: Thilo hat geantwortet. Er hat den Stromausfall vor drei Wochen mitbekommen 
 title: Energiesparen3
 ---
 <<set $time_passes to $time_passes + 1>>
-<<if visited("NachbarnBeschwerenSich")>>
+// update battery level based on time passed
+<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
+<<if $power_sharing == false>>
+    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
+<<endif>>
+<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+// update modifier for visiting
+<<if $drain_battery_speed_modifier < $drain_battery_speed_modifier_max>>
+    <<set $drain_battery_speed_modifier to $drain_battery_speed_modifier + 1>>
+<<if visited("NachbarnBeschwerenSich") and $Batterielevel <= 10>>
     <<jump Energiesparen4>>
 <<else>>
-    <<if visited("Energiesparen2") == false and visited("Energiesparen2Ersatz") == false>>
+    <<if visited("Energiesparen1") and visited("Energiesparen2") == false and visited("Energiesparen2Ersatz") == false>>
         <<detour Energiesparen2Ersatz>>
     <<else>>
         <<detour WenigerStrom>>
@@ -3318,17 +3439,18 @@ title: Energiesparen3
 
 title: Energiesparen2Ersatz
 ---
-<<set $Batterielevel to 95>>
 Der Batteriestand ist gesunken. {$Batterielevel}%.
 <<if visited("Energiesparen1")>>
     Aber in der Smart Home App lässt sich nicht mehr viel optimieren. Was tun die Nachbarn? // being non- energy-responsible?
+    Angela wirft einen Blick aus dem Fenster. Die Sonne scheint nicht mehr. Auch das noch ...
     <<Mood angela_annoyed>>
-    -> Angela ignoriert das Problem erst einmal. Noch ist es nicht kritisch.
-    -> Angela schreibt Kathrin eine Nachricht, damit sie den Nachbarn Bescheid gibt, weniger Strom zu verbrauchen.
+    -> Sie ignoriert das Problem erst einmal. Noch ist es nicht kritisch.
+    -> Sie schreibt Kathrin eine Nachricht, damit sie den Nachbarn Bescheid gibt, weniger Strom zu verbrauchen.
         <<set $Energiesparwarnung to $Energiesparwarnung + 1>>
         Manchmal wäre es doch praktisch, im Nachbarschaftschat zu sein. Andererseits ist Angela froh, dass sie den ganzen Tratsch nicht mitbekommt.
 <<else>>
     Rasch schaltet Angela alle Geräte aus, die unnötig Strom verbrauchen. Gut, dass sie den Verbrauch geprüft hat.
+    Dann wirft sie einen Blick aus dem Fenster. Die Sonne scheint nicht mehr. Auch das noch ...
 <<endif>>
 ===
 
@@ -3337,17 +3459,17 @@ title: WenigerStrom
 <<if visited("WenigerStrom1") == false>>
     <<detour WenigerStrom1>>
 <<else>>
-    <<set $Batterielevel to $Batterielevel - random_range(4,7)>>
-    Der Batteriestand ist noch weiter gesunken. {$Batterielevel}%. Und das trotz des Sonnenscheins!
+    Der Batteriestand ist gesunken. {$Batterielevel}%. Angela flucht.
     //-> Angela schaltet die Klimaanlage aus, um Strom zu sparen. <<if $KlimaanlageAus == false>>
     //    <<set $KlimaanlageAus to true>>
-    -> Angela schaltet die Heizung aus, um Strom zu sparen. <<if $HeizungAus == false>>
+    -> Sie schaltet die Heizung aus, um Strom zu sparen. <<if $HeizungAus == false>>
         <<set $HeizungAus to true>>
-    -> Angela überlegt, das Teilen des Stroms auszuschalten. <<if $power_sharing == true and $Energiesparwarnung > 0 and visited("NachbarnBeschwerenSich") == false>>
+    -> Sie überlegt, das Teilen des Stroms auszuschalten. <<if $power_sharing == true and $Energiesparwarnung > 0 and visited("NachbarnBeschwerenSich") == false>>
         <<if visited("WenigerStromFirstTime")>>
             <<Mood angela_angry>>
             <<if $Energiesparwarnung > 1>>
                 Sie tut es. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie. Und Kathrin hat die Nachbarn schließlich zweimal gewarnt.
+                <<set $power_sharing to false>>
             <<else>>
                 Sie tut es. Schon um die Nachbarn zu warnen. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie.
                 <<set $power_sharing to false>>
@@ -3356,14 +3478,16 @@ title: WenigerStrom
         <<else>>
             <<detour WenigerStromFirstTime>>
         <<endif>>
-    -> Angela schreibt Kathrin eine Nachricht, damit sie die Nachbarn im Chat warnt, weniger Strom zu verbrauchen.
+    -> Sie schreibt Kathrin eine Nachricht, damit sie die Nachbarn im Chat warnt, weniger Strom zu verbrauchen. <<if $power_sharing == true and visited("NachbarnBeschwerenSich") == false>>
         <<if $Energiesparwarnung > 0>>
             Hoffentlich hören sie diesmal auf sie.
         <<endif>>
         <<set $Energiesparwarnung to $Energiesparwarnung + 1>>
-    -> Beunruhigend. Doch Angela hat bereits den Verbrauch optimiert. Jetzt kann sie nichts mehr tun. <<if $Energiesparwarnung > 0>>
+    -> Beunruhigend. Doch sie hat bereits den Verbrauch optimiert. Jetzt kann sie nichts mehr tun. <<if $Energiesparwarnung > 0>>
 <<endif>>
 ===
+
+title: 
 
 title: WenigerStromFirstTime
 ---
@@ -3381,12 +3505,10 @@ title: Energiesparen4
 ---
 <<set $time_passes to $time_passes + 1>>
 <<if visited("StromWirdKnapp")>>
-    <<set $Batterielevel to 7>>
     <<Mood angela_angry_talking>>
     Die Batterie ist beinahe alle. {$Batterielevel}%! Aber Angela kann nichts mehr tun. Sie flucht. Sie muss sich beeilen.
     <<jump NachErsterEskalation>>
 <<else>>
-    <<set $Batterielevel to 17>>
     <<Mood angela_angry>>
     Die Batterie ist beinahe alle. {$Batterielevel}%! Das kann so nicht weitergehen!
     <<if $KathrinImRaum>>
@@ -3404,7 +3526,14 @@ tags: scene:KathrinDoesRandomStuff, gameInteraction:PlayerTakesOver
 position: 324,2109
 ---
 <<set $time_passes to $time_passes + 1>>
-<<set $KathrinLangweiltSichTime to $time_passes + random_range(15,25)>>
+<<set $toss_a_dice to random()>>
+<<if $toss_a_dice < 0.3>>
+    <<set $KathrinLangweiltSichTime to $time_passes + 15>>
+<<elseif $toss_a_dice < 0.6>>
+    <<set $KathrinLangweiltSichTime to $time_passes + 20>>
+<<else>>
+    <<set $KathrinLangweiltSichTime to $time_passes + 25>>
+<<endif>>
 // after a while of Kathrin walking aimlessly through the house/doing whatever: KathrinFragtNach
 <<if $AngelasPosition == "Laptop">>
     Angela wendet sich wieder ihrem Laptop zu.
@@ -3412,6 +3541,7 @@ position: 324,2109
     Angela setzt sich an den Laptop in ihrem Büro.
     <<set $AngelasPosition to "Laptop">>
 <<endif>>
+<<set $KathrinImRaum to false>>
 Sie versucht, sich zu konzentrieren. Ein leises Summen dringt durch die Tür.
 "Kannst du bitte nicht summen?"
 Das Summen verstummt. "Hm? Oh. Tut mir leid."
@@ -3506,12 +3636,27 @@ position: -178,3024
 <<set $time_passes to $time_passes + 1>>
 <<set $KathrinBrowstNachGeschenkTime to $time_passes + 5>>
 // after a very short while of Kathrin browsing on her phone: KathrinMerktDassInternetWegIst
-<<set $KathrinImRaum to false>>
-<<if visited("AngelaUntersuchtLicht") and visited("KathrinSpieltMusik2") and visited("AngelaHatGelogen")>>
+<<if $KathrinEntschuldigtSich>>
+    <<set $AngelasPosition to "Laptop">>
+    Kaum sitzt sie am Laptop, taucht Kathrin in der Tür auf.
+    <<Mood kathrin_guiltily>>
+    "Tut mir Leid, es ist einfach ... Ich wünschte, wir wären auf dem Weg zum Vergnügungspark und dieser ganze Mist wäre nicht passiert ..."
+    Sie seufzt. "Aber danke fürs Nachfragen. Worüber wolltest du reden?"
+    <<jump FragKathrinUmRat>>
+<<elseif visited("AngelaUntersuchtLicht") and visited("KathrinSpieltMusik2") and visited("AngelaHatGelogen")>>
     Kathrin zückt ihr Smartphone und Angela kehrt zu ihrer Arbeit zurück, in der Hoffnung, endlich Ruhe zu haben.
+    <<set $KathrinImRaum to false>>
 <<else>>
-    Kathrin seufzt. "Ich wünschte, wir wären auf dem Weg zum Vergnügungspark und dieser ganze Mist wäre nicht passiert ..." Ihre Stimme ist kaum lauter als ein Flüstern. Sie wendet sich zum Gehen.
-    Angela achtet nicht auf sie. Ihre Gedanken sind bereits bei der Entscheidung, was sie als nächstes tun soll.
+    Kathrin seufzt. "Ich wünschte, wir wären auf dem Weg zum Vergnügungspark und dieser ganze Mist wäre nicht passiert ..." Ihre Stimme ist kaum lauter als ein Flüstern.
+    <<if $KathrinRedetTrotzAerger>>
+        <<Mood kathrin_embarassed_smile>>
+        "Aber es gibt Schlimmeres. Also, worüber wolltest du reden?"
+        <<jump FragKathrinUmRat>>
+    <<else>>
+        Sie wendet sich zum Gehen.
+        Angela achtet nicht auf sie. Ihre Gedanken sind bereits bei der Entscheidung, was sie als nächstes tun soll.
+        <<set $KathrinImRaum to false>>
+    <<endif>>
 <<endif>>
 <<jump NachErsterEskalation>>
 ===
@@ -3605,8 +3750,8 @@ Kathrin zuckt mit den Schultern. "Ich könnte in der Stadt nach einem Geschenk s
             "Das stimmt." Kathrin zögert. "Vielleicht hast du recht."
             <<jump KathrinNimmtMusikFuerPatrickAuf>>
         -> "Absolut. Ich liebe deine Musik."
-            <<Mood kathrin_enthusiastic>> //sparkly
-            "Wirklich? Das ist ..." Kathrins Wangen laufen rot an. "Das hast du noch nie gesagt ..."
+            <<Mood kathrin_embarassed_smile>> //sparkly
+            "Wirklich? Das ist ... Das hast du noch nie gesagt ..."
             Angela lächelt, beugt sich vor und küsst sie. "Doch. Du wolltest es nur nicht hören."
             <<set $mental_health_kathrin to $mental_health_kathrin + 2>>
             <<set $mental_health_angela to $mental_health_angela + 1>>
@@ -3633,7 +3778,7 @@ Kathrin verschwindet nach kurzem Zögern und lässt Angela allein zurück.
             => "Okay, was mache ich als nächstes ...?", murmelt Angela zu sich selbst.
         <<endif>>
     <<else>>
-        <<detour AngelaUntersuchtLichtFirstTime>>
+        <<jump AngelaUntersuchtLichtFirstTime>>
     <<endif>>
 <<else>>
     <<if visited("EuropaBetroffen") == false>>
@@ -3658,6 +3803,7 @@ Sie denkt über Kathrins Worte nach. Die gleiche Hardware ...
 <<else>>
     Sie behält die Worte im Hinterkopf.
 <<endif>>
+<<jump NachErsterEskalation>>
 ===
 
 title: KathrinGehtZuJochen
@@ -4537,8 +4683,10 @@ position: -811,4481
         <<endif>>
     <<endif>>
 <<endif>>
-Kathrin verlässt den Raum. Angela holt tief Luft.
-<<set $KathrinImRaum to false>>
+<<if $AngelasPosition != "Musikzimmer" and $AngelasPosition != "Wartet">>
+    Kathrin verlässt den Raum. Angela holt tief Luft.
+    <<set $KathrinImRaum to false>>
+<<endif>>
 <<jump NachErsterEskalation>>
 ===
 
@@ -5118,7 +5266,7 @@ position: 93,4969
         'Ich sollte sie jetzt besser nicht stören', denkt Angela.
     <<endif>>
     <<jump NachErsterEskalation>>
-<<elseif $PlayerWorriesAboutKathrin>>
+<<elseif $PlayerWorriesAboutKathrin and $KathrinImRaum == false>>
     <<set $PlayerWorriesAboutKathrin to false>> //TODO consider this
     <<if $KathrinPlaysMusic or $KathrinRecordsMusic>>
         <<set $AngelasPosition to "Musikzimmer">>
@@ -5201,7 +5349,7 @@ position: 93,4969
     Angela nickt.
     <<set $KathrinWeissVonTimsAnkunft to true>>
     <<jump KathrinErfaehrtDassAngelaFaehrt>>
-<<elseif $SpielerAuftragMusikAnhoeren>>
+<<elseif $SpielerAuftragMusikAnhoeren and $KathrinImRaum == false>>
     <<set $KathrinImRaum to true>>
     <<if $AngelasPosition != "Wartet">>
         Sie begegnet ihr im Flur.
@@ -5219,52 +5367,84 @@ position: 93,4969
     <<set $KathrinImRaum to true>>
     <<if $AngelasPosition != "Wartet">>
         Sie findet Kathrin im Wohnzimmer auf der Couch. Sie starrt gedankenverloren in die Ferne.
+        <<set $AngelasPosition to "Wohnzimmer">>
     <<endif>>
-    <<set $AngelasPosition to "Wohnzimmer">>
     "Hey."
     Kathrin sieht auf. "Hey."
-    <<Mood angela_conflicted>>
     <<if $checkEHUBLog <= 0>>
-        "Ich wollte dich etwas fragen."
-        "Mhm."
-        "Hörst du mir zu?"
-        Kathrin seufzt und setzt sich auf.
-        <<jump WasJetzt>>
+        <<if $drohnenkomm_freigeschaltet == false and $SpielerAuftragRedeMitTimUeberDrohne == false>>
+            "Ich wollte dich etwas fragen."
+            "Mhm."
+            <<Mood angela_angry_talking>>
+            "Hörst du mir zu?"
+            Kathrin seufzt und setzt sich auf.
+            <<jump WasJetzt>>
+        <<else>>
+            "Ich wollte dich etwas fragen."
+            "Nicht jetzt."
+            <<Mood angela_conflicted>>
+            -> "Stimmt etwas nicht?"
+                Kathrin zuckt nur mit den Schultern.
+                Angela geht genervt in ihr Arbeitszimmer.
+                <<set $social_score to $social_score + 1>>
+                <<set $AngelasPosition to "Buero">>
+                <<set $KathrinEntschuldigtSich to true>>
+                <<jump KathrinBrowstNachGeschenk>>
+            -> "Wann dann?"
+                <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
+                "Weiß nicht."
+                "Es ist aber wichtig!"
+                Kathrin seufzt. "Na gut. Schieß los."
+                <<jump FragKathrinUmRat>>
+        <<endif>>
     <<else>>
-        Angela räuspert sich. "Möchtest du, dass ich mit meiner Analyse aufhöre?"
-        "Was? Nein." Kathrin seufzt. "Ich weiß, dass du keine Ruhe hast, ehe du alles geprüft hast."
-        Angela spielt mit ihrem Ohrring. "Das mag sein. Aber was ist mit dir?"
-        Kathrin zuckt mit den Schultern. "Ich komme schon klar." Sie lächelt ein halbherziges Lächeln. "Ich wusste doch, auf was ich mich mit dir einlasse. Deine Arbeit ist dir mindestens so wichtig, wie ich es bin."
-        -> Angela schüttelt den Kopf. "Das stimmt nicht."
-            Kathrin hebt die Schultern. "Doch und du weißt es." Sie seufzt.
-            <<Mood kathrin_thinking>>
-            "Und das ist okay. Ich habe meine eigenen Projekte."
-            <<set $mental_health_kathrin to $mental_health_kathrin + 1>>
-        -> Angela schluckt. "Das ... tut mir leid."
-            <<Mood kathrin_guiltily>>
-            Kathrin senkt den Kopf. "Nein, tut es nicht. Nicht wirklich ..." Sie sieht auf. "Also versuch nicht, uns was vorzumachen. Ich komm schon klar."
-        -> Angela nickt. "Ich habe dich gewarnt."
-            "Ich weiß", murmelt Kathrin.
-            "Und es heißt nicht, dass du mir nicht wichtig bist. Ganz im Gegenteil."
-            <<Mood kathrin_conscious_smile>>
-            //Kathrins Mundwinkel zucken.
-            "Ich weiß. Ich kenne dich doch."
-            Sie seufzt. "Also hör schon auf, mit mir zu reden, statt deine Analyse zu machen!"
-            <<Mood angela_tender_smiling>>
-            Das lässt sich Angela nicht zweimal sagen.
-            //Angela lächelt unwillkürlich.
-            <<set $mental_health_angela to $mental_health_angela + 1>>
-        <<jump KathrinBrowstNachGeschenk>>
+        Ihr Lächeln wirkt aufgesetzt.
+        <<Mood angela_conflicted>>
+        -> Angela räuspert sich. "Möchtest du, dass ich meine Analyse abbreche?"
+            "Was? Nein." Kathrin seufzt. "Ich weiß, dass du keine Ruhe hast, ehe du alles geprüft hast."
+            Angela spielt mit ihrem Ohrring. "Das mag sein. Aber was ist mit dir?"
+            Kathrin zuckt mit den Schultern. "Ich komme schon klar." Sie lächelt ein halbherziges Lächeln. "Ich wusste doch, auf was ich mich mit dir einlasse. Deine Arbeit ist dir mindestens so wichtig, wie ich es bin."
+            -> Angela schüttelt den Kopf. "Das stimmt nicht."
+                Kathrin hebt die Schultern. "Doch und du weißt es." Sie seufzt.
+                <<Mood kathrin_thinking>>
+                "Und das ist okay. Ich habe meine eigenen Projekte."
+                <<set $mental_health_kathrin to $mental_health_kathrin + 1>>
+            -> Angela schluckt. "Das ... tut mir leid."
+                <<Mood kathrin_guiltily>>
+                Kathrin senkt den Kopf. "Nein, tut es nicht. Nicht wirklich ..." Sie sieht auf. "Also versuch nicht, uns was vorzumachen. Ich komm schon klar."
+            -> Angela nickt. "Ich habe dich gewarnt."
+                "Ich weiß", murmelt Kathrin.
+                "Und es heißt nicht, dass du mir nicht wichtig bist. Ganz im Gegenteil."
+                <<Mood kathrin_conscious_smile>>
+                //Kathrins Mundwinkel zucken.
+                "Ich weiß. Ich kenne dich doch."
+                Sie seufzt. "Also hör schon auf, mit mir zu reden, statt deine Analyse zu machen!"
+                <<Mood angela_tender_smiling>>
+                Das lässt sich Angela nicht zweimal sagen.
+                //Angela lächelt unwillkürlich.
+                <<set $mental_health_angela to $mental_health_angela + 1>>
+            <<jump KathrinBrowstNachGeschenk>>
+        -> "Hast du einen Moment Zeit?"
+            "Einen Moment. Einen Tag. Oder wie lange auch immer dieser Stromausfall dauert."
+            -> "Gut. Ich wollte mit dir reden."
+                <<Mood kathrin_annoyed>>
+                "Schieß los."
+                <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
+                <<jump FragKathrinUmRat>>
+            -> "Du wirkst genervt."
+                <<set $social_score to $social_score + 1>>
+                <<set $KathrinRedetTrotzAerger to true>>
+                <<jump KathrinBrowstNachGeschenk>>
     <<endif>>
 <<else>>
     <<set $KathrinImRaum to true>>
     <<if $AngelasPosition != "Wartet">>
         Sie findet sie im Wohnzimmer auf der Couch.
+        <<set $AngelasPosition to "Wohnzimmer">>
     <<endif>>
-    <<set $AngelasPosition to "Wohnzimmer">>
     -> "Hey. Wie kommst du mit Patricks Geschenk voran?" <<if visited("KathrinMerktDassInternetWegIst")>>
         <<jump FortschrittGeschenk>>
-    -> "Hey. Du siehst etwas verloren aus. Alles okay?"
+    -> "Hey. Du siehst etwas verloren aus. Alles okay?" <<if $AngelasPosition != "Wartet">>
         <<jump KathrinNachBefindenFragen>>
     -> "Hey. Ich wollte dich etwas fragen."
         Kathrin sieht auf. "Schieß los!"
@@ -5332,7 +5512,6 @@ position: 367,4421
     Kathrin zuckt mit den Schultern. "Sag Bescheid, wenn es dir wieder einfällt."
     Angela nickt.
 Also zurück zur Analyse.
-<<set $KathrinImRaum to false>>
 <<jump NachErsterEskalation>>
 ===
 
@@ -5628,7 +5807,7 @@ position: 867,3914
         <<if $checkSmarthomeDevices <= 0 and $checkSmarthomeDevicesReported == false>>
             Angela lässt ihren Blick schweifen. "Ich dachte, bei den IoT Devices wäre etwas zu sehen. Die Lampen haben zwar ein Signal zum Anschalten bekommen, aber das ist alles. Ich muss mir als nächstes den eHUB Log anschauen. Irgendwo muss das Signal ja herkommen."
             Sie spielt mit ihrem Ohrring. "Ein bisschen seltsam ist es schon, dass sonst nichts zu finden ist."
-            <<Mood kathrin_thinking>>
+            <<Mood kathrin_regular_happy>>
             "Klingt für mich eher gut."
             <<set $checkSmarthomeDevicesReported to true>>
         <<endif>>
@@ -5693,22 +5872,40 @@ position: 867,3914
         <<endif>>
     <<endif>>
 <<endif>>
-Kathrin geht zur Tür.
-"Was hast du vor?", fragt Angela.
-<<if $KathrinWillNachbarnRavioliBringen and visited("Ravioli") == false>>
-    <<detour Ravioli>>
-    <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
-        <<set $KathrinRecordsMusic to true>>
-    <<endif>>
-<<elseif visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
-    "Ich geh wieder aufnehmen."
-    <<Mood angela_smiling>>
-    "Ah. Gut."
-    <<set $KathrinRecordsMusic to true>>
+<<if $AngelasPosition == "Musikzimmer" or $AngelasPosition == "Wartet">>
+    Kathrin nickt. "War das alles, worüber du mit mir sprechen wolltest?"
+    -> "Ja."
+        <<Mood kathrin_conscious_smile>>
+        "Dann spiele ich weiter."
+        <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
+            <<set $KathrinRecordsMusic to true>>
+        <<else>>
+            <<set $KathrinPlaysMusic to true>>
+        <<endif>>
+        Angela nickt. Zeit, zu ihrer Arbeit zurückzukehren.
+    -> "Nein."
+        <<jump FragKathrinUmRat>>
 <<else>>
-    "Ich muss ins Bad."
+    Kathrin geht zur Tür.
+    -> "Moment. Bevor du gehst ..."
+        Kathrin dreht sich um. "Ja?"
+        <<jump FragKathrinUmRat>>
+    -> "Was hast du vor?", fragt Angela.
+    <<if $KathrinWillNachbarnRavioliBringen and visited("Ravioli") == false>>
+        <<detour Ravioli>>
+        <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
+            <<set $KathrinRecordsMusic to true>>
+        <<endif>>
+    <<elseif visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
+        "Ich geh wieder spielen."
+        <<Mood angela_smiling>>
+        "Ah. Gut."
+        <<set $KathrinRecordsMusic to true>>
+    <<else>>
+        "Ich muss ins Bad."
+    <<endif>>
+    Angela seufzt. Zeit, zu ihrer Arbeit zurückzukehren.
 <<endif>>
-Angela seufzt. Zeit, zu ihrer Arbeit zurückzukehren.
 <<jump NachErsterEskalation>>
 ===
 
@@ -5837,7 +6034,6 @@ Kathrin hebt die Augenbrauen.
         "Okay. Ja. Keine Ahnung." Angela seufzt. "Ich schätze, ich muss einfach warten."
         <<Mood kathrin_annoyed>>
         "Ja. Ich schreib dir schon, wenn er sich meldet."
-        Kathrin wirkt genervt. Angela seufzt.
         <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
     <<else>>
         <<if $ClueProblemNichtInThilosEHUB == false>>
@@ -5949,9 +6145,13 @@ Kathrin hebt die Augenbrauen.
 title: KathrinGehtAufnehmenAngelaEntscheidet
 ---
 <<set $time_passes to $time_passes + 1>>
+"Sonst noch was?", fragt Kathrin.
+-> "Ja."
+    <<jump FragKathrinUmRat>>
+-> "Nein."
 <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
     <<set $KathrinRecordsMusic to true>>
-    <<if $AngelasPosition == "Musikzimmer">>
+    <<if $AngelasPosition == "Musikzimmer" or $AngelasPosition == "Wartet">>
         Kathrin greift nach ihrer Gitarre. "Ich nehm weiter auf."
     <<else>>
         Kathrin verlässt den Raum. "Ich geh weiter aufnehmen."
@@ -6076,8 +6276,16 @@ group: LoesungssucheMitKathrin
 <<set $time_passes to $time_passes + 1>>
 <<set $KathrinFragtJochenImChatNachEffektTime to $time_passes + 10>>
 <<set $KathrinWartetAufAntwortVonJochen to true>>
-Kathrin zückt ihr Smartphone und Angela wendet sich ihrer Arbeit zu. Kathrin verlässt den Raum.
-<<set $KathrinImRaum to false>>
+Kathrin zückt ihr Smartphone.
+Angela wartet.
+"Sonst noch was?", fragt Kathrin und steckt ihr Smartphone weg.
+-> "Ja."
+    <<jump SpielerRedetMitKathrin>>
+-> "Nein."
+<<if $AngelasPosition != "Laptop" and $AngelasPosition != "Buero">>
+    Kathrin verlässt den Raum.
+    <<set $KathrinImRaum to false>>
+<<endif>>
 <<jump NachErsterEskalation>>
 ===
 
@@ -6087,7 +6295,13 @@ group: LoesungssucheMitKathrin
 <<set $time_passes to $time_passes + 1>>
 <<set $KathrinFragtJochenImChatNachPlanTime to $time_passes + 20>>
 <<set $KathrinWartetAufEHUBPlanVonJochen to true>>
-Kathrin zückt ihr Smartphone und Angela wendet sich ihrer Arbeit zu, während Kathrin mit dem Smartphone in der Hand den Raum verlässt.
+Kathrin zückt ihr Smartphone.
+Angela wartet.
+"Sonst noch was?", fragt Kathrin.
+-> "Ja."
+    <<jump SpielerRedetMitKathrin>>
+-> "Nein."
+Kathrin nickt und verlässt den Raum, das Smartphone in der Hand.
 <<set $KathrinImRaum to false>>
 <<jump NachErsterEskalation>>
 ===
@@ -6147,6 +6361,8 @@ Kathrin liest vor. "'Das war bei euch auch so? Ich hab mich schon gefragt, ob ic
             "Das ist ja gut zu wissen. Aber was soll das mit dem Hackerangriff?"
             <<detour NachfrageHack>>
         <<endif>>
+<<else>>
+    Sie zuckt mit den Schultern. "Das ist alles."
 <<endif>>
 //    -> Hat er das gleiche Problem?
 //        Ja.
@@ -6160,7 +6376,11 @@ Kathrin liest vor. "'Das war bei euch auch so? Ich hab mich schon gefragt, ob ic
 //            <<jump WerWarThiloNochmal>>
 //        <<endif>>
 //<<endif>>
-Kathrin verlässt den Raum. Angela überlegt.
+<<if social_score < -2>>
+    <<set $KathrinImRaum to true>>
+    Kathrin verlässt den Raum.
+<<endif>>
+Angela überlegt.
 <<if $ClueIdeeGleicheBauteileSelberDefekt>>
     Zwei eHUBs mit dem gleichen Problem zum selben Zeitpunkt des Stromausfalls.
     <<Mood angela_smirking>>
@@ -6392,6 +6612,7 @@ Angela runzelt die Stirn. "Wie sollst du denn den Plan finden?"
             "Ja, ich weiß. Ich geh rüber. Ich glaub, das tut mir gerade gut."
             Angela zögert. "Lass mich doch lieber gehen."
             Kathrin schüttelt den Kopf. "Nein. Ich geh. Das passt schon." // Sie seufzt. "Ich werde es dir auch nicht vorwerfen, keine Sorge."
+            <<set $GehtZuJochenWegenPlan to "Kathrin">>
             //"Das habe ich auch nicht gemeint."
             //Kathrin nickt. "Gut."
     <<else>>
@@ -6403,6 +6624,7 @@ Angela runzelt die Stirn. "Wie sollst du denn den Plan finden?"
             <<Mood kathrin_thinking>>
             //Kathrin nickt.
             "Ich meine, was willst du da schon machen? Wir müssen ja nicht beide unsere Zeit verschwenden."
+            <<set $GehtZuJochenWegenPlan to "Kathrin">>
         -> "Und wenn ich dich darum bitte?"
             Kathrin seufzt. "Na gut." Ihre Augen blitzen. "Du schuldest mir sowas von nen Tag im Vergnügungspark! Wenn dieser verdammte Strom wieder geht ..."
             -> Angela schmunzelt. "Geht klar!"
@@ -6414,9 +6636,9 @@ Angela runzelt die Stirn. "Wie sollst du denn den Plan finden?"
                 <<Mood kathrin_annoyed>>
                 Kathrin schnaubt. "Jaja ..."
                 <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
+            <<set $GehtZuJochenWegenPlan to "Kathrin">>
     <<endif>>
 <<endif>>
-<<set $GehtZuJochenWegenPlan to "Kathrin">>
 <<if $KathrinUndAngelaImStreit>>
     <<if $GehtZuJochenWegenPlan == "Angela">>
         Angela steckt ihr Smartphone ein und geht zur Garderobe. Sie ignoriert Kathrins Blicke und die Tatsache, dass sie ihr zur Garderobe folgt und unschlüssig neben ihr verharrt. Sie schweigen.
@@ -6441,9 +6663,13 @@ title: ZuJochen
 <<if $GehtZuJochenWegenPlan == "Angela">>
     <<set $time_passes to $time_passes + 150>>
     //Jochen wirkt nicht gerade begeistert, als Angela vor seiner Tür auftaucht. Aber er lässt sich überzeugen, nach dem Plan zu suchen.
-    Angela verlässt das Haus. Eine Diskussion und zwei der längsten Stunden ihres Lebens später schlurft sie zurück in die Garderobe, den Plan in der Tasche.
+    Angela verlässt das Haus.
+    
+    <<Mood angela_annoyed>>
+    Eine Diskussion und zwei der längsten Stunden ihres Lebens später schlurft sie zurück in die Garderobe, den Plan in der Tasche.
     <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
         <<set $KathrinRecordsMusic to true>>
+        <<set $RecordTimeCounter to $RecordTimeCounter - 6>>
     <<else>>
         <<set $KathrinPlaysMusic to true>>
         <<set $mental_health_kathrin to $mental_health_kathrin + 1>>
@@ -6485,7 +6711,7 @@ position: 2025,5066
     <<set $AngelasPosition to "Garderobe">>
     <<set $KathrinWartetAufEHUBPlanVonJochen to false>>
     <<set $SpielerHasJochensEHUBPlan to true>>
-    <<if visited("KathrinNimmtMusikFuerPatrickAuf")>>
+    <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
         <<set $RecordTimeCounter to $RecordTimeCounter - 6>>
     <<endif>>
     <<if $KathrinUndAngelaImStreit>>
@@ -6757,6 +6983,7 @@ Angela zuckt mit den Schultern.
             <<Mood angela_happy_talking>>
             //Fünf Finger. Angela grinst. "Und dich frage ich in allen anderen Fällen."
             Fünf Finger. "Und dich frage ich in allen anderen Fällen."
+            <<Mood kathrin_thinking>>
             "Sehr witzig ..."
             <<set $mental_health_angela to $mental_health_angela + 1>>
         <<else>>
@@ -6817,6 +7044,7 @@ title: KathrinGehtAufnehmenAngelaZumLaptop
 <<set $time_passes to $time_passes + 1>>
 <<if visited("KathrinNimmtMusikFuerPatrickAuf") and visited("KathrinGibtDasSpielenAuf") == false>>
     <<set $KathrinRecordsMusic to true>>
+    <<set $KathrinImRaum to false>>
     <<if $AngelasPosition == "Musikzimmer">>
         Kathrin greift nach ihrer Gitarre. "Ich nehm jetzt jedenfalls weiter auf."
     <<else>>
@@ -7004,6 +7232,12 @@ position: 816,4357
         <<set $SpielerAuftragRedeMitTimUeberDrohne to true>>
     -> "Ich weiß nicht ..."
         <<jump DrohnenDiskussion>>
+-> "Es geht um meine Analyse."
+    <<once>>
+        "Wegen des Lichts?"
+        "Genau das."
+    <<endonce>>
+    <<jump Lichtanalyse>>
 <<jump KathrinGehtAufnehmenAngelaZumLaptop>>
 ===
 
@@ -7336,9 +7570,11 @@ Es klingelt. Angela eilt zur Tür.
 -> "Für Schmeicheleien werde ich mir auch nicht meine Arbeit aberkennen lassen."
     "Genau deshalb. Du lässt dir von niemandem was sagen. Auch wenns vernünftig wäre."
     //-> Du hast's erfasst. Los jetzt!
-    Angela hebt die Brauen. "Du glaubst, es wäre vernünftig, die ganze Arbeit zu machen, und dich dann alleine loszuschicken?"
+    <<Mood angela_distrusting>>
+    "Du glaubst, es wäre vernünftig, die ganze Arbeit zu machen, und dich dann alleine loszuschicken?"
     "Hierher zu fahren war jedenfalls ein Umweg."
     -> "Muss dich ganze zwanzig Minuten gekostet haben."
+        <<Mood tim_regular_unhappy>>
         "Und ungefähr so viel zurück", brummt Tim.
         Angela zuckt mit den Schultern. "Also, warum stehen wir noch hier?"
         //<<set $social_score to $social_score - 1>>
@@ -7349,6 +7585,7 @@ Es klingelt. Angela eilt zur Tür.
         "'Wenn'? Du meinst 'sobald'."
         "Nein. 'Falls'. Falls ich dich brauche."
         Angela grinst. "Okay. Also für den <i>Fall</i>, dass du mich brauchst, komme ich mit."
+        <<Mood tim_angry>>
         Tim wedelt mit der Hand, als ob er eine Mücke vertreiben wollte. "Du machst mich wahnsinnig!"
         "Beruht auf Gegenseitigkeit. Soll ich fahren?"
         //<<Mood tim_frustrated>>
@@ -7510,11 +7747,12 @@ In dem Moment taucht Kathrin im Flur auf.
 <<endif>>
 <<Mood kathrin_regular>>
 "Oh, hey Tim!"
+<<Mood tim_regular_happy>>
 "Hi Kathrin."
 "Lange nicht mehr gesehen. Wie geht's euch?"
-<<Mood tim_sarcastically>>
 "Gut, gut."
 Kathrin neigt den Kopf zur Seite. "Das klingt nicht ganz so gut."
+<<Mood tim_regular_unhappy>>
 Tim seufzt. "Jordan ist krank. Das übliche."
 "Oh, Mist! Und ausgerechnet jetzt. Ich wünsche ihm gute Besserung."
 Tim nickt. Einen Moment lang herrscht Stille.
@@ -7719,8 +7957,8 @@ title: Aufloesung
     Kathrin blinzelt. "Aber wieso tut es hier dann das Gegenteil?"
     "Das eHUB ist ganz anders aufgebaut", erklärt Angela. "Ich gehe davon aus, dass die Firmware manipuliert wurde, um in einem Umspannwerk einen speziellen Effekt und dadurch den Stromausfall auszulösen. Vielleicht haben sie die Sensoren gestört und damit einen Defekt ausgelöst. Was genau es war, das zu dem Stromausfall geführt hat, werde ich hoffentlich bald wissen. In jedem Fall gehe ich davon aus, dass das manipulierte Gerät ein elektrisches Signal sendet, um den Stromausfall auszulösen. In einem Umspannwerk führt das zu dem gewünschten Effekt und damit dem Stromausfall. In einem eHUB, in dem ganz andere Schaltungen verbaut sind, führt es offenbar zufällig zu einem Effekt, der sich zwar bemerkbar macht, aber keine weiteren Auswirkungen hat. In diesem Fall geht eben das Licht an."
     "Gut ... So ganz habe ich es nicht verstanden. Ist unser eHUB jetzt gefährlich?"
-    <<Mood angela_happy_talking>>
-    Angela unterdrückt ein Lachen. "Nein."
+    <<Mood angela_chuckle>>
+    "Nein."
     Kathrin wirkt erleichtert. "Gut."
     "Im Gegenteil", Angela zwinkert ihr zu. "Das eHUB hat mich erst auf das Problem hingewiesen."
     "Und alles das nur, weil das Licht anging", flüstert Kathrin. "Wow. Ich hätte nicht gedacht, dass deine Analyse wirklich etwas bringt. Also, außer dich zu beruhigen."
@@ -7790,18 +8028,19 @@ position: 3089,3363
 ---
 Einen Moment lang ist es still.
 <<Mood tim_regular_unhappy>>
-Tims Blick wandert zu Angela. "Warum hast du den Chat per FINK vorgeschlagen? Ich hätte doch herfahren können?" Es klingt nach einem Vorwurf.
+Tims Blick wandert zu Angela. "Warum hast du den Chat per FINK vorgeschlagen? Ich hätte doch herfahren können?"
+<<Mood angela_angry_talking>>
 Angela schnaubt. "Warum hast du das dann nicht gesagt? Ich dachte, du willst den Strom aus deinem Auto sparen."
 "Vielleicht solltest du weniger denken."
 <<set $mental_health_angela to $mental_health_angela - 1>>
-<<Mood angela_angry_talking>>
 -> "Vielleicht solltest du mehr denken."
     <<set $social_score to $social_score - 1>>
 -> "Vielleicht sollten wir fahren."
 Angela hält seinen Blick.
 Tim seufzt. "Gut. Ich würde vorschlagen, wir vergessen das und gehen dazu über, die Welt zu retten."
-<<Mood tim_sarcastically>>
-Er zieht die Hand aus der Hosentasche und hält sie Angela hin, als wolle er sie zum Tanz auffordern. "Was sagen sie, Madame Genie?"
+Er zieht die Hand aus der Hosentasche und hält sie Angela hin, als wolle er sie zum Tanz auffordern.
+<<Mood tim_roughisly_charming>>
+"Was sagen Sie, Madame Genie?"
 Angela verdreht die Augen und stolziert an ihm vorbei. "Ich kenne die Dame nicht. Aber wo du endlich für Vorschläge offen bist - Pflanz dich auf deinen Sitz und fahr los!"
 Tim grinst, zieht die Haustür zu und sie machen sich auf den Weg zum Umspannwerk.
 <<jump End>>
@@ -8014,9 +8253,9 @@ tags: dependsOn:power_sharing
     <<set $Batterielevel to 0>>
     <<set $mental_health_angela to $mental_health_angela - 1>>
     <<if visited("VierteWarnung") and $DeadlineSonnenuntergang == false>>
-        "Eigentlich sollte die Grundversorgung der kritischen Infrastruktur nicht so viel ziehen. Zumindest nicht tagsüber. Aber sie tut es. Oder wir haben einfach zu viel verbraucht."
+        "Eigentlich sollte die Grundversorgung der kritischen Infrastruktur nicht so viel ziehen" knurrt Angela. "Zumindest nicht tagsüber. Aber sie tut es. Oder wir haben einfach zu viel verbraucht."
     <<else>>
-        "Mit anderen Worten, wir oder die Nachbarn haben zu viel verbraucht."
+        "Mit anderen Worten, wir oder die Nachbarn haben zu viel verbraucht", knurrt Angela.
     <<endif>>
     <<if $last_chance>>
         <<if visited("KathrinNimmtMusikFuerPatrickAuf")>>
@@ -8153,41 +8392,55 @@ Sie war so kurz davor ...
 
 title: FailedEnding
 ---
-<<if $KathrinZuhause>>
-    Angela macht sich auf die Suche nach Kathrin. Nur um im Wohnzimmer auf der Couch zu enden. Kathrin kann ohnehin nichts mehr tun. Genauso wenig wie sie.
+<<if visited("StromGehtAus") and visited("FailedLastChance") == false and $KathrinZuhause>>
+    Angela schüttelt den Kopf, zieht sich ins Wohnzimmer zurück und wirft einen Blick auf CaTARSis.
     <<Mood catarsis_sad_silent>>
-    Angela starrt auf CaTARSis. Der Smartspeaker ist still. Sie fragt sich, wie lange noch.
-    Kathrin betritt den Raum und geht zur Bürotür, ohne sie zu bemerken. Sie wirft einen Blick in den Raum, dreht sich um und zuckt zusammen.
-    <<Mood kathrin_empathic>>
-    "Da bist du!" Sie stockt und kommt näher.
+    Der Smartspeaker ist still. Sie fragt sich, wie lange noch.
+    Sie lässt sich auf die Couch fallen, das Gesicht im Kissen vergraben und einen Arm auf dem Boden.
+    Leise Schritte nähern sich.
+    "Hey ..." Kathrin geht neben ihr in die Hocke und berührt sie an der Schulter. "Wir kommen schon klar."
 <<else>>
-    <<Mood catarsis_sad_silent>>
-    Angela setzt sich auf die Couch im Wohnzimmer und starrt auf CaTARSis. Der Smartspeaker ist still. Sie fragt sich, wie lange noch.
-    // Kathrin is not home and asks Jochen about light
-    Angela hört die Haustür. Kathrin zieht sich um.
-    <<if visited("KathrinKommtHeim") == false and visited("KathrinGehtZuJochen")>>
-        "Hey!", ruft sie noch im Flur. "Bei Jochen war es genauso! Und du glaubst nicht, was da draußen los ist!"
-        Sie wirkt aufgewühlt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
+    <<if $KathrinZuhause>>
+        Angela macht sich auf die Suche nach Kathrin. Nur um im Wohnzimmer auf der Couch zu enden. Kathrin kann ohnehin nichts mehr tun. Genauso wenig wie sie.
+        <<Mood catarsis_sad_silent>>
+        Angela starrt auf CaTARSis. Der Smartspeaker ist still. Sie fragt sich, wie lange noch.
+        Kathrin betritt den Raum und geht zur Bürotür, ohne sie zu bemerken. Sie wirft einen Blick in den Raum, dreht sich um und zuckt zusammen.
+        "Da bist du!" Sie stockt und kommt näher.
+    <<else>>
+        <<Mood catarsis_sad_silent>>
+        Angela setzt sich auf die Couch im Wohnzimmer und starrt auf CaTARSis. Der Smartspeaker ist still. Sie fragt sich, wie lange noch.
+        // Kathrin is not home and asks Jochen about light
+        Angela hört die Haustür. Kathrin zieht sich um.
+        <<if visited("KathrinKommtHeim") == false and visited("KathrinGehtZuJochen")>>
+            "Hey!", ruft sie noch im Flur. "Bei Jochen war es genauso! Und du glaubst nicht, was da draußen los ist!"
+            Sie wirkt aufgewühlt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
+        <<endif>>
+        // Kathrin is not home and looks for a present in town
+        <<if visited("KathrinKommtAusStadtZurueck") == false and visited("KathrinGehtInDieStadtZumGeschenkSuchen")>>
+            "Hey!", ruft sie noch im Flur. "Du glaubst nicht, was da draußen los ist!"
+            Sie wirkt aufgewühlt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
+        <<endif>>
+        // Kathrin is not home and asks Jochen for plan
+        <<if visited("KathrinHatDenPlanVonJochen") == false and visited("KathrinHoltDenPlanBeiJochen") or visited("RueckkehrVonJochen") == false and visited("ZuJochen")>>
+            "Hey!", ruft sie noch im Flur. "Ich habe den Plan!"
+            Sie wirkt gut gelaunt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
+        <<endif>>
     <<endif>>
-    // Kathrin is not home and looks for a present in town
-    <<if visited("KathrinKommtAusStadtZurueck") == false and visited("KathrinGehtInDieStadtZumGeschenkSuchen")>>
-        "Hey!", ruft sie noch im Flur. "Du glaubst nicht, was da draußen los ist!"
-        Sie wirkt aufgewühlt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
-    <<endif>>
-    // Kathrin is not home and asks Jochen for plan
-    <<if visited("KathrinHatDenPlanVonJochen") == false and visited("KathrinHoltDenPlanBeiJochen") or visited("RueckkehrVonJochen") == false and visited("ZuJochen")>>
-        "Hey!", ruft sie noch im Flur. "Ich habe den Plan!"
-        Sie wirkt gut gelaunt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
-    <<endif>>
-    <<Mood kathrin_regular_unhappy>>
+    <<Mood kathrin_empathic>>
+    "Was ist los?", wispert sie.
+    Angela schluckt. "Der Strom ist alle."
+    Kathrin sackt neben ihr auf das Sofa. Legt eine Hand auf ihren Arm. "Das ist alles?"
 <<endif>>
-"Was ist los?", wispert sie.
-Angela schluckt. "Der Strom ist alle."
-Kathrin sackt neben ihr auf das Sofa. Legt eine Hand auf ihren Arm. "Das ist alles?"
 Angela schnaubt. "Ich hätte vielleicht eine Möglichkeit gehabt, herauszufinden, was der Grund für das Versagen der Infrastruktur ist."
 Kathrins Augen weiten sich.
+<<if visited("StromGehtAus") and visited("FailedLastChance") == false and $KathrinZuhause>>
+    Angela rappelt sich auf.
+<<endif>>
 <<if $last_chance>>
     "Ich war verdammt kurz davor!"
+<<endif>>
+<<if visited("StromGehtAus") and visited("FailedLastChance") == false and $KathrinZuhause>>
+    Kathrin setzt sich neben sie.
 <<endif>>
 Angela beugt sich vor und verbirgt ihr Gesicht in den Händen. "Aber ich war zu langsam!"
 <<if $KathrinUndAngelaImStreit or $social_score < -4>>
@@ -8207,7 +8460,11 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, timed, after:TimMeldetSichUeberDTN, dependsOn:SpielerAuftragRedeMitTimUeberDrohne
 position: 2742,1629
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO Nachrichten liegen mindestens $timeDroneTakesOneWayToTim*2 min auseinander
 <<if $NachrichtAnTim == "" and visited("Raten") == false>>
     Angela: Hey. Ich bräuchte mal jemanden zum Austausch. Unser eHUB hat kurz vor dem Stromausfall das Licht angeschaltet (ja, an!). Und ich glaube inzwischen, das hat was mit dem Stromausfall zu tun.
@@ -8273,14 +8530,15 @@ Angela: Welche Infos hast du?
 <<if visited("TimsQuelle")>>
     Tim: Nichts Neues. Das Internet war weg, ehe ich jemanden erreichen konnte. Was ist mit dir?
 <<else>>
-    Tim: Ich war in einem Call mit Valerie, als der Strom ausgefallen ist. Als ich ihr geschrieben habe, hat sie mir geschrieben, bei ihr wäre auch der Strom weg.
-    Tim: Also habe ich mal rumgefragt. Micek hat mir geantwortet, bevor das Internet ausgefallen ist.
+    Tim: Ich war in einem Call mit Valerie, als der Strom ausgefallen ist. Sie hat mir geschrieben, dass bei ihr auch der Strom weg ist.
+    Tim: Also habe ich mal rumgefragt. Micek hat mir geantwortet, bevor das Internet ausgefallen ist. Sie hatten auch keinen Strom.
     Tim: Also sind mindestens mal Frankreich, Deutschland und Polen betroffen.
     Tim: Ich habe versucht, Infos von meinen Kontakten zu bekommen. Aber keiner von denen wohnt so nah dran wie du.
     Tim: Ergo ... Nichts weiter. Was hast du?
     Angela zögert.
     <<detour WarumCallMitValerie>>
 <<endif>>
+<<detour Scheduler>>
 <<jump BerichtVonAngela>>
 ===
 
@@ -8343,6 +8601,7 @@ position: 2187,2626
     <<if $SuspectedClueThiloLebtInNeubaugebiet and $ClueThiloLebtInNeubaugebiet == false>>
         <<detour FragNachThilo>>
     <<endif>>
+    <<detour Scheduler>>
     <<jump Analyse>>
 <<endif>>
 <<jump AngelaGehtVomSmartPhoneZumLaptop>>
@@ -8354,7 +8613,11 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, repeats
 position: 3157,1732
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO Nachrichten liegen mindestens 10 min auseinander (oder 5 min LoraWAN)
 <<if $checkIncidents <= 0 and $checkNetworkLogs <= 0 and $checkNetworkForSignsOfCompromise <= 0 and $checkSmarthomeDevices <= 0 and $checkUpdates <= 0>>
     <<if $SpielerAuftragErstmalAllesChecken>>
@@ -8409,7 +8672,11 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, repeats
 position: 3293,1919
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO Nachrichten liegen mindestens 10 min auseinander (oder 5 min LoraWAN)
 Angela: Die eHUB Logs sind interessant. Die enthalten alle Calls, die von der Funktion allLightsOn getriggert werden.
 <<if $ClueEHUBLogsDeutenAufFirmwareIssue and $checkSmarthomeDevices <= 0>>
@@ -8438,81 +8705,54 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, repeats
 position: 2846,2474
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO Nachrichten liegen mindestens 10 min auseinander (oder 5 min LoraWAN)
 <<if $TimKenntBasics == false>>
-    Angela: Nichts.
-    Tim: Wie nichts?
-    Angela: Ich habe keine Ahnung, was das Problem ist.
-    <<Mood tim_worried>>
-    Tim: Wir wissen also gar nichts.
-    Angela: So kann man das sagen.
-    Tim: Du hast aber schon alle Logs geprüft? Netzwerk Traffic? Incidents?
-    <<set $SpielerAuftragErstmalAllesChecken to true>>
+    <<if visited("AnalyseBasics")>>
+        Tim: Na?
+    <<else>>
+        <<detour AnalyseBasics>>
+    <<endif>>
 <<else>>
     //Tim: Okay, halten wir fest ...
-    Tim: Wir können also bisher festhalten ...
+    Tim: Wir können also bisher festhalten ... <<once>>
     <<if $TimKenntBasics and $TimKennteHUBLogs == false and $TimKenntGenerationenproblem == false>>
-        Tim: Wir wissen, dass wir nichts wissen. Bisschen mager.
-        -> Angela: Ich bin dran.
-            Tim: Das hoffe ich doch. Melde dich, wenn du was Neues hast.
-            <<if $DeadlineSonnenuntergang == false>>
-                <<Mood tim_roughisly_charming>>
-                Tim: Ich schaue so lange dem FINK beim Kreisen zu.
-                Angela: Produktiv wie immer.
-                Tim: Was soll ich denn sonst machen?
-            <<endif>>
-        -> Angela: Ich weiß grad nicht weiter. Hast du eine Idee?
-            Tim: jap. Schaff mehr Infos ran.
-            <<set $mental_health_angela to $mental_health_angela - 1>>
-            <<Mood angela_angry>>
-            Angela: Wär ich nicht drauf gekommen.
-            //<<Mood tim_roughisly_charming>>
-            Tim: Dafür hast du ja mich. ;) //smiley
+        <<if visited("AnalyseNochNichts")>>
+            Tim: Gibt es was Neues?
+            Angela: Bin dran ...
+        <<else>>
+            <<detour AnalyseNochNichts>>
+        <<endif>>
     <<elseif $SpielerAuftrageHUBPlaeneVergleichen == true>>
         // player might not know about Thilo but compares plans
         Tim: Sag mir Bescheid, sobald du was rausgekriegt hast.
-        <<jump Loesung>>
+        <<if $ClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
+            <<jump Loesung>>
+        <<else>>
+            Angela: Mach ich.
+            <<jump AngelaGehtVomSmartPhoneZumLaptop>>
+        <<endif>>
     <<elseif $TimKennteHUBLogs and $TimKenntGenerationenproblem == false>>
-        Tim: Die Firmware eines der Geräte, die in deinem eHUB verbaut sind, spielt verrückt.
-        <<if $ClueProblemNichtInThilosEHUB>>
-            Tim: Aber in Thilos eHUB tut sie das nicht.
-            <<if $TimKenntEffektAusAndereneHUBsAberAusThilosNicht>>
-                Tim: Dafür tut sie es aber in einem eHUB bei dir um die Ecke ...
-                Tim: Oder?
-                Angela: Ja, genau.
+        <<if visited("AnalyseProblemInEHUBS")>>
+            <<if $ClueProblemNichtInThilosEHUB and $ClueProblemAuchInAnderenEHUBs>>
+                Angela: Ich sitze nicht in dem einzigen eHUB, in dem das Problem auftritt.
+                Tim: Erzähl.
+                Angela: In einem der eHUBs hier um die Ecke ist es auch passiert.
                 <<jump UnterschiedeDereHUBS>>
-            <<elseif $ClueProblemAuchInAnderenEHUBs>>
-                Angela: Dafür aber in einem eHUB hier um die Ecke.
-                <<jump UnterschiedeDereHUBS>>
-            <<else>>
-                Angela: Ja. Ich hätte erwartet, dass jedes eHUB das Problem hat.
-                Tim: Tja. Vielleicht jagst du doch einem Phantom nach.
-                Angela: Das glaube ich nicht.
             <<endif>>
         <<else>>
-            Tim: Wäre jetzt spannend zu wissen, ob sie das auch in anderen eHUBs tut. Ich frage mal Thilo.
-            <<if $ClueProblemAuchInAnderenEHUBs>>
-                Angela: Ich weiß zumindest, dass das Problem auch in einem der eHUBs hier um die Ecke besteht.
-            <<endif>>
-            Tim: Thilo hat das Problem nicht bemerkt, sagt er. Es ist also nur deins.
-            <<set $ClueProblemNichtInThilosEHUB to true>>
-            <<if $ClueProblemAuchInAnderenEHUBs>>
-                <<Mood angela_smirking>>
-                Angela: Eben nicht. Siehe oben.
-                <<jump UnterschiedeDereHUBS>>
-            <<else>>
-                Angela: Das ist doch viel zu auffällig, um ein Zufall zu sein.
-                Tim: Alternativ sitzt du in dem einzigen eHUB, in dem das Problem auftritt. Welcher Zufall ist wahrscheinlicher?
-                <<Mood angela_annoyed>>
-                Angela: ...
-                <<set $mental_health_angela to $mental_health_angela - 1>>
-            <<endif>>
+            <<detour AnalyseProblemInEHUBS>>
         <<endif>>
     <<elseif $TimKennteHUBLogs == false and $TimKenntGenerationenproblem and $WartetAufeHUBPlanThilo == false and $SpielerHasThilosEHUBPlan == false>>
         //Verhalten nur in 1. Generation der eHUBs, Angela spinnt hier weiter, dass es ein Gerät sein könnte, das infected wäre, das auch in den Umspannwerken verwendet wird -> Baupläne abgleichen
-        Tim: Wir wissen nicht, was das Problem ist, aber es betrifft nur die eHUBs der ersten Generation.
-        Tim: Ich würde sagen, du solltest herausfinden, was das Problem ist.
+        <<once>>
+            Tim: Wir wissen nicht, was das Problem ist, aber es betrifft nur die eHUBs der ersten Generation.
+            Tim: Ich würde sagen, du solltest herausfinden, was das Problem ist.
+        <<endonce>>
         <<if $ClueIdeeGleicheBauteileSelberDefekt>>
             Angela: Ich habe eine andere Idee. Kathrin hat mich darauf gebracht.
             Angela: Was, wenn eines der Geräte des eHUBs den Fehler verursacht und dasselbe Gerät in Umspannwerken genutzt wird?
@@ -8523,10 +8763,11 @@ position: 2846,2474
             Angela: Wir sollten die Schaltpläne der eHUBs vergleichen. Kannst du mir Thilos schicken?
             <<set $SpielerWantsEHUBPlans to true>>
             <<set $WartetAufeHUBPlanThilo to true>>
-            Tim: Ich frag ihn.
+            Tim: Ich frag ihn. Ich schick ihn dir, sobald ich ihn habe.
             <<set $WartetAufeHUBPlanThiloTime to $time_passes + 30>>
             //<<jump PlanVonThilo>>
         <<else>>
+            Tim: Weißt du Näheres?
             Angela: Bin dran.
         <<endif>>
     <<elseif $TimKennteHUBLogs and $TimKenntGenerationenproblem and $WartetAufeHUBPlanThilo == false and $SpielerHasThilosEHUBPlan == false>>
@@ -8547,6 +8788,21 @@ position: 2846,2474
         Tim: jap
         <<set $WartetAufeHUBPlanThiloTime to $time_passes + 30>>
         //<<jump PlanVonThilo>>
+    <<else>>
+        Tim: Gibt es was Neues?
+        <<if $WartetAufeHUBPlanThilo>>
+            Angela: Nein. Was ist mit Thilos Plan?
+            <<Mood tim_sarcastically>>
+            Tim: Keinen Plan.
+            Angela: Witzig ...
+            Tim: Ich sagte doch, ich melde mich.
+            Angela seufzt.
+        <<else>>
+            Angela: Nein. Hast du noch eine Idee?
+            <<set $mental_health_angela to $mental_health_angela - 1>>
+            Tim: Ja. Beeil dich! Uns geht der Strom aus.
+            Angela seufzt.
+        <<endif>>
     <<endif>>
 <<endif>>
 <<jump AngelaGehtVomSmartPhoneZumLaptop>>
@@ -8562,100 +8818,194 @@ position: 2846,2474
 //Wenn die Firmware eines der Geräte manipuliert ist, könnte das in Umspannwerken zu einem Ausfall führen, in einem eHUB aber zu irgendwelchen Zufallseffekten. Das könnte den Unterschied zwischen dem Verhalten der eHUBs erklären.
 ===
 
+title: AnalyseBasics
+---
+Angela: Nichts.
+Tim: Wie nichts?
+Angela: Ich habe keine Ahnung, was das Problem ist.
+<<Mood tim_worried>>
+Tim: Wir wissen also gar nichts.
+Angela: So kann man das sagen.
+Tim: Du hast aber schon alle Logs geprüft? Netzwerk Traffic? Incidents?
+<<set $SpielerAuftragErstmalAllesChecken to true>>
+===
+
+title: AnalyseNochNichts
+---
+Tim: Wir wissen, dass wir nichts wissen. Bisschen mager.
+-> Angela: Ich bin dran.
+    Tim: Das hoffe ich doch. Melde dich, wenn du was Neues hast.
+    <<if $DeadlineSonnenuntergang == false>>
+        <<Mood tim_roughisly_charming>>
+        Tim: Ich schaue so lange dem FINK beim Kreisen zu.
+        Angela: Produktiv wie immer.
+        Tim: Was soll ich denn sonst machen?
+    <<endif>>
+-> Angela: Ich weiß grad nicht weiter. Hast du eine Idee?
+    Tim: jap. Schaff mehr Infos ran.
+    <<set $mental_health_angela to $mental_health_angela - 1>>
+    <<Mood angela_angry>>
+    Angela: Wär ich nicht drauf gekommen.
+    //<<Mood tim_roughisly_charming>>
+    Tim: Dafür hast du ja mich. ;) //smiley
+===
+
+title: AnalyseProblemInEHUBS
+---
+Tim: Die Firmware eines der Geräte, die in deinem eHUB verbaut sind, spielt verrückt.
+<<if $ClueProblemNichtInThilosEHUB>>
+    Tim: Aber in Thilos eHUB tut sie das nicht.
+    <<if $TimKenntEffektAusAndereneHUBsAberAusThilosNicht>>
+        Tim: Dafür tut sie es aber in einem eHUB bei dir um die Ecke ...
+        Tim: Oder?
+        Angela: Ja, genau.
+        Tim: Okay, das ist komisch.
+        Angela: Jap.
+        <<jump UnterschiedeDereHUBS>>
+    <<elseif $ClueProblemAuchInAnderenEHUBs>>
+        Angela: Dafür aber in einem eHUB hier um die Ecke.
+        Tim: Okay, das ist komisch.
+        Angela: Sag ich ja.
+        <<jump UnterschiedeDereHUBS>>
+    <<else>>
+        Angela: Ja. Ich hätte erwartet, dass jedes eHUB das Problem hat.
+        Tim: Tja. Vielleicht jagst du doch einem Phantom nach.
+        Angela: Das glaube ich nicht.
+        <<jump UnterschiedeDereHUBS>>
+    <<endif>>
+<<else>>
+    Tim: Wäre jetzt spannend zu wissen, ob sie das auch in anderen eHUBs tut. Ich frage mal Thilo.
+    <<if $ClueProblemAuchInAnderenEHUBs>>
+        Angela: Ich weiß zumindest, dass das Problem auch in einem der eHUBs hier um die Ecke besteht.
+    <<endif>>
+    Tim: Thilo hat das Problem nicht bemerkt, sagt er. Es ist also nur deins.
+    <<set $ClueProblemNichtInThilosEHUB to true>>
+    <<if $ClueProblemAuchInAnderenEHUBs>>
+        <<Mood angela_smirking>>
+        Angela: Eben nicht. Siehe oben.
+        Tim: Okay, das ist komisch.
+        Angela: Du hast es erfasst.
+        <<jump UnterschiedeDereHUBS>>
+    <<else>>
+        Angela: Das ist doch viel zu auffällig, um ein Zufall zu sein.
+        Tim: Alternativ sitzt du in dem einzigen eHUB, in dem das Problem auftritt. Welcher Zufall ist wahrscheinlicher?
+        <<Mood angela_annoyed>>
+        Angela: ...
+        <<set $mental_health_angela to $mental_health_angela - 1>>
+        Angela: Und jetzt?
+        Tim: Keine Ahnung. Such weiter?
+        <<if $AngelasPosition == "Laptop">>
+            Angela seufzt und wendet sich wieder ihrem Laptop zu.
+        <<else>>
+            Angela seufzt und kehrt zu ihrem Laptop zurück.
+        <<endif>>
+        <<if $KathrinWillAlleinSein == false>>
+            -> Sie hat keine Ahnung, wonach sie noch suchen soll. Aber sie versucht es.
+                <<jump Laptop>>
+            -> Vielleicht hat Kathrin eine Idee?
+                Angela steht auf, um nach ihr zu suchen.
+                <<jump SpielerRedetMitKathrin>>
+        <<endif>>
+        <<jump Laptop>>
+    <<endif>>
+<<endif>>
+===
+
+
 title: Loesung
 color: yellow
 group: Drohnenchat
 tags: phone, chat_Tim, dtn, repeats
 position: 3002,2825
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // this can only be reached if the player checked all plans
 // this cannot be reached any more if the deadline is over
-<<if $ClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
-    <<if $SuspectedClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
-        Angela: Ich hatte recht. Ich habe ja keine Ahnung von Elektronik, aber es gibt einen Schalter oder was auch immer, der nur bei meinem und Jochens eHUB auftaucht.
-        Angela: Und eine Menge anderes Zeug, aber das erscheint mir irrelevant.
-        <<Mood tim_roughisly_charming>>
-        Tim: Ich wusste, wir kriegen das hin.
-        Angela: Wir?
-        Tim: Ich habe in der Zwischenzeit meine Kontakte genutzt.
-        Tim: Die lassen mich in unser Umspannwerk, um unsere Theorie zu testen. Ich habe nur noch auf deine Rückmeldung gewartet.
-        Angela: Also glauben sie, wir könnten recht haben?
-        Tim: Zumindest stimmt es, dass die eHUBs der ersten Generation Hardware mit den Umspannwerken teilen.
-    <<else>>
-        Angela: Ich habe jetzt die Pläne verglichen und es gibt einen Schalter oder was auch immer, der nur bei meinem und Jochens eHUB auftaucht, aber nicht bei Thilos.
-        Angela: Kriegst du mich ins hiesige Umspannwerk?
-        Tim: Hab ich was verpasst? Wieso Jochen?
-        Angela: Weil in Jochens eHUB auch das Licht anging.
-        Tim: Ah ... Und jetzt denkst du, die verwenden die gleichen Schalter im Umspannwerk?
-        Angela: Ich denke, es ist kein Zufall, dass dieser Effekt zweimal vor einem Stromausfall auftrat und dann auch noch in zwei verschiedenen eHUBs.
-        <<Mood tim_regular>>
-        Tim: Verstehe. Ich glaub ich kenn da jemanden, warte mal ...
-        Angela trommelt mit ihren Fingern auf den Tisch.
-        <<if $DeadlineSonnenuntergang or visited("VierteWarnung") or $last_chance>>
-            <<if $last_chance>>
-                Sie wirft einen Blick zum Fenster. Die Sonne ist untergegangen. Es wird verflucht knapp ...
-                <<if visited("StromGehtAus")>>
-                    <<Mood angela_angry>>
-                    "Was dauert da so lange?", zischt Angela. 'Oder ist die Verbindung zu Tim abgebrochen?', setzt sie in Gedanken hinzu.
-                    Sie prüft den Stromverbrauch. Nein, der FINK fliegt und das eHUB hat noch Strom. Wenn auch nicht mehr viel ...
-                <<endif>>
-            <<else>>
-                Sie wirft einen Blick zum Fenster. Viel Zeit bleibt nicht mehr bis Sonnenuntergang.
-            <<endif>>
-        <<endif>>
-        Endlich meldet sich Tim.
-        Tim: Du hast recht. Die eHUBs der ersten Generation teilen Hardware mit den Umspannwerken. Deins ist älter, oder?
-        <<Mood angela_smirking>>
-        //Angela grinst.
-        Angela: Ja.
-    <<endif>>
-    <<if $DeadlineSonnenuntergang>>
-        Tim: Hehe. Ich wusste, ich brauche mein Auto nochmal.
-    <<endif>>
-    <<if $SuspectedClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
-        <<Mood angela_smirking>>
-    <<endif>>
-    Angela: Okay. Wie lang brauchst du, um mich abzuholen?
-    Tim: Ich hatte jetzt nicht vor, auch noch bei dir vorbeizufahren.
-    -> Angela: Du willst den ganzen Ruhm also für dich einheimsen? Dann viel Spaß, ohne meinen Plan, auf dem die Unterschiede markiert sind.
-        <<set $social_score to $social_score - 1>>
-        Tim: Es geht hier nicht um Ruhm. Schick mir den Plan. Je schneller ich da bin, um so besser.
-        Angela: Wir ziehen das gemeinsam durch oder keiner von uns. Du hast die Wahl.
-        <<Mood tim_frustrated>>
-        Tim: ... Ich bin gleich da.
-    -> Angela: Schade. Der Plan, auf dem ich die Unterschiede der eHUBs markiert habe, liegt bei mir. Das dürfte dann schwierig werden.
-        <<set $social_score to $social_score - 1>>
-        <<set $mental_health_angela to $mental_health_angela + 1>>
-        <<Mood tim_frustrated>>
-        Tim: ... In einer halben Stunde.
-    -> Angela: Und wenn du mich brauchst?
-        Tim: Denkst du, ich kriege das nicht alleine hin?
-        -> Angela: Zwei Analysten sehen mehr als einer.
-            Tim: Schick mir einfach den Plan.
-            Angela: Dann fahr ich eben alleine hin. Kann nur ein bisschen dauern.
-            <<Mood tim_sternly>>
-            Tim: Okay. Ich komme.
-        -> Angela: Genau das denke ich.
-            <<set $social_score to $social_score - 1>>
-            Tim: Witzig ... Lass mich raten - du lässt den Plan sonst eh nicht rüberwachsen.
-            Angela: Exakt.
-            <<Mood tim_frustrated>>
-            Tim: ... Bin gleich da.
-    <<if $last_chance>>
-        Das war knapp. Wenn der Strom wieder weg gewesen wäre, bevor sie Tim alles schreiben konnte ... Sie will gar nicht daran denken.
-        <<if $AngelasPosition == "Laptop">>
-            Angela lehnt sich in ihren Stuhl zurück. Jetzt heißt es warten ...
-        <<else>>
-            Angela schließt die Augen. Jetzt heißt es warten ...
-        <<endif>>
-    <<else>>
-        Angela trommelt mit ihrem Finger auf ihrem Knie. Jetzt heißt es warten ...
-    <<endif>>
-    <<jump NachErsterEskalation>>
+<<if $SuspectedClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
+    Angela: Ich hatte recht. Ich habe ja keine Ahnung von Elektronik, aber es gibt einen Schalter oder was auch immer, der nur bei meinem und Jochens eHUB auftaucht.
+    Angela: Und eine Menge anderes Zeug, aber das erscheint mir irrelevant.
+    <<Mood tim_roughisly_charming>>
+    Tim: Ich wusste, wir kriegen das hin.
+    Angela: Wir?
+    Tim: Ich habe in der Zwischenzeit meine Kontakte genutzt.
+    Tim: Die lassen mich in unser Umspannwerk, um unsere Theorie zu testen. Ich habe nur noch auf deine Rückmeldung gewartet.
+    Angela: Also glauben sie, wir könnten recht haben?
+    Tim: Zumindest stimmt es, dass die eHUBs der ersten Generation Hardware mit den Umspannwerken teilen.
 <<else>>
-    <<jump AngelaGehtVomSmartPhoneZumLaptop>>
+    Angela: Ich habe jetzt die Pläne verglichen und es gibt einen Schalter oder was auch immer, der nur bei meinem und Jochens eHUB auftaucht, aber nicht bei Thilos.
+    Angela: Kriegst du mich ins hiesige Umspannwerk?
+    Tim: Hab ich was verpasst? Wieso Jochen?
+    Angela: Weil in Jochens eHUB auch das Licht anging.
+    Tim: Ah ... Und jetzt denkst du, die verwenden die gleichen Schalter im Umspannwerk?
+    Angela: Ich denke, es ist kein Zufall, dass dieser Effekt zweimal vor einem Stromausfall auftrat und dann auch noch in zwei verschiedenen eHUBs.
+    <<Mood tim_regular>>
+    Tim: Verstehe. Ich glaub ich kenn da jemanden, warte mal ...
+    Angela trommelt mit ihren Fingern auf den Tisch.
+    <<if $DeadlineSonnenuntergang or visited("VierteWarnung") or $last_chance>>
+        <<if $last_chance>>
+            Sie wirft einen Blick zum Fenster. Die Sonne ist untergegangen. Es wird verflucht knapp ...
+            <<if visited("StromGehtAus")>>
+                <<Mood angela_angry>>
+                "Was dauert da so lange?", zischt Angela. 'Oder ist die Verbindung zu Tim abgebrochen?', setzt sie in Gedanken hinzu.
+                Sie prüft den Stromverbrauch. Nein, der FINK fliegt und das eHUB hat noch Strom. Wenn auch nicht mehr viel ...
+            <<endif>>
+        <<else>>
+            Sie wirft einen Blick zum Fenster. Viel Zeit bleibt nicht mehr bis Sonnenuntergang.
+        <<endif>>
+    <<endif>>
+    Endlich meldet sich Tim.
+    Tim: Du hast recht. Die eHUBs der ersten Generation teilen Hardware mit den Umspannwerken. Deins ist älter, oder?
+    <<Mood angela_smirking>>
+    //Angela grinst.
+    Angela: Ja.
 <<endif>>
+<<if $DeadlineSonnenuntergang>>
+    Tim: Hehe. Ich wusste, ich brauche mein Auto nochmal.
+<<endif>>
+<<if $SuspectedClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
+    <<Mood angela_smirking>>
+<<endif>>
+Angela: Okay. Wie lang brauchst du, um mich abzuholen?
+Tim: Ich hatte jetzt nicht vor, auch noch bei dir vorbeizufahren.
+-> Angela: Du willst den ganzen Ruhm also für dich einheimsen? Dann viel Spaß, ohne meinen Plan, auf dem die Unterschiede markiert sind.
+    <<set $social_score to $social_score - 1>>
+    Tim: Es geht hier nicht um Ruhm. Schick mir den Plan. Je schneller ich da bin, um so besser.
+    Angela: Wir ziehen das gemeinsam durch oder keiner von uns. Du hast die Wahl.
+    <<Mood tim_frustrated>>
+    Tim: ... Ich bin gleich da.
+-> Angela: Schade. Der Plan, auf dem ich die Unterschiede der eHUBs markiert habe, liegt bei mir. Das dürfte dann schwierig werden.
+    <<set $social_score to $social_score - 1>>
+    <<set $mental_health_angela to $mental_health_angela + 1>>
+    <<Mood tim_frustrated>>
+    Tim: ... In einer halben Stunde.
+-> Angela: Und wenn du mich brauchst?
+    Tim: Denkst du, ich kriege das nicht alleine hin?
+    -> Angela: Zwei Analysten sehen mehr als einer.
+        Tim: Schick mir einfach den Plan.
+        Angela: Dann fahr ich eben alleine hin. Kann nur ein bisschen dauern.
+        <<Mood tim_sternly>>
+        Tim: Okay. Ich komme.
+    -> Angela: Genau das denke ich.
+        <<set $social_score to $social_score - 1>>
+        Tim: Witzig ... Lass mich raten - du lässt den Plan sonst eh nicht rüberwachsen.
+        Angela: Exakt.
+        <<Mood tim_frustrated>>
+        Tim: ... Bin gleich da.
+<<if $last_chance>>
+    Das war knapp. Wenn der Strom wieder weg gewesen wäre, bevor sie Tim alles schreiben konnte ... Sie will gar nicht daran denken.
+    <<if $AngelasPosition == "Laptop">>
+        Angela lehnt sich in ihren Stuhl zurück. Jetzt heißt es warten ...
+    <<else>>
+        Angela schließt die Augen. Jetzt heißt es warten ...
+    <<endif>>
+<<else>>
+    Angela trommelt mit ihrem Finger auf ihrem Knie. Jetzt heißt es warten ...
+<<endif>>
+<<jump NachErsterEskalation>>
 ===
 
 title: UnterschiedeDereHUBS
@@ -8664,8 +9014,11 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, key_scene, repeats
 position: 3307,2343
 ---
-<<set $time_passes to $time_passes + 1>>
-Tim: Okay, das ist komisch.
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 <<if $ClueThiloLebtInNeubaugebiet>>
     Angela: Ich glaube es liegt daran, dass Thilo in einem Neubaugebiet wohnt.
     Angela: Sein eHUB ist schon eines der neueren Generationen, meins und das von Jochen hier um die Ecke ist eines der ersten Generation.
@@ -8674,7 +9027,6 @@ Tim: Okay, das ist komisch.
     <<set $TimKenntGenerationenproblem to true>>
     <<jump Analyse>>
 <<else>>
-    Angela: Das stimmt.
     Tim: Lokales Problem?
     <<Mood angela_distrusting>>
     Angela: Bei einem europaweiten Stromausfall?
@@ -8697,7 +9049,11 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn
 position: 3708,2406
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO some time passes before this message arrives (at least 30 min)
 Ihr Smartphone leuchtet auf. Eine neue Nachricht von Tim.
 <<Mood tim_roughisly_charming>>
@@ -8715,13 +9071,18 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, timed, after:DrohnenUebernahme
 position: 3845,1623
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 //TODO happens randomly after DrohnenUebernahme if $TimWillLoraWANAktivieren
 <<if $TimWillLoraWANAktivieren and visited("VierteWarnung") == false>>
     <<Mood tim_regular>>
     Tim: Lora läuft, FINK fliegt. Sollte jetzt schneller gehen.
-    // TODO LoraWAN aktiviert
-    // TODO ab sofort gilt für DTN - Nachrichten liegen mindestens 5 min auseinander
+    <<set $lorawanIsActive to true>>
+    Angela: Sehr gut.
+    // ab sofort gilt für DTN - Nachrichten liegen mindestens 5 min auseinander
 <<elseif visited("VierteWarnung")>>
     <<Mood tim_worried>>
     Tim: Lora wird nix. Der Saft reicht nicht. Das Krankenhaus zieht zu viel.
@@ -8740,15 +9101,20 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn, timed, after:VierteWarnung
 position: 3869,1896
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 //TODO happens some time after VierteWarnung
-// TODO Nachrichten liegen mindestens 10 min auseinander
-// TODO LoraWAN deaktiviert
+// Nachrichten liegen mindestens 10 min auseinander
+// LoraWAN deaktiviert
 <<if visited("VierteWarnung")>>
-    <<if visited("LoraWANAktiv")>>
+    <<if $lorawanIsActive>>
         Tim: Sorry, FINK ist der Saft ausgegangen und das Krankenhaus hier zieht zu viel Strom. Es muss jetzt wieder ohne Lora gehen.
         <<Mood angela_conflicted>>
         Angela: Okay, mist.
+        <<set $lorawanIsActive to false>>
     <<endif>>
     Tim: Bin mal gespannt, wie lange es dauert, bis mir der Saft ausgeht.
     Tim: Ich laufe teilweise schon auf Akku, weil das Krankenhaus so viel zieht. Wenn die Sonne untergeht, ist Sense.
@@ -8763,7 +9129,11 @@ group: Drohnenchat
 tags: phone, chat_Tim, dtn
 position: 3563,1930
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO zusätzliche Option im Chat, sobald $SuspectedClueThiloLebtInNeubaugebiet
 // TODO Nachrichten liegen mindestens 10 min auseinander (oder 5 min LoraWAN)
 <<if $SuspectedClueThiloLebtInNeubaugebiet>>
@@ -8771,7 +9141,7 @@ position: 3563,1930
     Tim: Ja, wieso?
     <<set $ClueThiloLebtInNeubaugebiet to true>>
     <<if $ClueProblemAuchInAnderenEHUBs and $ClueProblemNichtInThilosEHUB>>
-        <<jump Generationenproblem>>
+        <<detour Generationenproblem>>
     <<else>>
         Angela: Nur so.
     <<endif>>
@@ -8783,7 +9153,11 @@ color: yellow
 tags: phone, chat_Tim, dtn, key_scene, repeats
 position: 3314,2117
 ---
-<<set $time_passes to $time_passes + 1>>
+<<if $lorawanIsActive>>
+    <<set $time_passes to $time_passes + 5>>
+<<else>>
+    <<set $time_passes to $time_passes + 10>>
+<<endif>>
 // TODO Nachrichten liegen mindestens 10 min auseinander (oder 5 min LoraWAN)
 <<if $ClueProblemAuchInAnderenEHUBs and $ClueProblemNichtInThilosEHUB and $ClueThiloLebtInNeubaugebiet>>
     Angela: Ich habe eine Idee wegen des Lichts. Der Effekt ist bei Thilo nicht aufgetreten, dafür aber bei Jochen und mir.

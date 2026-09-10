@@ -6,7 +6,12 @@ import {
   clearGlow,
   updateGlowPosition,
 } from "@/utils/buttonGlow.ts"
-import { ArrowBigDownDash, CornerDownRight, CornerUpLeft } from "lucide-preact"
+import {
+  ArrowBigDownDash,
+  CornerDownRight,
+  CornerUpLeft,
+  RotateCcw,
+} from "lucide-preact"
 
 export interface ButtonProps {
   onClick?: () => void
@@ -130,6 +135,34 @@ export function ReturnFromDetourButton(
       >
         <span class="interactive-glow__content">
           <CornerUpLeft class="size-10" />
+        </span>
+      </button>
+    </div>
+  )
+}
+
+/** Button shown after the End block has finished evaluating. */
+export function RestartButton(
+  props: { onClick?: () => void; disabled?: boolean; className?: string },
+) {
+  return (
+    <div class={clsx("w-full py-1 px-4 justify-center flex", props.className)}>
+      <button
+        {...props}
+        type="button"
+        onPointerEnter={activateGlow}
+        onPointerMove={updateGlowPosition}
+        onPointerLeave={clearGlow}
+        class={clsx(
+          "interactive-glow flex items-center justify-center gap-2 rounded-sm border-2 border-theme-strong bg-surface p-3 text-accent shadow-sm",
+          props.disabled
+            ? "opacity-60"
+            : "transition-colors hover:bg-surface-strong",
+        )}
+      >
+        <span class="interactive-glow__content flex items-center gap-2">
+          <RotateCcw class="size-5" />
+          Nochmal! Aber anders.
         </span>
       </button>
     </div>

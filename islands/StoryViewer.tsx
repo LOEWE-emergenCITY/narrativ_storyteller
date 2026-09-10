@@ -1,9 +1,5 @@
 import { useEffect } from "preact/hooks"
-import {
-  ContinueButton,
-  RestartButton,
-  ReturnFromDetourButton,
-} from "@/components/Button.tsx"
+import { ContinueButton, RestartButton } from "@/components/Button.tsx"
 import {
   ActionNode,
   ChoiceState,
@@ -145,6 +141,13 @@ export function shouldShowRestartButton(
 ): boolean {
   return blockTitle === "End" && status === "complete_without_continue" &&
     detourStackLength === 0
+}
+
+export function shouldAutoReturnFromDetour(
+  status: ActiveBlockStatus,
+  detourStackLength: number,
+): boolean {
+  return status === "complete_without_continue" && detourStackLength > 0
 }
 
 function StoryViewer({ onRestart }: { onRestart: () => void }) {
@@ -421,15 +424,11 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
 
   // ── Determine which action button to show ────────────────────────────────
 
-  // Two continue-style buttons remain user-driven: normal visible jumps and
-  // returning from a detour. Entering detours is automatic.
+  // Normal visible jumps remain user-driven. Detour entry and return are
+  // automatic, while choices inside a detour remain interactive.
 
   const showContinue = activeBlockProgress.status === "ready_to_continue" &&
     activeBlockProgress.continueTarget !== null
-
-  const showReturn =
-    activeBlockProgress.status === "complete_without_continue" &&
-    detourStack.length > 0
 
   const showRestart = shouldShowRestartButton(
     blockTitle,
@@ -457,11 +456,6 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
           return
         }
 
-        if (showReturn) {
-          event.preventDefault()
-          returnFromDetour()
-        }
-
         return
       }
 
@@ -487,9 +481,21 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
     contentNodes,
     currentChoices,
     showContinue,
-    showReturn,
     visibleNodes,
   ])
+
+  useEffect(() => {
+    if (
+      !shouldAutoReturnFromDetour(
+        activeBlockProgress.status,
+        detourStack.length,
+      )
+    ) {
+      return
+    }
+
+    returnFromDetour()
+  }, [activeBlockProgress.status, detourStack.length])
 
   return (
     <div class="mx-auto min-h-[calc(100dvh-var(--app-header-height)-var(--app-footer-height))] bg-app-bg px-4 py-8 text-theme">
@@ -497,9 +503,6 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
         {historicalSections}
         {renderedNodes}
         {showContinue && <ContinueButton onClick={() => continueBranch()} />}
-        {showReturn && (
-          <ReturnFromDetourButton onClick={() => returnFromDetour()} />
-        )}
         {showRestart && <RestartButton onClick={onRestart} />}
       </div>
     </div>

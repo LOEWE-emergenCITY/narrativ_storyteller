@@ -14,6 +14,7 @@ import {
   choices,
   continueBranch,
   currentBlockTitle,
+  detourReturnStack,
   loadStory,
   navigateToDetour,
   pendingContinueTarget,
@@ -1123,6 +1124,46 @@ Checked
       .map((node) => node.text)
 
     assertEquals(revisitedTexts, [])
+  })
+})
+
+Deno.test("empty detours return without adding visible detour history", async () => {
+  const storyText = `title: Start
+---
+Before
+<<detour Check>>
+After
+===
+title: Check
+---
+===
+`
+
+  await withTempStory(storyText, async (path) => {
+    const story = await parseStory(path)
+    const startBlock = story.blocks.get("Start")
+
+    assert(startBlock)
+
+    loadStory(story)
+    navigateToDetour("Check", {
+      title: "Start",
+      line: startBlock.contentNodes.findIndex((node) =>
+        node.type === "detour"
+      ) + 1,
+      choices: {},
+      randomChoices: {},
+    })
+
+    assertEquals(currentBlockTitle.value, "Check")
+    assertEquals(blockHistory.value.length, 1)
+
+    returnFromDetour()
+
+    assertEquals(currentBlockTitle.value, "Start")
+    assertEquals(detourReturnStack.value, [])
+    assertEquals(blockHistory.value.length, 1)
+    assertEquals(blockHistory.value[0].title, "Start")
   })
 })
 

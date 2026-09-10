@@ -1,6 +1,9 @@
 import { assertEquals } from "jsr:@std/assert@^1.0.19"
 
-import { shouldShowRestartButton } from "@/islands/StoryViewer.tsx"
+import {
+  shouldAutoReturnFromDetour,
+  shouldShowRestartButton,
+} from "@/islands/StoryViewer.tsx"
 import {
   blockHistory,
   choices,
@@ -26,6 +29,19 @@ Deno.test("restart button is shown only after the End block completes", () => {
     shouldShowRestartButton("End", "complete_without_continue", 1),
     false,
   )
+})
+
+Deno.test("completed detours return automatically when a detour is active", () => {
+  assertEquals(
+    shouldAutoReturnFromDetour("complete_without_continue", 1),
+    true,
+  )
+  assertEquals(
+    shouldAutoReturnFromDetour("complete_without_continue", 0),
+    false,
+  )
+  assertEquals(shouldAutoReturnFromDetour("ready_to_continue", 1), false)
+  assertEquals(shouldAutoReturnFromDetour("waiting_for_choice", 1), false)
 })
 
 Deno.test("loading a story resets the state for a new run", () => {

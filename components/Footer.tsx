@@ -1,5 +1,5 @@
 const footerLinks = [
-  { label: "eHub Cities", href: "https://ehubcities.de/" },
+  { label: "eHUB cities: Blackout", href: "https://ehubcities.de/" },
   {
     label: "Impressum",
     href: "https://www.tu-darmstadt.de/impressum/index.de.jsp",

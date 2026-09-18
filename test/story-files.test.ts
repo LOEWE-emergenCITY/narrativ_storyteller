@@ -46,7 +46,7 @@ Deno.test("getLatestStoryFileFromNames prefers normal files over debug files for
   const latestStoryFile = await getLatestStoryFileFromNames(
     ["level3cbs-debug.yarn", "level3cbs.yarn"],
     "data/stories",
-    (path) => Promise.resolve("<<declare $story_version = 17>>"),
+    (_path) => Promise.resolve("<<declare $story_version = 17>>"),
   )
 
   assertEquals(latestStoryFile.fileName, "level3cbs.yarn")

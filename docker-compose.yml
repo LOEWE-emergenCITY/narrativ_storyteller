@@ -4,3 +4,16 @@ services:
     ports:
       - "127.0.0.1:8000:8000" # Exponiert den Deno-Port nach außen
     restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "deno",
+          "eval",
+          "--allow-net=127.0.0.1:8000",
+          "const response = await fetch('http://127.0.0.1:8000/'); if (!response.ok) Deno.exit(1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate Release Candidate
+  quality:
+    name: Quality Gate
     runs-on: ubuntu-latest
 
     steps:
@@ -27,8 +27,14 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Run checks
-        run: deno task check
+      - name: Check formatting
+        run: deno fmt --check .
+
+      - name: Run lint
+        run: deno lint .
+
+      - name: Type check
+        run: deno check
 
       - name: Run tests
         run: deno test -A
@@ -37,7 +43,7 @@ jobs:
         run: deno task build
 
   deploy:
-    needs: validate
+    needs: quality
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +59,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /home/deploy/narrativ_storyteller
-            git pull --ff-only origin main
+            git fetch origin main
+            git checkout --detach ${{ github.sha }}
 
             # Rebuild all source files so changes are not hidden by Docker cache.
             docker compose build --pull --no-cache deno-app

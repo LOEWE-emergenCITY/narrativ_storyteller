@@ -66,10 +66,11 @@ deno task preview
 Use `deno task preview` when checking production output locally. The `start`
 task only serves the existing `_fresh` build and does not rebuild source files.
 
-The deployment workflow rebuilds the Docker image without cache, recreates the
-container, and waits for its Docker healthcheck to confirm that the app responds
-on port `8000`. A successful GitHub Actions run is therefore required before
-treating a source change as deployed.
+The deployment workflow first runs formatting, linting, type-checking, tests,
+and a production build. Deployment is blocked unless all quality checks pass. It
+then checks out the exact commit validated by GitHub Actions, rebuilds the
+Docker image without cache, recreates the container, and waits for its Docker
+healthcheck to confirm that the app responds on port `8000`.
 
 Run the built Fresh server:
 

@@ -800,6 +800,10 @@ export function parseStoryText(
     currentBlock.contentNodes.push(contentNode)
   }
 
+  if (currentBlock.title !== "") {
+    story.blocks.set(currentBlock.title, currentBlock)
+  }
+
   return story
 }
 

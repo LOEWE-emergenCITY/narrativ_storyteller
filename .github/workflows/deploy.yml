@@ -37,6 +37,7 @@ jobs:
         run: deno task build
 
   deploy:
+    needs: validate
     runs-on: ubuntu-latest
 
     steps:
@@ -52,8 +53,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /home/deploy/narrativ_storyteller
-            git pull origin main
+            git pull --ff-only origin main
 
-            # Falls du Docker auf dem VPS nutzt:
-            docker compose down
-            docker compose up -d --build
+            # Rebuild all source files so changes are not hidden by Docker cache.
+            docker compose build --pull --no-cache deno-app
+            docker compose up -d --wait --force-recreate --remove-orphans deno-app

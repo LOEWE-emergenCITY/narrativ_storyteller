@@ -32,6 +32,9 @@ deno task dev
 
 This runs Vite in development mode and watches for changes.
 
+Use `deno task dev` while editing source files. It reloads changes such as
+updates to `components/Footer.tsx` automatically.
+
 ## Quality Checks
 
 Run formatting checks, linting, and type checking:
@@ -53,6 +56,20 @@ Create a production build:
 ```sh
 deno task build
 ```
+
+Build and serve the current source in one step:
+
+```sh
+deno task preview
+```
+
+Use `deno task preview` when checking production output locally. The `start`
+task only serves the existing `_fresh` build and does not rebuild source files.
+
+The deployment workflow rebuilds the Docker image without cache, recreates the
+container, and waits for its Docker healthcheck to confirm that the app responds
+on port `8000`. A successful GitHub Actions run is therefore required before
+treating a source change as deployed.
 
 Run the built Fresh server:
 

@@ -78,7 +78,7 @@ Assumptions:
 | Automatic `<<jump>>` navigation                | Done            |
 | Continue after choice into the selected branch | Done            |
 | Mood images (`<<Mood …>>`)                     | Done            |
-| Dynamic mood suffix (`<<Mood …_{$state}>>`)    | Done            |
+| Dynamic mood suffix (`<<Mood …_{$variable}>>`) | Done            |
 | Automatic `<<detour>>` navigation and return   | Done            |
 | `<<once>>` content gating                      | Done            |
 | `<<GatherScienceFact>>` component              | Done            |

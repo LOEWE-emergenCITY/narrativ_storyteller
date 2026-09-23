@@ -115,19 +115,18 @@ function renderJumpNode(
 export function resolveMoodName(
   command: string,
   variables: Map<string, string | number | boolean>,
-): { name: string; fallbackName?: string } {
-  const placeholder = "_{$state}"
-  if (!command.endsWith(placeholder)) return { name: command }
+): { name: string } {
+  const match = command.match(/^(.*)_\{\$(\w+)\}$/)
+  if (!match) return { name: command }
 
-  const fallbackName = command.slice(0, -placeholder.length)
-  const state = variables.get("$state")
-  if (typeof state !== "string" || state.length === 0) {
+  const [, fallbackName, variableName] = match
+  const suffix = variables.get(`$${variableName}`)
+  if (typeof suffix !== "string" || suffix.length === 0) {
     return { name: fallbackName }
   }
 
   return {
-    name: `${fallbackName}_${state}`,
-    fallbackName,
+    name: `${fallbackName}_${suffix}`,
   }
 }
 
@@ -144,7 +143,6 @@ function renderMoodNode(
     <Image
       key={`MOOD_${mood.name}`}
       name={mood.name}
-      fallbackName={mood.fallbackName}
       type="mood"
     />
   )

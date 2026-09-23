@@ -14,7 +14,18 @@ Deno.test("resolves the state suffix in mood names", () => {
     ),
     {
       name: "angela_worried_morning",
-      fallbackName: "angela_worried",
+    },
+  )
+})
+
+Deno.test("resolves a suffix from any variable", () => {
+  assertEquals(
+    resolveMoodName(
+      "angela_worried_{$color_name}",
+      new Map([["$color_name", "turquoise"]]),
+    ),
+    {
+      name: "angela_worried_turquoise",
     },
   )
 })
@@ -26,7 +37,7 @@ Deno.test("leaves static mood names unchanged", () => {
   )
 })
 
-Deno.test("uses the base mood for an unavailable state", () => {
+Deno.test("uses the base mood for an unavailable suffix variable", () => {
   assertEquals(
     resolveMoodName("angela_worried_{$state}", new Map()),
     { name: "angela_worried" },
@@ -61,21 +72,50 @@ Deno.test("mood resolution uses the variable state at each node", () => {
   assertEquals(moods.length, 2)
   assertEquals(
     resolveMoodName(moods[0].command, result.nodeVariables.get(moods[0])!),
-    { name: "angela_worried_morning", fallbackName: "angela_worried" },
+    { name: "angela_worried_morning" },
   )
   assertEquals(
     resolveMoodName(moods[1].command, result.nodeVariables.get(moods[1])!),
-    { name: "angela_worried_evening", fallbackName: "angela_worried" },
+    { name: "angela_worried_evening" },
   )
 })
 
-Deno.test("builds variant and fallback mood paths", () => {
+Deno.test("mood resolution uses any suffix variable at each node", () => {
+  const story = parseTestStory(`title: Start
+---
+<<declare $color_name = "yellow">>
+<<Mood angela_worried_{$color_name}>>
+<<set $color_name to "violet">>
+<<Mood angela_worried_{$color_name}>>
+===`)
+  const nodes = story.blocks.get("Start")!.contentNodes
+  const result = evaluateVisibleNodesSequentially(nodes, {}, {}, {
+    visitedBlocks: new Set(),
+    seenOnceSections: new Set(),
+    variables: story.variables,
+  })
+  const moods = result.visibleNodes.filter(
+    (node): node is CommandNode => node.type === "mood",
+  )
+
+  assertEquals(moods.length, 2)
+  assertEquals(
+    resolveMoodName(moods[0].command, result.nodeVariables.get(moods[0])!),
+    { name: "angela_worried_yellow" },
+  )
+  assertEquals(
+    resolveMoodName(moods[1].command, result.nodeVariables.get(moods[1])!),
+    { name: "angela_worried_violet" },
+  )
+})
+
+Deno.test("builds mood image paths", () => {
   assertEquals(
     getImagePath("angela_worried_morning", "mood"),
-    "/moods/moods_angela/eHub_moods_angela_worried_morning_72dpi.jpg",
+    "/moods/moods_angela/eHub_moods_angela_worried_morning.jpg",
   )
   assertEquals(
     getImagePath("angela_worried", "mood"),
-    "/moods/moods_angela/eHub_moods_angela_worried_72dpi.jpg",
+    "/moods/moods_angela/eHub_moods_angela_worried.jpg",
   )
 })

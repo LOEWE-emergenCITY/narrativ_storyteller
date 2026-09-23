@@ -499,7 +499,7 @@ Angela seufzt. "Es ist kein Warnsystem, sondern ein Tool für Security Informati
 "Und wir nutzen es nicht, sonst wäre ich längst bei der Arbeit. Aber viele andere aus meiner Branche."
 Kathrin senkt den Blick. "Das ist echt ätzend."
 "Mhm." Angela schlürft ihren Kaffee und browst durch die Diskussionen. Die Stimmen aus der IT Security klingen tatsächlich so, als würde die Welt untergehen. Und das nicht aufgrund eines Fehlers, was schlimm genug gewesen wäre. Sondern weil jemand es geplant hatte. "Ich bin froh, dass wir damals nicht gewechselt haben."
-<<Mood kathrin_empathic_{$color_name}>>
+<<Mood kathrin_empathetic_{$color_name}>>
 Kathrin rutscht in ihrem Stuhl hin und her. "Du musst jetzt aber nicht arbeiten, oder?"
 //Sie sieht besorgt aus. Und schuldbewusst, weil sie sich Sorgen macht.
 //<<Mood kathrin_guiltily_{$color_name}>>
@@ -586,7 +586,7 @@ Kathrin seufzt. "So meinte ich das auch gar nicht."
 "Es gibt ohnehin noch zu wenige Studien mit Frauen."
 "Ja, ich weiß ... Ich fände es ja auch gut, wenn die Gentechnik verwendet werden könnte, um Krankheiten zu heilen und Allergien zu beseitigen, ich ..." Kathrin rutscht tiefer in ihren Stuhl. "Ich finde es nur gruselig."
 Angela zuckt mit den Schultern. "Ist auch nur fehlerhafter Code, der ersetzt wird."
-//<<Mood kathrin_empathic_{$color_name}>>
+//<<Mood kathrin_empathetic_{$color_name}>>
 <<Mood kathrin_guiltily_{$color_name}>>
 Kathrin antwortet nicht.
 "Was gibts noch?", fragt Angela.
@@ -1837,7 +1837,7 @@ position: 621,589
         //Kathrin rollt die Augen.
         "Ach, der schon wieder ..."
     <<else>>
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         //Kathrin wendet den Blick ab.
         <<set $mental_health_angela to $mental_health_angela - 1>>
     <<endif>>
@@ -1938,7 +1938,7 @@ position: 881,261
 <<set $social_score to $social_score + 1>>
 Kathrin löst sich aus der Umarmung. "Etwas. Es wird schon. Jetzt muss ich eben allein was für Patrick finden."
 <<if $mental_health_kathrin < -2>>
-    <<Mood kathrin_empathic_{$color_name}>>
+    <<Mood kathrin_empathetic_{$color_name}>>
     Kathrin steht einen Moment lang verloren da. Dann verschwindet sie in Richtung Bad.
 <<else>>
     <<Mood kathrin_regular_{$color_name}>>
@@ -2041,7 +2041,7 @@ position: 1263,513
 <<set $time_passes to $time_passes + 1>>
 Tim: Wir können nur raten. Und wenn ich raten soll, ist das erst der Anfang.
 Angela: Der Anfang für was?
-<<Mood tim_roughisly_charming_{$color_name}>>
+<<Mood tim_rougishly_charming_{$color_name}>>
 Tim: Das ist die Milliarden-Dollar-Frage.
 Angela flucht.
 -> Angela: Es gab diesen Stromausfall vor drei Wochen ...
@@ -2383,7 +2383,7 @@ position: -399,1560
 <<set $time_passes to $time_passes + 1>>
 // triggered by time - kurz nach zweiter Warnung (etwa 10 min, siehe oben)
 <<if visited("KathrinChattetWiederAmTelefon")>>
-    //<<Mood kathrin_empathic_{$color_name}>>
+    //<<Mood kathrin_empathetic_{$color_name}>>
     Kathrin taucht erneut in der Tür auf. "Julia meint, wir sollten lieber alles absagen."
     <<set $KathrinImRaum to true>>
     Angela antwortet nicht.
@@ -2540,7 +2540,7 @@ group: EskalationInternetUndWasser
             <<set $mental_health_angela to $mental_health_angela - 1>>
     <<else>>
         -> "So wie heute, meinst du?"
-            <<Mood kathrin_empathic_{$color_name}>>
+            <<Mood kathrin_empathetic_{$color_name}>>
             "Heute ist einfach kein guter Tag", brummt Kathrin.
             Angela seufzt. "Das kannst du laut sagen."
             <<set $mental_health_angela to $mental_health_angela - 1>>
@@ -3580,7 +3580,7 @@ Kathrin taucht in der Tür auf. "Und? Wie stehts?"
             <<set $SpielerAuftragKathrinBeimGeschenkAussuchenHelfen to true>>
         <<jump KathrinBrowstNachGeschenk>>
     <<else>>
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         "Aber irgendwie bin ich auch traurig, weil du wieder arbeitest, obwohl es Wochenende ist und wir den Tag gemeinsam geplant hatten."
         -> "Ich arbeite nicht. Ich schaue mir nur kurz was an." //being mean
             <<Mood kathrin_upset_{$color_name}>>
@@ -3726,7 +3726,7 @@ Kathrin zuckt mit den Schultern. "Ich könnte in der Stadt nach einem Geschenk s
         Kathrin richtet sich auf. Angela setzt sich neben ihr auf das Sofa und begegnet Kathrins Blick.
     <<endif>>
     -> "Ich weiß es nicht."
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         "Ich auch nicht." Kathrin seufzt. "Ich schaue lieber in der Stadt."
         "Okay. Wie du meinst."
         <<jump KathrinGehtInDieStadtZumGeschenkSuchen>>
@@ -3902,7 +3902,7 @@ position: 102,3565
     Sie sieht auf. Sucht Angelas Blick. "Meinst du, das war falsch?"
     Angela flucht innerlich.
     -> "Nein, vergiss es. Entweder ist das Ganze kein Problem oder die Ravioli helfen uns auch nicht mehr."
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         //Kathrin starrt sie an.
         Es dauert eine Weile, ehe Kathrin wieder etwas sagt. Und dann sind ihre Worte kaum mehr als ein Flüstern. "Dann bringe ich die Dosen wohl gleich rüber."
         <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
@@ -4059,7 +4059,7 @@ Kathrin schüttelt den Kopf. "Und irgendwie war es dann einfach nur seltsam, wie
     <<else>>
         Kathrin mustert sie skeptisch. "Bist du sicher, dass das eine gute Idee ist?"
         -> "Ja."
-            <<Mood kathrin_empathic_{$color_name}>>
+            <<Mood kathrin_empathetic_{$color_name}>>
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
         -> "Warum nicht? Die Warnungen kommen ja noch durch. Und ich brauche meine Ruhe."
         "Na gut. Wenn du meinst."
@@ -4493,7 +4493,7 @@ Angela stöhnt.
     -> "Bist du nicht diejenige, die sich auf YouTube Videos von Harfenisten anhört, die Filmmusik nachspielen?"
         "Das ist ja auch irgendwie cool."
         Kathrin blinzelt.
-        <<Mood kathrin_kathrin_embarassed_smile_{$color_name}>>
+        <<Mood kathrin_embarassed_smile_{$color_name}>>
         "Oh."
         Angela schmunzelt.
     -> "Was soll daran unprofessionell sein?"
@@ -4768,7 +4768,7 @@ Angela schmunzelt. "Auch wenn es mir nicht gefällt?"
 Kathrin öffnet den Mund und schließt ihn wieder. Zögert. "Was kann ich besser machen?"
 Angela zuckt mit den Schultern.
 -> "Ich finde alles super."
-    <<Mood kathrin_empathic_{$color_name}>>
+    <<Mood kathrin_empathetic_{$color_name}>>
     "Hm. Okay. Danke." Kathrin wirkt nicht überzeugt.
     <<set $KathrinsGeschenkFastFertig to false>>
     <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
@@ -5060,7 +5060,7 @@ position: -248,4411
                                 <<set $mental_health_kathrin to $mental_health_kathrin + 1>>
                             <<else>>
                                 "Ich kann noch nicht sagen, wie lange es noch dauert."
-                                <<Mood kathrin_empathic_{$color_name}>>
+                                <<Mood kathrin_empathetic_{$color_name}>>
                                 Kathrin seufzt. "Das habe ich befürchtet."
                                 <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
                             <<endif>>
@@ -5160,7 +5160,7 @@ title: DiskussionSorge
 ---
 <<set $time_passes to $time_passes + 1>>
 Kathrin drückt sich durch die Tür und lehnt sich mit dem Rücken gegen den Rahmen.
-<<Mood kathrin_empathic_{$color_name}>>
+<<Mood kathrin_empathetic_{$color_name}>>
 "Ich mache mir Sorgen wegen des Hacks."
 -> "Kannst du dich nicht irgendwie ablenken?"
     "Du meinst, damit ich dich nicht ablenke?"
@@ -5527,7 +5527,7 @@ position: -247,4638
 "Ich fühl mich nur nicht so gut."
 "Inwiefern?"
 Kathrin zuckt mit den Schultern.
-<<Mood kathrin_empathic_{$color_name}>>
+<<Mood kathrin_empathetic_{$color_name}>>
 "Irgendein Mix aus Sorgen wegen des Stromausfalls und ... ein paar anderen Dingen."
 Angela hebt die Brauen. "Ein paar anderen Dingen?"
 <<if $social_score < -4 or $KathrinUndAngelaImStreit>>
@@ -5865,7 +5865,7 @@ position: 867,3914
         <<if $checkIncidents > 0 and $checkNetworkLogs > 0 and $checkNetworkForSignsOfCompromise > 0 and $checkSmarthomeDevices > 0 and $checkUpdates > 0>>
             Ich habe keine Ahnung.
             -> Ich komme ja zu Nichts!
-                <<Mood kathrin_empathic_{$color_name}>>
+                <<Mood kathrin_empathetic_{$color_name}>>
                 "Oh. Dann störe ich nicht weiter."
                 <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
             -> Frag mich später nochmal.
@@ -6116,7 +6116,7 @@ Kathrin hebt die Augenbrauen.
             -> Angela reibt sich die Nasenwurzel. "Das ist es, was ich mich frage."
                 "Du könntest Jochen fragen."
                 "Ich kenne Jochen doch kaum." Angela neigt den Kopf. "Kannst du ihn fragen?"
-                <<Mood kathrin_empathic_{$color_name}>>
+                <<Mood kathrin_empathetic_{$color_name}>>
                 Kathrin seufzt. "Ich kann ihm schreiben."
                 "Perfekt. Mach das."
                 <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
@@ -6471,7 +6471,7 @@ Angela runzelt die Stirn. "Wie sollst du denn den Plan finden?"
 "Gar nicht. Ich soll auf Ilena aufpassen."
 "Okay ..." Angela spielt mit ihrem Ohrring. "Das klingt doch machbar. Du kannst gut mit Kindern umgehen."
 <<if $social_score >= -3 and $mental_health_kathrin >= -3>>
-    <<Mood kathrin_empathic_{$color_name}>>
+    <<Mood kathrin_empathetic_{$color_name}>>
     //Kathrin verzieht das Gesicht.
     "Ich hab keine Lust ..."
     <<if visited("KathrinNimmtMusikFuerPatrickAuf") and $KathrinSuccessfullyRecordedFirstTrack == false>>
@@ -7342,7 +7342,7 @@ Angela zuckt mit den Schultern.
         <<jump NachErsterEskalation>>
     -> "Was willst du wissen? Ich denke eben in Möglichkeiten. Und es war eine Möglichkeit."
         "Und das ist es immer noch, solange niemand Beweise hat."
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         //Kathrin mustert sie prüfend.
         "Hm, na gut." Sie holt tief Luft. "Ich schätze, ich sollte dir deswegen nicht böse sein. Aber ich will trotzdem, dass du mir solche Dinge sagst!"
         <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
@@ -7368,7 +7368,7 @@ Angela zuckt mit den Schultern.
         <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
         Stille. Kathrin starrt sie an.
         Angela flucht innerlich. 'Warum habe ich nicht die Klappe gehalten', denkt sie.
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         "Jetzt bin ich wirklich nicht mehr optimistisch", murmelt Kathrin. "Wie kannst du eigentlich in so einer Welt leben, in der alles irgendwie schlecht ist?"
         -> Angela schmunzelt." Ich hab dich. Du machst eine Menge wett."
             Kathrins Wangen färben sich rot. "Das ist ... lieb von dir. Aber du solltest auch ohne mich klar kommen."
@@ -7414,7 +7414,7 @@ Angela zuckt mit den Schultern.
                 Kathrin nickt langsam.
             <<endif>>
         -> "Solange machen wir uns nicht unnötig Sorgen."
-            <<Mood kathrin_empathic_{$color_name}>>
+            <<Mood kathrin_empathetic_{$color_name}>>
             "Leichter gesagt als getan", murrt Kathrin. "Aber ich versuchs."
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
 <<jump KathrinGehtAufnehmenAngelaEntscheidet>>
@@ -7537,7 +7537,7 @@ Angela flucht innerlich.
     -> "Wir werden es sehen."
         "Ja, das stimmt wohl ..."
 <<else>>
-    <<Mood kathrin_empathic_{$color_name}>>
+    <<Mood kathrin_empathetic_{$color_name}>>
     "Das wird ja immer schlimmer", murmelt Kathrin. "Ich frag mich wirklich, was da los ist."
     -> Angela hört kaum zu. "Das heißt, die großen eHUBs sind auch ausgefallen. Aber bei uns läuft der Strom noch. Hm ..."
         "Ja, aber wie lange noch? Und wie lange reicht unser Strom, wenn die Krankenhäuser ihn brauchen?"
@@ -7642,7 +7642,7 @@ Tim runzelt die Stirn und schließt die Hand um den Schlüssel. "Wovon redest du
 Angela zuckt mit den Schultern. "Ich meins ernst."
 Tim hebt eine Augenbraue und mustert sie. Angela steckt beide Hände in die Hosentaschen.
 "Okay. Na gut. Warum ich dann hierher fahren musste, ist mir schleierhaft. Aber von mir aus."
-<<Mood tim_roughisly_charming_{$color_name}>>
+<<Mood tim_rougishly_charming_{$color_name}>>
 //Er lächelt schief.
 "Wir sehen uns."
 Angela nickt. "Vermassel es nicht!"
@@ -7894,7 +7894,7 @@ position: -577,4154
     -> "Das mache ich, sobald wir zurück sind."
         Kathrin verzieht das Gesicht. "Wie lange seid ihr denn weg?"
         "Das kann ich noch nicht sagen. Ein paar Stunden vielleicht."
-        <<Mood kathrin_empathic_{$color_name}>>
+        <<Mood kathrin_empathetic_{$color_name}>>
         "Oh. So lange?" Sie seufzt. "Warum wollt ihr eigentlich zum Umspannwerk?"
         <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
     -> "Dafür habe ich jetzt keine Zeit mehr. Später."
@@ -7926,7 +7926,7 @@ title: Aufloesung
     "Gut für uns", antwortet Angela.
     "Allerdings ist dieselbe Hardware in Umspannwerken verbaut, in denen sie sehr wohl etwas tut", erklärt Tim. "Genau genommen ist die Hardware aus den Umspannwerken in eHUBs verbaut, wird da aber nicht vollständig eingesetzt. Das führt dann zu diesem Zufallseffekt, der vermutlich auf -"
     "Was Tim zu sagen versucht", fällt Angela ihm ins Wort. "Ist, dass dieselbe Hardware, verbaut in einem Umspannwerk, für den Stromausfall verantwortlich ist. Und durch den Abgleich der Schaltpläne weiß ich, welches Gerät infiziert ist. Ich muss nur noch testen, ob meine Theorie stimmt. Deshalb fahren wir zum Umspannwerk."
-    <<Mood tim_roughisly_charming_{$color_name}>>
+    <<Mood tim_rougishly_charming_{$color_name}>>
     "Deine Theorie?" Tim hebt eine Augenbraue. "Ich würde doch sagen -"
     "Und deshalb sollten wir jetzt los", setzt Angela mit einem Blick auf Tim hinzu.
     <<if $KathrinIstOK>>
@@ -8007,7 +8007,7 @@ title: Aufloesung
             "Ja", sagt sie leise. "Das kann ich verstehen."
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
         -> Angela seufzt. "Ich überlege es mir, okay?"
-            <<Mood kathrin_empathic_{$color_name}>>
+            <<Mood kathrin_empathetic_{$color_name}>>
             Kathrin nickt, doch sie wirkt nicht so, als ob sie ihr glauben würde.
     <<else>>
         "Ich wünschte nur, du könntest hier bleiben, und mir mit Patricks Geschenk helfen."
@@ -8045,7 +8045,7 @@ Angela schnaubt. "Warum hast du das dann nicht gesagt? Ich dachte, du willst den
 Angela hält seinen Blick.
 Tim seufzt. "Gut. Ich würde vorschlagen, wir vergessen das und gehen dazu über, die Welt zu retten."
 Er zieht die Hand aus der Hosentasche und hält sie Angela hin, als wolle er sie zum Tanz auffordern.
-<<Mood tim_roughisly_charming_{$color_name}>>
+<<Mood tim_rougishly_charming_{$color_name}>>
 "Was sagen Sie, Madame Genie?"
 Angela verdreht die Augen und stolziert an ihm vorbei. "Ich kenne die Dame nicht. Aber wo du endlich für Vorschläge offen bist - Pflanz dich auf deinen Sitz und fahr los!"
 Tim grinst, zieht die Haustür zu und sie machen sich auf den Weg zum Umspannwerk.
@@ -8061,7 +8061,7 @@ tags: timed, dependsOn:power_sharing
 //<<if $power_sharing == false>>
 <<set $KathrinImRaum to true>>
 <<set $KathrinWillAlleinSein to false>>
-<<Mood kathrin_empathic_{$color_name}>>
+<<Mood kathrin_empathetic_{$color_name}>>
 Kathrin steckt den Kopf in die Tür. "Hey." Sie klingt unsicher. "Die Nachbarn beschweren sich, weil der Strom weg ist."
 // Lisa schreibt, bei ihnen im Dachgeschoss wären es schon 32 Grad und sie macht sich Sorgen um Michael, weil er die Hitze nicht verträgt.
 Sie betritt den Raum. "Lisa schreibt, bei ihnen in der Kellerwohnung wären es nur noch 14 Grad und sie macht sich Sorgen um Michael, weil er erkältet ist. Ich schalte das Teilen wieder an, okay?"
@@ -8173,7 +8173,7 @@ Kathrin zückt ihr Smartphone.
             "Tu das."
             <<set $social_score to $social_score - 1>>
         -> "Dann sag den Nachbarn, sie sollen ihren Stromverbrauch senken. Sonst senke ich ihn."
-            <<Mood kathrin_empathic_{$color_name}>>
+            <<Mood kathrin_empathetic_{$color_name}>>
             "Ja gut, mach ich ... CaTARSis, aktiviere den Inselbetrieb!"
             <<set $power_sharing to true>>
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
@@ -8434,7 +8434,7 @@ title: FailedEnding
             Sie wirkt gut gelaunt, als sie den Raum betritt. Doch als sie Angela auf dem Sofa sieht, erstarrt sie.
         <<endif>>
     <<endif>>
-    <<Mood kathrin_empathic_{$color_name}>>
+    <<Mood kathrin_empathetic_{$color_name}>>
     "Was ist los?", wispert sie.
     Angela schluckt. "Der Strom ist alle."
     Kathrin sackt neben ihr auf das Sofa. Legt eine Hand auf ihren Arm. "Das ist alles?"
@@ -8508,7 +8508,7 @@ position: 2742,1629
             Angela: LoraWAN überbrückt doch mindestens 10 km in der Luft. Dann müssen beide FINKen weniger oft laden und wir müssen weniger lange auf die Nachrichten warten.
             <<set $gathered_science_fact_LoraWAN to true>>
             <<GatherScienceFact LoraWAN>>
-            <<Mood tim_roughisly_charming_{$color_name}>>
+            <<Mood tim_rougishly_charming_{$color_name}>>
             Tim: Eine eigene Loraverbindung. Darauf hätte ich auch kommen können. Ich frage Thilo.
             Angela: *thumbs up* //smiley
             <<set $TimWillLoraWANAktivieren to true>>
@@ -8646,7 +8646,7 @@ position: 3157,1732
                 Angela: Das habe ich auch nicht behauptet.
                 <<if $DeadlineSonnenuntergang>>
                     Angela: Außerdem sollten wir unsere Zeit nicht mit sowas verschwenden.
-                    <<Mood tim_roughisly_charming_{$color_name}>>
+                    <<Mood tim_rougishly_charming_{$color_name}>>
                     Tim: Stimmt, die Zeit in das Geschenk für den Neffen ist da deutlich besser investiert.
                     -> Angela: ack
                         Tim: Ich frage mich ja immer wieder, warum Kathrin und du zusammen seid. Aber in solchen Momenten wird es mir klar.
@@ -8845,7 +8845,7 @@ Tim: Wir wissen, dass wir nichts wissen. Bisschen mager.
 -> Angela: Ich bin dran.
     Tim: Das hoffe ich doch. Melde dich, wenn du was Neues hast.
     <<if $DeadlineSonnenuntergang == false>>
-        <<Mood tim_roughisly_charming_{$color_name}>>
+        <<Mood tim_rougishly_charming_{$color_name}>>
         Tim: Ich schaue so lange dem FINK beim Kreisen zu.
         Angela: Produktiv wie immer.
         Tim: Was soll ich denn sonst machen?
@@ -8855,7 +8855,7 @@ Tim: Wir wissen, dass wir nichts wissen. Bisschen mager.
     <<set $mental_health_angela to $mental_health_angela - 1>>
     <<Mood angela_angry_{$color_name}>>
     Angela: Wär ich nicht drauf gekommen.
-    //<<Mood tim_roughisly_charming_{$color_name}>>
+    //<<Mood tim_rougishly_charming_{$color_name}>>
     Tim: Dafür hast du ja mich. ;) //smiley
 ===
 
@@ -8937,7 +8937,7 @@ position: 3002,2825
 <<if $SuspectedClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
     Angela: Ich hatte recht. Ich habe ja keine Ahnung von Elektronik, aber es gibt einen Schalter oder was auch immer, der nur bei meinem und Jochens eHUB auftaucht.
     Angela: Und eine Menge anderes Zeug, aber das erscheint mir irrelevant.
-    <<Mood tim_roughisly_charming_{$color_name}>>
+    <<Mood tim_rougishly_charming_{$color_name}>>
     Tim: Ich wusste, wir kriegen das hin.
     Angela: Wir?
     Tim: Ich habe in der Zwischenzeit meine Kontakte genutzt.
@@ -9065,7 +9065,7 @@ position: 3708,2406
 <<endif>>
 // TODO some time passes before this message arrives (at least 30 min)
 Ihr Smartphone leuchtet auf. Eine neue Nachricht von Tim.
-<<Mood tim_roughisly_charming_{$color_name}>>
+<<Mood tim_rougishly_charming_{$color_name}>>
 Tim: Hier ist der Plan von Thilo, den du wolltest. Viel Spaß beim abgleichen.
 Angela: Danke ...
 <<set $SpielerHasThilosEHUBPlan to true>>
@@ -9179,7 +9179,7 @@ position: 3314,2117
         Angela: Um was was?
         Tim: Um welchen Einsatz wettest du?
         -> Angela: Lass doch den Bullshit.
-            <<Mood tim_roughisly_charming_{$color_name}>>
+            <<Mood tim_rougishly_charming_{$color_name}>>
             Tim: :P //smiley
             <<set $mental_health_angela to $mental_health_angela - 1>>
         -> Angela: Ich wette um meinen Verstand. Wenn ich nämlich falsch liege, weiß ich schon, wer mir das die nächsten Monate ständig unter die Nase reiben wird.

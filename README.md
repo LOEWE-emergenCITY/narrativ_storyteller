@@ -80,22 +80,22 @@ deno task start
 
 ## Dynamic Mood Images
 
-Mood names may use the special `{$state}` suffix. Declare and update `$state` in
-Yarn to select a corresponding image variant:
+Mood names may use a variable suffix in the form `{$variable}`. Declare and
+update the variable in Yarn to select a corresponding image variant:
 
 ```yarn
-<<declare $state = "morning">>
-<<Mood angela_worried_{$state}>>
+<<declare $mood_time = "morning">>
+<<Mood angela_worried_{$mood_time}>>
 
-<<set $state to "evening">>
-<<Mood angela_worried_{$state}>>
+<<set $mood_time to "evening">>
+<<Mood angela_worried_{$mood_time}>>
 ```
 
-The example loads `eHub_moods_angela_worried_morning_72dpi.jpg` and then
-`eHub_moods_angela_worried_evening_72dpi.jpg`. If `$state` is missing or not a
-non-empty string, or if a variant cannot be loaded, the player falls back to
-`eHub_moods_angela_worried_72dpi.jpg`. Mood names without `{$state}` continue to
-work unchanged.
+The example loads `eHub_moods_angela_worried_morning.jpg` and then
+`eHub_moods_angela_worried_evening.jpg`. If the suffix variable is missing or
+not a non-empty string, the base mood name is used. If the requested image
+cannot be loaded, the browser displays its alt text. Mood names without a
+variable suffix continue to work unchanged.
 
 ## Updating Fresh
 

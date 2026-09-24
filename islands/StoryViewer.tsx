@@ -14,10 +14,11 @@ import {
 } from "@/utils/nodeVisibility.ts"
 import { RenderConfig, renderNode } from "@/utils/renderNode.tsx"
 import {
-  applyVariables,
+  activeRenderSnapshot,
   blockEntryVariables,
   blockHistory,
   choices,
+  commitActiveEvaluation,
   continueBranch,
   currentBlockTitle,
   detourReturnStack,
@@ -25,14 +26,11 @@ import {
   navigateToDetour,
   navigateWithinDetour,
   randomChoices,
-  resolveRandomChoices,
   resumeFromLine,
   returnFromDetour,
   seenOnceSections,
   storyBlocks,
-  updateActiveBlockState,
-  updateActiveRenderSnapshot,
-  visibleOnceSections,
+  storyVariables,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
@@ -206,24 +204,48 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
     activeNodeVarsCache.key !== blockTitle ||
     activeNodeVarsCache.evaluationSignature !== evaluationSignature
   ) {
-    const sequentialResult = evaluateVisibleNodesSequentially(
-      contentNodes,
-      currentChoices,
-      currentRandomChoices,
-      context,
-      resumeOptions,
-    )
     activeNodeVarsCache.key = blockTitle
     activeNodeVarsCache.evaluationSignature = evaluationSignature
-    activeNodeVarsCache.vars = sequentialResult.nodeVariables
-    activeNodeVarsCache.finalVars = sequentialResult.finalVariables
-    activeNodeVarsCache.visibleNodes = sequentialResult.visibleNodes
-    activeNodeVarsCache.visibleOnceKeys = sequentialResult.visibleOnceKeys
-    activeNodeVarsCache.resolvedRandomChoices =
-      sequentialResult.resolvedRandomChoices
+
+    const storedSnapshot = activeRenderSnapshot.value
+    if (storedSnapshot) {
+      const nodeVariables = new WeakMap<
+        ContentNode,
+        Map<string, string | number | boolean>
+      >()
+      const visibleNodes = storedSnapshot.visibleNodes.flatMap((item) => {
+        const node = block?.contentNodes[item.index]
+        if (!node) return []
+        nodeVariables.set(node, new Map(Object.entries(item.variables)))
+        return [node]
+      })
+
+      activeNodeVarsCache.vars = nodeVariables
+      activeNodeVarsCache.finalVars = new Map(storyVariables.value)
+      activeNodeVarsCache.visibleNodes = visibleNodes
+      activeNodeVarsCache.visibleOnceKeys = new Set(
+        storedSnapshot.visibleOnceKeys,
+      )
+      activeNodeVarsCache.resolvedRandomChoices = currentRandomChoices
+    } else {
+      const sequentialResult = evaluateVisibleNodesSequentially(
+        contentNodes,
+        currentChoices,
+        currentRandomChoices,
+        context,
+        resumeOptions,
+      )
+      activeNodeVarsCache.vars = sequentialResult.nodeVariables
+      activeNodeVarsCache.finalVars = sequentialResult.finalVariables
+      activeNodeVarsCache.visibleNodes = sequentialResult.visibleNodes
+      activeNodeVarsCache.visibleOnceKeys = sequentialResult.visibleOnceKeys
+      activeNodeVarsCache.resolvedRandomChoices =
+        sequentialResult.resolvedRandomChoices
+    }
+
     activeNodeVarsCache.progress = evaluateActiveBlockProgress(
       contentNodes,
-      sequentialResult.visibleNodes,
+      activeNodeVarsCache.visibleNodes,
       currentChoices,
     )
   }
@@ -237,49 +259,26 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
 
   const nodeVariables = activeNodeVarsCache.vars
 
-  // Apply <<set>> results to storyVariables after render using the final
-  // variable state already computed by the sequential evaluation pass.
   useEffect(() => {
     if (!block) return
-    applyVariables(activeNodeVarsCache.finalVars)
-    resolveRandomChoices(activeNodeVarsCache.resolvedRandomChoices)
-  }, [blockTitle, evaluationSignature])
 
-  useEffect(() => {
-    if (
-      activeBlockProgress.status === "auto_jump_now" ||
-      activeBlockProgress.status === "auto_detour_now" ||
-      activeBlockProgress.status === "ready_to_detour"
-    ) {
-      return
-    }
-
-    updateActiveBlockState(
-      activeBlockProgress.status,
-      activeBlockProgress.continueTarget,
-    )
-  }, [
-    activeBlockProgress.status,
-    activeBlockProgress.continueTarget,
-  ])
-
-  useEffect(() => {
-    visibleOnceSections.value = new Set(visibleOnceKeys)
-  }, [visibleOnceSignature])
-
-  useEffect(() => {
-    updateActiveRenderSnapshot({
-      visibleNodes: visibleNodes.map((node) => ({
-        index: currentResumeFromLine + contentNodes.indexOf(node),
-        variables: Object.fromEntries(
-          (nodeVariables.get(node) ?? context.variables).entries(),
-        ),
-      })),
-      visibleOnceKeys: [...visibleOnceKeys],
+    commitActiveEvaluation({
+      variables: activeNodeVarsCache.finalVars,
+      randomChoices: activeNodeVarsCache.resolvedRandomChoices,
+      visibleOnceKeys,
+      snapshot: {
+        visibleNodes: visibleNodes.map((node) => ({
+          index: currentResumeFromLine + contentNodes.indexOf(node),
+          variables: Object.fromEntries(
+            (nodeVariables.get(node) ?? context.variables).entries(),
+          ),
+        })),
+        visibleOnceKeys: [...visibleOnceKeys],
+      },
+      status: activeBlockProgress.status,
+      continueTarget: activeBlockProgress.continueTarget,
     })
-  }, [blockTitle, evaluationSignature])
 
-  useEffect(() => {
     if (
       (activeBlockProgress.status !== "auto_jump_now" &&
         activeBlockProgress.status !== "auto_detour_now" &&
@@ -302,16 +301,16 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
       title: blockTitle,
       line: activeBlockProgress.detourReturnLine ?? 0,
       choices: { ...currentChoices },
-      randomChoices: { ...currentRandomChoices },
+      randomChoices: { ...activeNodeVarsCache.resolvedRandomChoices },
     })
   }, [
+    block,
+    evaluationSignature,
     activeBlockProgress.status,
     activeBlockProgress.continueTarget,
     activeBlockProgress.detourReturnLine,
     blockTitle,
-    currentChoices,
-    currentRandomChoices,
-    detourStack.length,
+    visibleOnceSignature,
   ])
 
   const activeRenderConfig: RenderConfig = {

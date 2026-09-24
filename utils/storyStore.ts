@@ -200,6 +200,7 @@ export interface SavedStoryState {
   visitedBlocks: string[]
   seenOnceSections: string[]
   visibleOnceSections: string[]
+  activeRenderSnapshot?: ActiveRenderSnapshot
   blockEntryVariables: Record<string, StoryValue>
   activeBlockStatus: ActiveBlockStatus
   pendingContinueTarget: string | null
@@ -420,6 +421,9 @@ export function getSavedStoryState(
     visitedBlocks: [...visitedBlocks.value],
     seenOnceSections: [...seenOnceSections.value],
     visibleOnceSections: [...visibleOnceSections.value],
+    activeRenderSnapshot: activeRenderSnapshot.value
+      ? cloneRenderSnapshot(activeRenderSnapshot.value)
+      : undefined,
     blockEntryVariables: mapToRecord(blockEntryVariables.value),
     activeBlockStatus: activeBlockStatus.value,
     pendingContinueTarget: pendingContinueTarget.value,
@@ -455,6 +459,9 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
     visitedBlocks.value = new Set(savedState.visitedBlocks)
     seenOnceSections.value = new Set(savedState.seenOnceSections)
     visibleOnceSections.value = new Set(savedState.visibleOnceSections)
+    activeRenderSnapshot.value = savedState.activeRenderSnapshot
+      ? cloneRenderSnapshot(savedState.activeRenderSnapshot)
+      : null
     blockEntryVariables.value = recordToMap(savedState.blockEntryVariables)
     activeBlockStatus.value = savedState.activeBlockStatus
     pendingContinueTarget.value = savedState.pendingContinueTarget
@@ -479,7 +486,6 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
       }),
     )
     resumeFromLine.value = savedState.resumeFromLine ?? 0
-    activeRenderSnapshot.value = null
   })
 }
 
@@ -500,6 +506,8 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
     isStringArray(savedState.visitedBlocks) &&
     isStringArray(savedState.seenOnceSections) &&
     isStringArray(savedState.visibleOnceSections) &&
+    (savedState.activeRenderSnapshot === undefined ||
+      isActiveRenderSnapshot(savedState.activeRenderSnapshot)) &&
     isStoryValueRecord(savedState.blockEntryVariables) &&
     isActiveBlockStatus(savedState.activeBlockStatus) &&
     (savedState.pendingContinueTarget === null ||
@@ -577,6 +585,7 @@ export function selectChoice(choiceBlockId: number, choiceLevel: number): void {
     currentIndentionLevel.value = currentIndentionLevel.value + 1
     activeBlockStatus.value = "resolving_branch"
     pendingContinueTarget.value = null
+    activeRenderSnapshot.value = null
   })
 }
 
@@ -684,6 +693,28 @@ export function applyVariables(
   const merged = new Map(storyVariables.value)
   updates.forEach((v, k) => merged.set(k, v))
   storyVariables.value = merged
+}
+
+export interface ActiveEvaluationCommit {
+  variables: Map<string, string | number | boolean>
+  randomChoices: RandomChoiceState
+  visibleOnceKeys: Set<string>
+  snapshot: ActiveRenderSnapshot
+  status: ActiveBlockStatus
+  continueTarget: string | null
+}
+
+export function commitActiveEvaluation(
+  evaluation: ActiveEvaluationCommit,
+): void {
+  batch(() => {
+    storyVariables.value = new Map(evaluation.variables)
+    randomChoices.value = cloneRandomChoices(evaluation.randomChoices)
+    visibleOnceSections.value = new Set(evaluation.visibleOnceKeys)
+    activeRenderSnapshot.value = cloneRenderSnapshot(evaluation.snapshot)
+    activeBlockStatus.value = evaluation.status
+    pendingContinueTarget.value = evaluation.continueTarget
+  })
 }
 
 export function updateActiveRenderSnapshot(

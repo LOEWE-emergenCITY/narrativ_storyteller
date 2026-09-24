@@ -125,6 +125,34 @@ Deno.test("saved story state includes the story content version", () => {
   assertEquals(isSavedStoryState({ ...savedState, storyVersion: 26 }), true)
 })
 
+Deno.test("active render snapshot survives save and restore", async () => {
+  const story = await parseStory(`title: Start
+---
+<<declare $counter = 0>>
+<<set $counter to $counter + 1>>
+Visible once <<once>>
+===
+`)
+
+  loadStory(story)
+  applyVariables(new Map([["$counter", 1]]))
+  updateActiveRenderSnapshot({
+    visibleNodes: [{ index: 1, variables: { "$counter": 1 } }],
+    visibleOnceKeys: ["Start:4"],
+  })
+
+  const savedState = getSavedStoryState(story.file, 1, true)
+
+  loadStory(story)
+  restoreSavedStoryState(savedState)
+
+  assertEquals(storyVariables.value.get("$counter"), 1)
+  assertEquals(activeRenderSnapshot.value, {
+    visibleNodes: [{ index: 1, variables: { "$counter": 1 } }],
+    visibleOnceKeys: ["Start:4"],
+  })
+})
+
 function validSavedStoryState() {
   return {
     version: STORY_STATE_VERSION,

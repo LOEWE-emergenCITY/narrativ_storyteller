@@ -35,8 +35,10 @@ jobs:
             set -euo pipefail
 
             cd /home/deploy/narrativ_storyteller
-            git fetch --prune origin "${{ github.ref }}"
-            git checkout --detach ${{ github.sha }}
+            git fetch --prune origin main
+            git reset --hard
+            git clean -fd
+            git checkout --detach "${{ github.sha }}"
 
             actual_sha="$(git rev-parse HEAD)"
             test "$actual_sha" = "${{ github.sha }}"

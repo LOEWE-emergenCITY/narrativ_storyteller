@@ -5,21 +5,19 @@ import {
   evaluateVisibleNodesSequentially,
 } from "@/utils/nodeVisibility.ts"
 import {
-  applyVariables,
   blockEntryVariables,
   choices,
+  commitActiveEvaluation,
   currentBlockTitle,
   detourReturnStack,
   navigateToBlock,
   navigateToDetour,
   navigateWithinDetour,
   randomChoices,
-  resolveRandomChoices,
   resumeFromLine,
   seenOnceSections,
   selectChoice,
   storyBlocks,
-  updateActiveRenderSnapshot,
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { ActionNode, ContentNode } from "@/utils/storyTypes.tsx"
@@ -86,24 +84,29 @@ export function handleChoiceClick(
     nextChoices,
   )
 
-  const updateSelectedRenderSnapshot = () => {
-    updateActiveRenderSnapshot({
-      visibleNodes: visibleResult.visibleNodes.map((node) => ({
-        index: resumeFromLine.value + resolvedContentNodes.indexOf(node),
-        variables: Object.fromEntries(
-          (visibleResult.nodeVariables.get(node) ?? context.variables)
-            .entries(),
-        ),
-      })),
-      visibleOnceKeys: [...visibleResult.visibleOnceKeys],
+  const commitSelectedEvaluation = () => {
+    commitActiveEvaluation({
+      variables: visibleResult.finalVariables,
+      randomChoices: visibleResult.resolvedRandomChoices,
+      visibleOnceKeys: visibleResult.visibleOnceKeys,
+      status: progress.status,
+      continueTarget: progress.continueTarget,
+      snapshot: {
+        visibleNodes: visibleResult.visibleNodes.map((node) => ({
+          index: resumeFromLine.value + resolvedContentNodes.indexOf(node),
+          variables: Object.fromEntries(
+            (visibleResult.nodeVariables.get(node) ?? context.variables)
+              .entries(),
+          ),
+        })),
+        visibleOnceKeys: [...visibleResult.visibleOnceKeys],
+      },
     })
   }
 
   if (progress.status === "auto_jump_now" && progress.continueTarget) {
-    applyVariables(visibleResult.finalVariables)
-    resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
-    updateSelectedRenderSnapshot()
+    commitSelectedEvaluation()
     if (detourReturnStack.value.length > 0) {
       navigateWithinDetour(progress.continueTarget)
     } else {
@@ -113,10 +116,8 @@ export function handleChoiceClick(
   }
 
   if (progress.status === "auto_detour_now" && progress.continueTarget) {
-    applyVariables(visibleResult.finalVariables)
-    resolveRandomChoices(visibleResult.resolvedRandomChoices)
     selectChoice(choiceNode.choiceBlockId, choiceNode.myChoiceLevel)
-    updateSelectedRenderSnapshot()
+    commitSelectedEvaluation()
     // choices and currentIndentionLevel are updated synchronously by selectChoice.
     navigateToDetour(progress.continueTarget, {
       title: currentBlockTitle.value,

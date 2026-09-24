@@ -12,6 +12,7 @@ import {
   blockEntryVariables,
   blockHistory,
   choices,
+  commitActiveEvaluation,
   continueBranch,
   currentBlockTitle,
   detourReturnStack,
@@ -1355,4 +1356,193 @@ Done
     assertEquals(resumedProgress.status, "auto_jump_now")
     assertEquals(resumedProgress.continueTarget, "Done")
   })
+})
+
+Deno.test("containment intro survives the completion detour", async () => {
+  const story = await parseStory(`title: Laptop
+---
+<<declare $containment = 15>>
+<<declare $time_passes = 0>>
+<<if $containment > 0>>
+    <<once>>
+        'Also gut ... Erstmal alles vom Netz nehmen.'
+    <<endonce>>
+    <<set $time_passes to $time_passes + $containment>>
+    <<set $containment to 0>>
+    <<detour CheckContainment>>
+<<endif>>
+===
+title: CheckContainment
+---
+<<if $containment <= 0>>
+    Nach einer Weile gibt sich Angela zufrieden.
+<<endif>>
+===
+`)
+  const laptop = story.blocks.get("Laptop")
+  const checkContainment = story.blocks.get("CheckContainment")
+
+  assert(laptop)
+  assert(checkContainment)
+
+  const variables = new Map(story.variables)
+  variables.set("$containment", 15)
+  variables.set("$time_passes", 0)
+
+  const visited = new Set(["Laptop"])
+  const result = evaluateVisibleNodesSequentially(
+    laptop.contentNodes,
+    {},
+    {},
+    {
+      visitedBlocks: visited,
+      seenOnceSections: new Set(),
+      variables,
+    },
+  )
+  const progress = evaluateActiveBlockProgress(
+    laptop.contentNodes,
+    result.visibleNodes,
+    {},
+  )
+  const intro = result.visibleNodes.findIndex((node) =>
+    node.type === "text" && node.text.includes("Also gut")
+  )
+
+  assert(intro >= 0)
+  assertEquals(result.finalVariables.get("$containment"), 0)
+  assertEquals(progress.status, "ready_to_detour")
+  assertEquals(progress.continueTarget, "CheckContainment")
+
+  loadStory(story)
+  blockEntryVariables.value = new Map(variables)
+  visitedBlocks.value = visited
+  commitActiveEvaluation({
+    variables: result.finalVariables,
+    randomChoices: result.resolvedRandomChoices,
+    visibleOnceKeys: result.visibleOnceKeys,
+    snapshot: {
+      visibleNodes: result.visibleNodes.map((node) => ({
+        index: laptop.contentNodes.indexOf(node),
+        variables: Object.fromEntries(
+          (result.nodeVariables.get(node) ?? variables).entries(),
+        ),
+      })),
+      visibleOnceKeys: [...result.visibleOnceKeys],
+    },
+    status: progress.status,
+    continueTarget: progress.continueTarget,
+  })
+  navigateToDetour("CheckContainment", {
+    title: "Laptop",
+    line: progress.detourReturnLine ?? 0,
+    choices: {},
+    randomChoices: {},
+  })
+
+  assertEquals(storyVariables.value.get("$containment"), 0)
+  assert(
+    blockHistory.value[0].renderSnapshot?.visibleNodes.some((snapshot) =>
+      snapshot.index === laptop.contentNodes.indexOf(result.visibleNodes[intro])
+    ),
+  )
+
+  const completion = evaluateVisibleNodesSequentially(
+    checkContainment.contentNodes,
+    {},
+    {},
+    {
+      visitedBlocks: visitedBlocks.value,
+      seenOnceSections: seenOnceSections.value,
+      variables: blockEntryVariables.value,
+    },
+  )
+  assert(
+    completion.visibleNodes.some((node) =>
+      node.type === "text" && node.text.includes("Nach einer Weile")
+    ),
+  )
+})
+
+Deno.test("plan task variables are committed before leaving their blocks", async () => {
+  const story = await parseStory(`title: FindEHUBPlansTask
+---
+<<declare $findEHUBPlans = -1>>
+<<declare $SpielerHasOwnEHUBPlan = false>>
+<<declare $digitaleHUBPlan = false>>
+<<if $findEHUBPlans <= 0>>
+    <<set $SpielerHasOwnEHUBPlan to true>>
+    <<set $digitaleHUBPlan to true>>
+    <<detour Scheduler>>
+    <<jump Laptop>>
+<<endif>>
+===
+title: PlanVonThilo
+---
+<<declare $SpielerHasThilosEHUBPlan = false>>
+<<declare $SpielerAuftrageHUBPlaeneVergleichen = false>>
+Tim: Hier ist der Plan von Thilo.
+<<set $SpielerHasThilosEHUBPlan to true>>
+<<set $SpielerAuftrageHUBPlaeneVergleichen to true>>
+<<jump Laptop>>
+===
+title: Scheduler
+---
+===
+title: Laptop
+---
+Done
+===
+`)
+
+  for (
+    const scenario of [
+      {
+        title: "FindEHUBPlansTask",
+        overrides: {
+          "$findEHUBPlans": -1,
+          "$time_passes": 0,
+          "$SpielerHasJochensEHUBPlan": false,
+          "$SpielerHasThilosEHUBPlan": false,
+        },
+        expected: {
+          "$SpielerHasOwnEHUBPlan": true,
+          "$digitaleHUBPlan": true,
+        },
+      },
+      {
+        title: "PlanVonThilo",
+        overrides: {
+          "$lorawanIsActive": false,
+          "$time_passes": 0,
+        },
+        expected: {
+          "$SpielerHasThilosEHUBPlan": true,
+          "$SpielerAuftrageHUBPlaeneVergleichen": true,
+        },
+      },
+    ] as const
+  ) {
+    const block = story.blocks.get(scenario.title)
+    assert(block)
+
+    const variables = new Map(story.variables)
+    Object.entries(scenario.overrides).forEach(([key, value]) =>
+      variables.set(key, value)
+    )
+    const result = evaluateVisibleNodesSequentially(
+      block.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: new Set([scenario.title]),
+        seenOnceSections: new Set(),
+        variables,
+      },
+    )
+
+    Object.entries(scenario.expected).forEach(([key, value]) =>
+      assertEquals(result.finalVariables.get(key), value)
+    )
+  }
 })

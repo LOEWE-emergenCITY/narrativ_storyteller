@@ -72,11 +72,13 @@ does not access deployment secrets or deploy anything.
 
 The deployment workflow runs the same reusable quality gate first. Deployment is
 blocked unless all quality checks pass. It then fetches and checks out the exact
-commit validated by GitHub Actions, verifies that checkout, rebuilds the Docker
-image without cache, recreates the container, and waits for its Docker
-healthcheck to confirm that the app responds on port `8000`. Checkout, build,
-and startup failures stop the remote deployment instead of continuing with the
-previous version.
+commit validated by GitHub Actions. Before checkout, the deployment working tree
+is reset and non-ignored untracked files are removed so local VPS changes cannot
+prevent or alter deployment; ignored files such as `.env` are preserved. The
+workflow verifies the checkout, rebuilds the Docker image without cache,
+recreates the container, and waits for its Docker healthcheck to confirm that
+the app responds on port `8000`. Checkout, build, and startup failures stop the
+remote deployment instead of continuing with the previous version.
 
 Run the built Fresh server:
 

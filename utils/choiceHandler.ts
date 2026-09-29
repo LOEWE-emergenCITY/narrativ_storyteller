@@ -28,6 +28,7 @@ import { ActionNode, ContentNode } from "@/utils/storyTypes.tsx"
 export function handleChoiceClick(
   contentNodes: ContentNode[],
   currentIndex: number,
+  onChoiceSelected?: (choiceLevel: number) => void,
 ): void {
   const node = contentNodes[currentIndex]
 
@@ -49,6 +50,8 @@ export function handleChoiceClick(
     console.error(`Choice node at index ${currentIndex} missing choiceBlockId`)
     return
   }
+
+  onChoiceSelected?.(choiceNode.myChoiceLevel)
 
   const nextChoices = {
     ...choices.value,

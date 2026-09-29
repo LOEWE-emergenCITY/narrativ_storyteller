@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks"
+import { useEffect, useState } from "preact/hooks"
 import { ContinueButton, RestartButton } from "@/components/Button.tsx"
 import {
   ActionNode,
@@ -35,6 +35,12 @@ import {
 } from "@/utils/storyStore.ts"
 import { buildNodeVariables } from "@/utils/setHandler.ts"
 import { handleChoiceClick } from "@/utils/choiceHandler.ts"
+import {
+  type DebugPathAction,
+  getChoiceShortcutLabel,
+  parseDebugPath,
+} from "@/utils/debugPath.ts"
+export { getChoiceShortcutLabel } from "@/utils/debugPath.ts"
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 // ── Module-level caches ───────────────────────────────────────────────────────
@@ -115,16 +121,6 @@ export function getChoiceShortcutIndex(
   return choiceIndex === -1 ? null : choiceIndex
 }
 
-export function getChoiceShortcutLabel(choiceLevel?: number): string | null {
-  if (choiceLevel === undefined || choiceLevel < 1 || choiceLevel > 35) {
-    return null
-  }
-
-  if (choiceLevel <= 9) return String(choiceLevel)
-
-  return String.fromCharCode("A".charCodeAt(0) + choiceLevel - 10)
-}
-
 function isEditableShortcutTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
 
@@ -148,7 +144,13 @@ export function shouldAutoReturnFromDetour(
   return status === "complete_without_continue" && detourStackLength > 0
 }
 
-function StoryViewer({ onRestart }: { onRestart: () => void }) {
+function StoryViewer({
+  onRestart,
+  debugPath,
+}: {
+  onRestart: () => void
+  debugPath?: string | null
+}) {
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
   const currentRandomChoices = randomChoices.value
@@ -258,6 +260,23 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
   const activeBlockProgress = activeNodeVarsCache.progress
 
   const nodeVariables = activeNodeVarsCache.vars
+
+  const [debugReplayIndex, setDebugReplayIndex] = useState(0)
+  const [debugReplayError, setDebugReplayError] = useState<string | null>(null)
+  let debugActions: DebugPathAction[] = []
+  let parsedPathError: string | null = null
+  if (debugPath) {
+    try {
+      debugActions = parseDebugPath(debugPath)
+    } catch (error) {
+      parsedPathError = (error as Error).message
+    }
+  }
+
+  useEffect(() => {
+    setDebugReplayIndex(0)
+    setDebugReplayError(null)
+  }, [debugPath])
 
   useEffect(() => {
     if (!block) return
@@ -496,12 +515,65 @@ function StoryViewer({ onRestart }: { onRestart: () => void }) {
     returnFromDetour()
   }, [activeBlockProgress.status, detourStack.length])
 
+  useEffect(() => {
+    if (
+      !debugPath || parsedPathError || debugReplayError ||
+      debugReplayIndex >= debugActions.length
+    ) {
+      return
+    }
+
+    const action = debugActions[debugReplayIndex]
+    if (!action) return
+
+    if (action.type === "continue") {
+      if (!showContinue) return
+      continueBranch()
+      setDebugReplayIndex((index) => index + 1)
+      return
+    }
+
+    const choiceIndex = getChoiceShortcutIndex(
+      contentNodes,
+      visibleNodes,
+      currentChoices,
+      action.key,
+    )
+    if (choiceIndex === null) {
+      setDebugReplayError(
+        `Pfadzeichen ${
+          debugReplayIndex + 1
+        } (${action.key}) ist in ${blockTitle} nicht auswählbar.`,
+      )
+      return
+    }
+
+    handleChoiceClick(contentNodes, choiceIndex)
+    setDebugReplayIndex((index) => index + 1)
+  }, [
+    blockTitle,
+    contentNodes,
+    currentChoices,
+    debugActions.length,
+    debugPath,
+    parsedPathError,
+    debugReplayError,
+    debugReplayIndex,
+    showContinue,
+    visibleNodes,
+  ])
+
   return (
     <div class="mx-auto min-h-[calc(100dvh-var(--app-header-height)-var(--app-footer-height))] bg-app-bg px-4 py-8 text-theme">
       <div class="mx-auto flex max-w-3xl flex-col">
         {historicalSections}
         {renderedNodes}
         {showContinue && <ContinueButton onClick={() => continueBranch()} />}
+        {debugPath && debugReplayError && (
+          <p class="mt-4 rounded-md border border-red-400/50 bg-red-950/20 px-4 py-3 text-sm text-red-200">
+            Debug-Pfad: {debugReplayError}
+          </p>
+        )}
         {showRestart && <RestartButton onClick={onRestart} />}
       </div>
     </div>

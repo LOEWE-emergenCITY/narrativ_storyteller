@@ -153,6 +153,40 @@ Visible once <<once>>
   })
 })
 
+Deno.test("plan variables remain true across save and reload", async () => {
+  const story = await parseStory(`title: Start
+---
+<<declare $SpielerHasOwnEHUBPlan = false>>
+<<declare $digitaleHUBPlan = false>>
+<<declare $SpielerHasThilosEHUBPlan = false>>
+<<declare $SpielerAuftrageHUBPlaeneVergleichen = false>>
+Start
+===
+`)
+
+  loadStory(story)
+  applyVariables(
+    new Map([
+      ["$SpielerHasOwnEHUBPlan", true],
+      ["$digitaleHUBPlan", true],
+      ["$SpielerHasThilosEHUBPlan", true],
+      ["$SpielerAuftrageHUBPlaeneVergleichen", true],
+    ]),
+  )
+
+  const savedState = getSavedStoryState(story.file, 1, true)
+
+  loadStory(story)
+  restoreSavedStoryState(savedState)
+
+  assertEquals(Object.fromEntries(storyVariables.value), {
+    "$SpielerHasOwnEHUBPlan": true,
+    "$digitaleHUBPlan": true,
+    "$SpielerHasThilosEHUBPlan": true,
+    "$SpielerAuftrageHUBPlaeneVergleichen": true,
+  })
+})
+
 function validSavedStoryState() {
   return {
     version: STORY_STATE_VERSION,

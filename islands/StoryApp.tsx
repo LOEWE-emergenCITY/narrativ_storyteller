@@ -25,6 +25,7 @@ import {
   visitedBlocks,
 } from "@/utils/storyStore.ts"
 import { Story } from "@/utils/storyTypes.tsx"
+import { parseDebugPath } from "@/utils/debugPath.ts"
 
 type StoryAppProps = {
   story: Story
@@ -42,6 +43,15 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
   const [startupResolved, setStartupResolved] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [hasSavedState, setHasSavedState] = useState(false)
+  const [debugPath, setDebugPath] = useState("")
+  const [debugPathError, setDebugPathError] = useState<string | null>(null)
+  const isDebugMode = new URLSearchParams(
+    typeof globalThis.location === "undefined"
+      ? ""
+      : globalThis.location.search,
+  ).get(
+    "debug",
+  ) === "1"
 
   function readSavedState() {
     const savedStateJson = globalThis.localStorage?.getItem(
@@ -82,6 +92,15 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
   }, [story, scienceFacts])
 
   function handleStart() {
+    if (isDebugMode && debugPath) {
+      try {
+        parseDebugPath(debugPath)
+        setDebugPathError(null)
+      } catch (error) {
+        setDebugPathError((error as Error).message)
+        return
+      }
+    }
     globalThis.localStorage?.removeItem(STORY_STATE_STORAGE_KEY)
     loadStory(story)
     setHasSavedState(false)
@@ -147,11 +166,24 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
         canContinue={hasSavedState}
         onStart={handleStart}
         onContinue={handleContinue}
+        debugMode={isDebugMode}
+        debugPath={debugPath}
+        debugPathError={debugPathError}
+        onDebugPathChange={(value) => {
+          setDebugPath(value)
+          setDebugPathError(null)
+        }}
       />
     )
   }
 
-  return <StoryViewer onRestart={handleRestart} />
+  return (
+    <StoryViewer
+      onRestart={handleRestart}
+      debugPath={isDebugMode ? debugPath : null}
+      debugEnabled={isDebugMode}
+    />
+  )
 }
 
 export default StoryApp

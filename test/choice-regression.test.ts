@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
+import { assert, assertEquals, assertThrows } from "jsr:@std/assert@^1.0.19"
 
 import { filterVisibleNodes } from "@/utils/nodeVisibility.ts"
 import { ActionNode, CommandNode, TextNode } from "@/utils/storyTypes.tsx"
@@ -6,6 +6,21 @@ import {
   parseTestStory as parseStory,
   withTestStory as withTempStory,
 } from "@/test/helpers.ts"
+import { parseDebugPath } from "@/utils/debugPath.ts"
+
+Deno.test("debug paths support numeric, alphabetic, and continue actions", () => {
+  assertEquals(parseDebugPath("12a- B"), [
+    { type: "choice", key: "1" },
+    { type: "choice", key: "2" },
+    { type: "choice", key: "A" },
+    { type: "continue" },
+    { type: "choice", key: "B" },
+  ])
+})
+
+Deno.test("debug paths reject unsupported characters", () => {
+  assertThrows(() => parseDebugPath("1_2"), Error, "Position 2")
+})
 
 Deno.test("parser assigns distinct levels to sibling top-level choices", async () => {
   const storyText = `title: Start

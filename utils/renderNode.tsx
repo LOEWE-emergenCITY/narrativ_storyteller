@@ -22,6 +22,7 @@ export interface RenderConfig {
   isHistorical?: boolean
   showDetourDebug?: boolean
   getChoiceShortcutLabel?: (choiceLevel?: number) => string | null
+  onChoiceSelected?: (choiceLevel: number) => void
 }
 
 function getNodeType(
@@ -96,7 +97,8 @@ function renderChoiceNode(
     <Button
       choiceId={config.getChoiceShortcutLabel?.(node.myChoiceLevel) ??
         String(node.myChoiceLevel)}
-      onClick={() => handleChoiceClick(contentNodes, index)}
+      onClick={() =>
+        handleChoiceClick(contentNodes, index, config.onChoiceSelected)}
       html={node.text || ""}
       disabled={node.choiceBlockId !== undefined &&
         config.choices[String(node.choiceBlockId)] === node.myChoiceLevel!}

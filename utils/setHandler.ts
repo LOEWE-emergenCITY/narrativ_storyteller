@@ -1,6 +1,7 @@
 // ===== SET COMMAND HELPERS =====
 
 import { ErrorReporter } from "@/utils/errorReporter.ts"
+import { parseArithmeticExpression } from "@/utils/arithmeticParser.ts"
 import { parseSetValue } from "@/utils/valueParser.ts"
 import { CommandNode, ContentNode } from "@/utils/storyTypes.tsx"
 
@@ -22,9 +23,7 @@ export function applySetCommands(
     )
     if (!variableName || !setCommand) continue
 
-    const parts = setCommand.split(" ")
-
-    if (parts[0].includes("random")) {
+    if (setCommand.startsWith("random")) {
       const randomMatch = setCommand.match(/random\((\d+),\s*(\d+)\)/)
       if (randomMatch) {
         const min = parseInt(randomMatch[1], 10)
@@ -37,20 +36,25 @@ export function applySetCommands(
       continue
     }
 
-    if (parts.length === 1) {
-      const value = parseSetValue(parts[0], updated, reporter)
+    if (/^(?:true|false|".*"|'.*')$/.test(setCommand.trim())) {
+      const value = parseSetValue(setCommand, updated, reporter)
       if (value !== null) updated.set(variableName, value)
       continue
     }
 
-    if (parts.length === 3) {
-      const [leftRaw, operator, rightRaw] = parts
-      const left = parseSetValue(leftRaw, updated, reporter) as number
-      const right = parseSetValue(rightRaw, updated, reporter) as number
-      if (left !== null && right !== null) {
-        if (operator === "+") updated.set(variableName, left + right)
-        else if (operator === "-") updated.set(variableName, left - right)
-      }
+    if (!/[+\-*/()]/.test(setCommand)) {
+      const value = parseSetValue(setCommand, updated, reporter)
+      if (value !== null) updated.set(variableName, value)
+      continue
+    }
+
+    const numericValue = parseArithmeticExpression(
+      setCommand,
+      updated,
+      reporter,
+    )
+    if (numericValue !== null) {
+      updated.set(variableName, numericValue)
       continue
     }
   }

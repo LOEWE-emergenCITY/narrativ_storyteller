@@ -289,6 +289,11 @@ function StoryViewer({
     console.log("DEBUG_PATH", debugPathOutput.current)
   }
 
+  function recordDebugChoice(choiceLevel: number): void {
+    const label = getChoiceShortcutLabel(choiceLevel)
+    if (label) recordDebugPathAction(label)
+  }
+
   useEffect(() => {
     if (!block) return
 
@@ -348,6 +353,7 @@ function StoryViewer({
     context,
     getChoiceShortcutLabel,
     nodeVariables,
+    onChoiceSelected: recordDebugChoice,
   }
 
   // ── Render historical blocks (read-only, frozen choices) ─────────────────
@@ -499,8 +505,7 @@ function StoryViewer({
       if (choiceIndex === null) return
 
       event.preventDefault()
-      recordDebugPathAction(event.key.toUpperCase())
-      handleChoiceClick(contentNodes, choiceIndex)
+      handleChoiceClick(contentNodes, choiceIndex, recordDebugChoice)
     }
 
     globalThis.addEventListener("keydown", handleStoryKeyDown)
@@ -562,8 +567,7 @@ function StoryViewer({
       return
     }
 
-    recordDebugPathAction(action.key)
-    handleChoiceClick(contentNodes, choiceIndex)
+    handleChoiceClick(contentNodes, choiceIndex, recordDebugChoice)
     setDebugReplayIndex((index) => index + 1)
   }, [
     blockTitle,

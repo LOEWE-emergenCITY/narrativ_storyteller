@@ -957,11 +957,6 @@ title: Laptop
 <<set $time_passes to $time_passes + 1>>
 // containment has priority
 <<if $containment > 0>>
-    <<once>>
-        <<Mood angela_angry_{$color_name}>>
-        'Also gut ... Erstmal alles vom Netz nehmen.' //no emergency messages via internet any more, only cell broadcast, change VPN password, update VPN server
-        Die nächsten paar Minuten verbringt sie zwischen Terminal und Browser, um einen möglichen externen Angreifer aus dem System auszuschließen.
-    <<endonce>>
     <<if visited("KathrinChattetMitJuliaWegenVergnuegungspark") == false>>
         <<set $time_passes to $time_passes + 7>>
         <<set $containment to $containment - 7>>
@@ -1142,6 +1137,13 @@ title: CheckEnding
 
 title: CheckContainment
 ---
+<<if $containment > 0>>
+    <<once>>
+        <<Mood angela_angry_{$color_name}>>
+        'Also gut ... Erstmal alles vom Netz nehmen.' //no emergency messages via internet any more, only cell broadcast, change VPN password, update VPN server
+        Die nächsten paar Minuten verbringt sie zwischen Terminal und Browser, um einen möglichen externen Angreifer aus dem System auszuschließen.
+    <<endonce>>
+<<endif>>
 <<if $containment <= 0>> //check if the task is done
     Nach einer Weile gibt sich Angela zufrieden. Sie könnte das eHUB noch auf manuelle Kontrolle umschalten, aber dann könnte sie es nicht mehr über die App bedienen. 'Nur wenn es wirklich sein muss', denkt sie.
     <<Mood angela_smirking_{$color_name}>>

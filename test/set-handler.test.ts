@@ -59,3 +59,51 @@ Deno.test("random set command does not always return the same value", () => {
   assertEquals(values, [0, 1, 0, 1])
   assertNotEquals(new Set(values).size, 1)
 })
+
+Deno.test("set commands evaluate decimal arithmetic with precedence", () => {
+  const variables = new Map<string, string | number | boolean>([
+    ["$battery", 98],
+    ["$time", 4],
+  ])
+
+  const updated = applySetCommands([
+    "$speed to $battery / ($time * 2)",
+    "$battery to $battery - $speed * $time",
+  ], variables)
+
+  assertEquals(updated.get("$speed"), 12.25)
+  assertEquals(updated.get("$battery"), 49)
+})
+
+Deno.test("set commands evaluate battery formulas without rounding", () => {
+  const variables = new Map<string, string | number | boolean>([
+    ["$Batterielevel", 98.0],
+    ["$total_time", 100],
+    ["$dthreshold", 0.70],
+    ["$drain_battery_speed_modifier_max", 3],
+    ["$drain_battery_speed_modifier", 0],
+    ["$time_passes", 10],
+  ])
+
+  const updated = applySetCommands([
+    "$drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))",
+    "$drain_battery_speed_no_shared_power to $drain_battery_speed*0.1",
+    "$Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes",
+  ], variables)
+
+  assertEquals(updated.get("$drain_battery_speed"), 1.4)
+  assertEquals(
+    Math.round(
+      Number(updated.get("$drain_battery_speed_no_shared_power")) * 100,
+    ),
+    14,
+  )
+  assertEquals(updated.get("$Batterielevel"), 84)
+})
+
+Deno.test("set arithmetic rejects division by zero", () => {
+  const variables = new Map<string, string | number | boolean>([["$value", 4]])
+  const updated = applySetCommands(["$value to $value / 0"], variables)
+
+  assertEquals(updated.get("$value"), 4)
+})

@@ -1408,11 +1408,18 @@ title: CheckContainment
   const intro = result.visibleNodes.findIndex((node) =>
     node.type === "text" && node.text.includes("Also gut")
   )
+  const introNode = result.visibleNodes[intro]
+  const introOnceKey = [...result.visibleOnceKeys][0]
 
   assert(intro >= 0)
+  assert(introNode)
+  assertEquals(result.visibleOnceKeys.size, 1)
+  assert(introOnceKey)
   assertEquals(result.finalVariables.get("$containment"), 0)
   assertEquals(progress.status, "ready_to_detour")
   assertEquals(progress.continueTarget, "CheckContainment")
+  const returnLine = progress.detourReturnLine
+  assertEquals(returnLine, 7)
 
   loadStory(story)
   blockEntryVariables.value = new Map(variables)
@@ -1441,9 +1448,11 @@ title: CheckContainment
   })
 
   assertEquals(storyVariables.value.get("$containment"), 0)
+  assertEquals(blockEntryVariables.value.get("$containment"), 0)
+  assert(seenOnceSections.value.has(introOnceKey))
   assert(
     blockHistory.value[0].renderSnapshot?.visibleNodes.some((snapshot) =>
-      snapshot.index === laptop.contentNodes.indexOf(result.visibleNodes[intro])
+      snapshot.index === laptop.contentNodes.indexOf(introNode)
     ),
   )
 
@@ -1460,6 +1469,34 @@ title: CheckContainment
   assert(
     completion.visibleNodes.some((node) =>
       node.type === "text" && node.text.includes("Nach einer Weile")
+    ),
+  )
+
+  returnFromDetour()
+
+  assertEquals(currentBlockTitle.value, "Laptop")
+  assertEquals(resumeFromLine.value, returnLine)
+  assertEquals(storyVariables.value.get("$containment"), 0)
+
+  const resumedNodes = laptop.contentNodes.slice(resumeFromLine.value)
+  const resumed = evaluateVisibleNodesSequentially(
+    resumedNodes,
+    {},
+    {},
+    {
+      visitedBlocks: visitedBlocks.value,
+      seenOnceSections: seenOnceSections.value,
+      variables: blockEntryVariables.value,
+    },
+    {
+      resumeStartIndent: laptop.contentNodes[resumeFromLine.value]
+        ?.identionLevel,
+    },
+  )
+
+  assert(
+    !resumed.visibleNodes.some((node) =>
+      node.type === "text" && node.text.includes("Also gut")
     ),
   )
 })

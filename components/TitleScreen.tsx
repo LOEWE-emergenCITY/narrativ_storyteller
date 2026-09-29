@@ -10,6 +10,10 @@ export interface TitleScreenProps {
   canContinue: boolean
   onStart: () => void
   onContinue: () => void
+  debugMode?: boolean
+  debugPath?: string
+  debugPathError?: string | null
+  onDebugPathChange?: (value: string) => void
 }
 
 type TitleActionButtonProps = {
@@ -48,7 +52,16 @@ function TitleActionButton(
 }
 
 export function TitleScreen(
-  { isReady, canContinue, onStart, onContinue }: TitleScreenProps,
+  {
+    isReady,
+    canContinue,
+    onStart,
+    onContinue,
+    debugMode = false,
+    debugPath = "",
+    debugPathError = null,
+    onDebugPathChange,
+  }: TitleScreenProps,
 ) {
   const titleStackRatio = canContinue ? "aspect-[8/7]" : "aspect-[8/6]"
 
@@ -76,6 +89,29 @@ export function TitleScreen(
                   <TitleActionButton onClick={onStart}>
                     Start
                   </TitleActionButton>
+                  {debugMode && (
+                    <div class="rounded-md border border-theme bg-surface p-3 text-left">
+                      <label
+                        class="block text-xs uppercase tracking-[0.2em] text-theme-muted"
+                        htmlFor="debug-path"
+                      >
+                        Debug-Pfad
+                      </label>
+                      <input
+                        id="debug-path"
+                        value={debugPath}
+                        onInput={(event) =>
+                          onDebugPathChange?.(event.currentTarget.value)}
+                        placeholder="1212----A-3"
+                        class="mt-2 w-full rounded-md border border-theme-strong bg-app-bg px-3 py-2 text-theme outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      {debugPathError && (
+                        <p class="mt-2 text-sm text-red-300">
+                          {debugPathError}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {canContinue && (
                     <TitleActionButton onClick={onContinue} secondary>
                       Continue

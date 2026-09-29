@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks"
+import { useEffect, useRef, useState } from "preact/hooks"
 import { ContinueButton, RestartButton } from "@/components/Button.tsx"
 import {
   ActionNode,
@@ -147,9 +147,11 @@ export function shouldAutoReturnFromDetour(
 function StoryViewer({
   onRestart,
   debugPath,
+  debugEnabled = false,
 }: {
   onRestart: () => void
   debugPath?: string | null
+  debugEnabled?: boolean
 }) {
   const blockTitle = currentBlockTitle.value
   const currentChoices = choices.value
@@ -263,6 +265,7 @@ function StoryViewer({
 
   const [debugReplayIndex, setDebugReplayIndex] = useState(0)
   const [debugReplayError, setDebugReplayError] = useState<string | null>(null)
+  const debugPathOutput = useRef("")
   let debugActions: DebugPathAction[] = []
   let parsedPathError: string | null = null
   if (debugPath) {
@@ -276,7 +279,15 @@ function StoryViewer({
   useEffect(() => {
     setDebugReplayIndex(0)
     setDebugReplayError(null)
+    debugPathOutput.current = ""
   }, [debugPath])
+
+  function recordDebugPathAction(action: string): void {
+    if (!debugEnabled) return
+
+    debugPathOutput.current += action
+    console.log("DEBUG_PATH", debugPathOutput.current)
+  }
 
   useEffect(() => {
     if (!block) return
@@ -470,6 +481,7 @@ function StoryViewer({
       if (event.key === "Enter") {
         if (showContinue) {
           event.preventDefault()
+          recordDebugPathAction("-")
           continueBranch()
           return
         }
@@ -487,6 +499,7 @@ function StoryViewer({
       if (choiceIndex === null) return
 
       event.preventDefault()
+      recordDebugPathAction(event.key.toUpperCase())
       handleChoiceClick(contentNodes, choiceIndex)
     }
 
@@ -528,6 +541,7 @@ function StoryViewer({
 
     if (action.type === "continue") {
       if (!showContinue) return
+      recordDebugPathAction("-")
       continueBranch()
       setDebugReplayIndex((index) => index + 1)
       return
@@ -548,6 +562,7 @@ function StoryViewer({
       return
     }
 
+    recordDebugPathAction(action.key)
     handleChoiceClick(contentNodes, choiceIndex)
     setDebugReplayIndex((index) => index + 1)
   }, [
@@ -568,7 +583,14 @@ function StoryViewer({
       <div class="mx-auto flex max-w-3xl flex-col">
         {historicalSections}
         {renderedNodes}
-        {showContinue && <ContinueButton onClick={() => continueBranch()} />}
+        {showContinue && (
+          <ContinueButton
+            onClick={() => {
+              recordDebugPathAction("-")
+              continueBranch()
+            }}
+          />
+        )}
         {debugPath && debugReplayError && (
           <p class="mt-4 rounded-md border border-red-400/50 bg-red-950/20 px-4 py-3 text-sm text-red-200">
             Debug-Pfad: {debugReplayError}

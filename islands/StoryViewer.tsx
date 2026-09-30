@@ -144,6 +144,13 @@ export function shouldAutoReturnFromDetour(
   return status === "complete_without_continue" && detourStackLength > 0
 }
 
+export function shouldReplayDebugActionForBlock(
+  renderedBlockTitle: string,
+  activeBlockTitle: string,
+): boolean {
+  return renderedBlockTitle === activeBlockTitle
+}
+
 function StoryViewer({
   onRestart,
   debugPath,
@@ -538,6 +545,10 @@ function StoryViewer({
       !debugPath || parsedPathError || debugReplayError ||
       debugReplayIndex >= debugActions.length
     ) {
+      return
+    }
+
+    if (!shouldReplayDebugActionForBlock(blockTitle, currentBlockTitle.value)) {
       return
     }
 

@@ -1501,6 +1501,110 @@ title: CheckContainment
   )
 })
 
+Deno.test({
+  name: "level3 containment intro and completion use their intended states",
+  fn: async () => {
+    const story = await parseStory(`title: Laptop
+---
+<<declare $containment = 20>>
+<<declare $time_passes = 0>>
+<<if $containment > 0>>
+    <<set $time_passes to $time_passes + 5>>
+    <<set $containment to $containment - 5>>
+    <<detour CheckContainment>>
+<<endif>>
+===
+title: CheckContainment
+---
+<<if $containment > 0>>
+    <<once>>
+        'Also gut ... Erstmal alles vom Netz nehmen.'
+    <<endonce>>
+<<endif>>
+<<if $containment <= 0>>
+    Nach einer Weile gibt sich Angela zufrieden.
+<<endif>>
+===
+`)
+    const laptop = story.blocks.get("Laptop")
+    const checkContainment = story.blocks.get("CheckContainment")
+
+    assert(laptop)
+    assert(checkContainment)
+
+    const variables = new Map(story.variables)
+    const visited = new Set(["Laptop"])
+    const laptopResult = evaluateVisibleNodesSequentially(
+      laptop.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visited,
+        seenOnceSections: new Set(),
+        variables,
+      },
+    )
+    const laptopProgress = evaluateActiveBlockProgress(
+      laptop.contentNodes,
+      laptopResult.visibleNodes,
+      {},
+    )
+
+    assertEquals(laptopResult.finalVariables.get("$containment"), 15)
+    assertEquals(laptopProgress.status, "auto_detour_now")
+    assertEquals(laptopProgress.continueTarget, "CheckContainment")
+    assertEquals(laptopResult.visibleOnceKeys.size, 0)
+
+    const containmentIntro = evaluateVisibleNodesSequentially(
+      checkContainment.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visited,
+        seenOnceSections: laptopResult.visibleOnceKeys,
+        variables: laptopResult.finalVariables,
+      },
+    )
+
+    assert(
+      containmentIntro.visibleNodes.some((node) =>
+        node.type === "text" && node.text.includes("Also gut")
+      ),
+    )
+    assertEquals(containmentIntro.visibleOnceKeys.size, 1)
+    assertEquals(
+      containmentIntro.visibleNodes.some((node) =>
+        node.type === "text" && node.text.includes("Nach einer Weile")
+      ),
+      false,
+    )
+
+    variables.set("$containment", 0)
+    const completion = evaluateVisibleNodesSequentially(
+      checkContainment.contentNodes,
+      {},
+      {},
+      {
+        visitedBlocks: visited,
+        seenOnceSections: containmentIntro.visibleOnceKeys,
+        variables,
+      },
+    )
+
+    assert(
+      completion.visibleNodes.some((node) =>
+        node.type === "text" && node.text.includes("Nach einer Weile")
+      ),
+    )
+    assertEquals(
+      completion.visibleNodes.some((node) =>
+        node.type === "text" && node.text.includes("Also gut")
+      ),
+      false,
+    )
+  },
+})
+
 Deno.test("plan task variables are committed before leaving their blocks", async () => {
   const story = await parseStory(`title: FindEHUBPlansTask
 ---

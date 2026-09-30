@@ -1,7 +1,7 @@
 title: Start
 position: -120,-1118
 ---
-<<declare $story_version = 26>>
+<<declare $story_version = 28>>
 <<set $time_passes to $time_passes + 1>>
 
 <<declare $player_name = "Angela">>
@@ -957,37 +957,7 @@ title: Laptop
 <<set $time_passes to $time_passes + 1>>
 // containment has priority
 <<if $containment > 0>>
-    <<once>>
-        <<Mood angela_angry_{$color_name}>>
-        'Also gut ... Erstmal alles vom Netz nehmen.' //no emergency messages via internet any more, only cell broadcast, change VPN password, update VPN server
-        Die nächsten paar Minuten verbringt sie zwischen Terminal und Browser, um einen möglichen externen Angreifer aus dem System auszuschließen.
-    <<endonce>>
-    <<if visited("KathrinChattetMitJuliaWegenVergnuegungspark") == false>>
-        <<set $time_passes to $time_passes + 7>>
-        <<set $containment to $containment - 7>>
-        <<if $KathrinImRaum == false>>
-            Bis Kathrin in der Tür auftaucht.
-        <<endif>>
-        <<detour CheckContainment>>
-        <<jump KathrinChattetMitJuliaWegenVergnuegungspark>>
-    <<elseif visited("TelefongespraechBrichtAb") == false>>
-        "So ...", murmelt Angela zu sich selbst. "Ich sollte noch einmal prüfen, ob alle Systeme vom Netz sind und mein VPN-Passwort ändern. Nur für den Fall ..." <<once>>
-        <<if visited("AngelaGehtZumLaptop")>> //mit Tim gechattet
-            <<set $time_passes to $time_passes + 5>>
-            <<set $containment to $containment - 5>>
-        <<else>>
-            <<set $time_passes to $time_passes + 15>>
-            <<set $containment to $containment - 15>>
-        <<endif>>
-        <<detour CheckContainment>>
-        <<jump TelefongespraechBrichtAb>>
-    <<else>>
-        <<set $time_passes to $time_passes + $containment>>
-        <<set $containment to 0>>
-        <<detour CheckContainment>>
-        <<detour Scheduler>>
-        <<jump Laptop>>
-    <<endif>>
+    <<detour CheckContainment>>
 <<endif>>
 
 <<detour CheckEnding>>
@@ -1142,10 +1112,41 @@ title: CheckEnding
 
 title: CheckContainment
 ---
+<<if $containment > 0>>
+    <<once>>
+        <<Mood angela_angry_{$color_name}>>
+        'Also gut ... Erstmal alles vom Netz nehmen.' //no emergency messages via internet any more, only cell broadcast, change VPN password, update VPN server
+        Die nächsten paar Minuten verbringt sie zwischen Terminal und Browser, um einen möglichen externen Angreifer aus dem System auszuschließen.
+    <<endonce>>
+    <<if visited("KathrinChattetMitJuliaWegenVergnuegungspark") == false>>
+        <<set $time_passes to $time_passes + 7>>
+        <<set $containment to $containment - 7>>
+        <<if $KathrinImRaum == false>>
+            Bis Kathrin in der Tür auftaucht.
+        <<endif>>
+        <<jump KathrinChattetMitJuliaWegenVergnuegungspark>>
+    <<elseif visited("TelefongespraechBrichtAb") == false>>
+        "So ...", murmelt Angela zu sich selbst. "Ich sollte noch einmal prüfen, ob alle Systeme vom Netz sind und mein VPN-Passwort ändern. Nur für den Fall ..." <<once>>
+        <<if visited("AngelaGehtZumLaptop")>> //mit Tim gechattet
+            <<set $time_passes to $time_passes + 5>>
+            <<set $containment to $containment - 5>>
+        <<else>>
+            <<set $time_passes to $time_passes + 15>>
+            <<set $containment to $containment - 15>>
+        <<endif>>
+        <<jump TelefongespraechBrichtAb>>
+    <<else>>
+        <<set $time_passes to $time_passes + $containment>>
+        <<set $containment to 0>>
+        <<detour Scheduler>>
+    <<endif>>
+<<endif>>
 <<if $containment <= 0>> //check if the task is done
-    Nach einer Weile gibt sich Angela zufrieden. Sie könnte das eHUB noch auf manuelle Kontrolle umschalten, aber dann könnte sie es nicht mehr über die App bedienen. 'Nur wenn es wirklich sein muss', denkt sie.
+    Nach einer Weile gibt sich Angela zufrieden. Fast alle Netzwerkverbindungen sind offline. Sie könnte das eHUB noch auf manuelle Kontrolle umschalten, aber dann könnte sie es nicht mehr über die App bedienen. 'Nur wenn es wirklich sein muss', denkt sie.
     <<Mood angela_smirking_{$color_name}>>
     Es wird Zeit für die eigentliche Analyse des Problems.
+    <<detour Scheduler>>
+    <<jump Laptop>>
 <<endif>>
 ===
 

@@ -1,7 +1,7 @@
 title: Start
 position: -120,-1118
 ---
-<<declare $story_version = 26>>
+<<declare $story_version = 27>>
 <<set $time_passes to $time_passes + 1>>
 
 <<declare $player_name = "Angela">>
@@ -115,12 +115,13 @@ position: -120,-1118
 <<declare $KathrinLangweiltSichTime = 0>>
 
 // power level tracking
-<<declare $Batterielevel = 98.0>>
-<<declare $drain_battery_speed = 0.0>>
-<<declare $drain_battery_speed_no_shared_power = 0.0>>
+<<declare $battery_level = 100.00>>
+<<declare $battery_capacity = 100.00>>
+<<declare $drain_battery_speed = 0.00>>
 <<declare $drain_battery_speed_modifier = 0>>
 <<declare $drain_battery_speed_modifier_max = 3>>
 <<declare $dthreshold = 0.70>> // percentage of time passed after which battery may run out
+<<declare $previous_time = 0>>
 
 // track other states from Kathrins goal
 <<declare $RecordTimeCounter = 12>>
@@ -892,21 +893,15 @@ title: Energiesparen1
 group: Setup
 ---
 <<set $time_passes to $time_passes + 1>>
-//<<set $Batterielevel to 98>>
+//<<set $battery_level to 98>>
 // update battery level based on time passed
-<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
-<<if $power_sharing == false>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
-<<elseif $HeizungAus>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.8>> //reduced usage when heizung aus
-<<endif>>
-<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+<<detour BatteryCheck>>
 // update modifier for visiting
 <<if $drain_battery_speed_modifier < $drain_battery_speed_modifier_max>>
     <<set $drain_battery_speed_modifier to $drain_battery_speed_modifier + 1>>
 <<endif>>
 Danach prüft sie, was sonst alles unnötig Strom verbraucht.
-Der Akku hat sich auf {$Batterielevel}% entladen. Nicht ungewöhnlich, wenn die Nachbarn erst ihren Strombedarf anpassen müssen. Aber sie sollte das im Auge behalten.
+Der Akku hat sich auf {$battery_level}% entladen. Nicht ungewöhnlich, wenn die Nachbarn erst ihren Strombedarf anpassen müssen. Aber sie sollte das im Auge behalten.
 <<if visited("UeberblickNachrichten") == false>>
     Eine Nachricht von Tim erscheint auf ihrem Display.
     Tim: NVM MEIS.
@@ -922,6 +917,19 @@ Der Akku hat sich auf {$Batterielevel}% entladen. Nicht ungewöhnlich, wenn die 
     <<set $KathrinImRaum to false>>
     <<set $AngelasPosition to "Laptop">>
     <<jump KathrinVorLaptop>>
+===
+
+title: BatteryCheck
+---
+// update battery level based on time passed
+<<set $drain_battery_speed to $battery_capacity/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 3, higher = slower battery drainage
+<<if $power_sharing == false>>
+    <<set $drain_battery_speed to $drain_battery_speed*0.1>> //reduced usage when not sharing
+<<elseif $HeizungAus>>
+    <<set $drain_battery_speed to $drain_battery_speed*0.8>> //reduced usage when heizung aus
+<<endif>>
+<<set $battery_level to $battery_level-$drain_battery_speed*($time_passes - $previous_time)>>
+<<set $previous_time to $time_passes>>
 ===
 
 title: LaptopOderSmartphone
@@ -1447,13 +1455,7 @@ title: Scheduler
     <<set $neighbors_complain_time to $neighbors_complain_time - 1>>
 <<endif>>
 //update battery level for checks
-<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
-<<if $power_sharing == false>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
-<<elseif $HeizungAus>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.8>> //reduced usage when heizung aus
-<<endif>>
-<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+<<detour BatteryCheck>>
 
 // generic event - priority as last bottleneck that sets off the rest
 <<if visited("JuliaSagtAb") == false>>
@@ -1502,7 +1504,7 @@ title: Scheduler
     <<jump StromGehtAus>>
 <<endif>>
 // generic event - it's more likely the power will go low if the reader ignores the power regulation
-<<if $KathrinZuhause and visited("StromWirdKnapp") == false and $Batterielevel <= 10>>
+<<if $KathrinZuhause and visited("StromWirdKnapp") == false and $battery_level <= 10>>
     <<jump StromWirdKnapp>>
 <<endif>>
 // Kathrins event - Internetdown-Bottleneck for getting her to do a present
@@ -2163,13 +2165,7 @@ title:Energiesparen2
 ---
 <<set $time_passes to $time_passes + 1>>
 // update battery level based on time passed
-<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
-<<if $power_sharing == false>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
-<<elseif $HeizungAus>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.8>> //reduced usage when heizung aus
-<<endif>>
-<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+<<detour BatteryCheck>>
 // update modifier for visiting
 <<if $drain_battery_speed_modifier < $drain_battery_speed_modifier_max>>
     <<set $drain_battery_speed_modifier to $drain_battery_speed_modifier + 1>>
@@ -2178,10 +2174,10 @@ title:Energiesparen2
     <<if random() < 0.5>>
         <<detour WenigerStrom1>>
     <<else>>
-        Der Batteriestand ist auf {$Batterielevel}%. Angela wirft einen Blick aus dem Fenster. Es sind Wolken aufgezogen. Aber dafür liegt der Verbrauch noch im Rahmen.
+        Der Batteriestand ist auf {$battery_level}%. Angela wirft einen Blick aus dem Fenster. Es sind Wolken aufgezogen. Aber dafür liegt der Verbrauch noch im Rahmen.
     <<endif>>
 <<else>>
-    Der Batteriestand ist gesunken. {$Batterielevel}%. Außerdem sind noch alle Lichter an. Rasch schaltet Angela alle Geräte aus, die unnötig Strom verbrauchen.
+    Der Batteriestand ist gesunken. {$battery_level}%. Außerdem sind noch alle Lichter an. Rasch schaltet Angela alle Geräte aus, die unnötig Strom verbrauchen.
     <<Mood angela_regular_{$color_name}>>
     Gut, dass sie den Verbrauch geprüft hat. Zumal, da Wolken aufgezogen sind.
 <<endif>>
@@ -2191,18 +2187,18 @@ title:Energiesparen2
 title: WenigerStrom1
 ---
 <<if visited("Energiesparen1") or visited("Energiesparen2") or visited("Energiesparen2Ersatz")>>
-    Der Batteriestand ist gesunken. {$Batterielevel}%. Aber in der Smart Home App lässt sich nicht mehr viel optimieren. Was tun die Nachbarn? // being non- energy-responsible?
+    Der Batteriestand ist gesunken. {$battery_level}%. Aber in der Smart Home App lässt sich nicht mehr viel optimieren. Was tun die Nachbarn? // being non- energy-responsible?
     <<Mood angela_annoyed_{$color_name}>>
 <<else>>
     <<Mood angela_embarrassed_{$color_name}>>
-    Sie hätte früher nachsehen sollen. Der Batteriestand ist auf {$Batterielevel}%. Und das trotz des Sonnenscheins am Morgen! Inzwischen sind allerdings Wolken aufgezogen. Kein gutes Zeichen ...
+    Sie hätte früher nachsehen sollen. Der Batteriestand ist auf {$battery_level}%. Und das trotz des Sonnenscheins am Morgen! Inzwischen sind allerdings Wolken aufgezogen. Kein gutes Zeichen ...
     Hastig schaltet Angela alle entbehrlichen Geräte ab. Sie zögert wegen der Heizung und des Kühlschranks. Lieber nicht ...
     <<if $IsolationUnknown>>
         <<set $IsolationUnknown to false>>
         Bei den aktuellen Temperaturen würde sich der Kühlschrankinhalt im Garten wohlfühlen, aber sie hatte weder die Zeit noch die Nerven alles umzuräumen. Und da das Dach immer noch nicht repariert war, würde es nicht lange dauern, bis es im Haus ungemütlich kalt würde.
     <<endif>>
 <<endif>>
--> Angela ignoriert den Verbrauch. Noch ist es unkritisch. Vermutlich liegt es daran, dass Wolken aufgezogen sind. <<if (visited("Energiesparen1") or visited("Energiesparen2") or visited("Energiesparen2Ersatz")) and $Batterielevel > 0.85>>
+-> Angela ignoriert den Verbrauch. Noch ist es unkritisch. Vermutlich liegt es daran, dass Wolken aufgezogen sind. <<if (visited("Energiesparen1") or visited("Energiesparen2") or visited("Energiesparen2Ersatz")) and $battery_level > 0.85>>
 -> Kathrin soll den Nachbarn schreiben, dass sie ihren Bedarf anpassen sollen.
     Angela schreibt Kathrin eine Nachricht.
     <<set $Energiesparwarnung to $Energiesparwarnung + 1>>
@@ -2395,8 +2391,9 @@ position: -405,1366
 <<set $time_passes to $time_passes + 1>>
 // Kathrin am Smartphone, etwa 10 min lang, danach: DritteWarnung
 "Ich hab ein wirklich schlechtes Gefühl bei dieser Sache", murmelt Angela.
+Kathrins Kopf taucht im Türrahmen auf.
 <<Mood kathrin_regular_happy_{$color_name}>>
-Kathrins Kopf taucht im Türrahmen auf. "Hast du was gesagt?"
+"Hast du was gesagt?", fragt sie.
 "Nur laut gedacht."
 "Ahso."
 Kathrin verlässt den Raum. Angela tippt mit ihrem Zeigefinger auf die Tischkante.
@@ -3449,17 +3446,11 @@ title: Energiesparen3
 ---
 <<set $time_passes to $time_passes + 1>>
 // update battery level based on time passed
-<<set $drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))>> // modifier between 0 and 2, higher = slower battery drainage
-<<if $power_sharing == false>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.1>> //reduced usage when not sharing
-<<elseif $HeizungAus>>
-    <<set $drain_battery_speed_no_shared_power to $drain_battery_speed*0.8>> //reduced usage when heizung aus
-<<endif>>
-<<set $Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes>>
+<<detour BatteryCheck>>
 // update modifier for visiting
 <<if $drain_battery_speed_modifier < $drain_battery_speed_modifier_max>>
     <<set $drain_battery_speed_modifier to $drain_battery_speed_modifier + 1>>
-<<if visited("NachbarnBeschwerenSich") and $Batterielevel <= 10>>
+<<if visited("NachbarnBeschwerenSich") and $battery_level <= 10>>
     <<jump Energiesparen4>>
 <<else>>
     <<if visited("Energiesparen1") and visited("Energiesparen2") == false and visited("Energiesparen2Ersatz") == false>>
@@ -3477,7 +3468,7 @@ title: Energiesparen3
 
 title: Energiesparen2Ersatz
 ---
-Der Batteriestand ist gesunken. {$Batterielevel}%.
+Der Batteriestand ist gesunken. {$battery_level}%.
 <<if visited("Energiesparen1")>>
     Aber in der Smart Home App lässt sich nicht mehr viel optimieren. Was tun die Nachbarn? // being non- energy-responsible?
     Angela wirft einen Blick aus dem Fenster. Die Sonne scheint nicht mehr. Auch das noch ...
@@ -3497,7 +3488,7 @@ title: WenigerStrom
 <<if visited("WenigerStrom1") == false>>
     <<detour WenigerStrom1>>
 <<else>>
-    Der Batteriestand ist gesunken. {$Batterielevel}%. Angela flucht.
+    Der Batteriestand ist gesunken. {$battery_level}%. Angela flucht.
     //-> Angela schaltet die Klimaanlage aus, um Strom zu sparen. <<if $KlimaanlageAus == false>>
     //    <<set $KlimaanlageAus to true>>
     <<if $IsolationUnknown>>
@@ -3505,15 +3496,18 @@ title: WenigerStrom
         Sie könnte die Heizung ausschalten. Aber da das Dach immer noch nicht repariert war, würde es bei den aktuellen Temperaturen nicht lange dauern, bis es im Haus ungemütlich kalt würde ...
     <<endif>>
     -> Sie schaltet die Heizung aus, um Strom zu sparen. <<if $HeizungAus == false>>
+        <<detour BatteryCheck>>
         <<set $HeizungAus to true>>
     -> Sie überlegt, das Teilen des Stroms auszuschalten. <<if $power_sharing == true and $Energiesparwarnung > 0 and visited("NachbarnBeschwerenSich") == false>>
         <<if visited("WenigerStromFirstTime")>>
             <<Mood angela_angry_{$color_name}>>
             <<if $Energiesparwarnung > 1>>
                 Sie tut es. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie. Und Kathrin hat die Nachbarn schließlich zweimal gewarnt.
+                <<detour BatteryCheck>>
                 <<set $power_sharing to false>>
             <<else>>
                 Sie tut es. Schon um die Nachbarn zu warnen. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie.
+                <<detour BatteryCheck>>
                 <<set $power_sharing to false>>
                 <<set $social_score to $social_score - 1>>
             <<endif>>
@@ -3548,11 +3542,11 @@ title: Energiesparen4
 <<set $time_passes to $time_passes + 1>>
 <<if visited("StromWirdKnapp")>>
     <<Mood angela_angry_talking_{$color_name}>>
-    Die Batterie ist beinahe alle. {$Batterielevel}%! Aber Angela kann nichts mehr tun. Sie flucht. Sie muss sich beeilen.
+    Die Batterie ist beinahe alle. {$battery_level}%! Aber Angela kann nichts mehr tun. Sie flucht. Sie muss sich beeilen.
     <<jump NachErsterEskalation>>
 <<else>>
     <<Mood angela_angry_{$color_name}>>
-    Die Batterie ist beinahe alle. {$Batterielevel}%! Das kann so nicht weitergehen!
+    Die Batterie ist beinahe alle. {$battery_level}%! Das kann so nicht weitergehen!
     <<if $KathrinImRaum>>
         Angela wendet sich an Kathrin.
     <<else>>
@@ -4347,6 +4341,7 @@ title: FirstTimeKalt
     <<Mood kathrin_shocked_{$color_name}>>
     "Aber es ist echt eisig! Ich mach sie nochmal an."
     Angela würde gerne widersprechen. Aber Kathrin hat recht. Es ist unangenehm kalt geworden. Verflixtes Dach.
+    <<detour BatteryCheck>>
     <<set $HeizungAus to false>>
     <<set $mental_health_angela to $mental_health_angela - 1>>
 <<else>>
@@ -4371,6 +4366,7 @@ title: MultipleTimesKalt
         <<Mood kathrin_upset_{$color_name}>>
         "Mach ich auch", brummt Kathrin. "Jetzt zum Beispiel."
         <<set $social_score to $social_score - 1>>
+    <<detour BatteryCheck>>
     <<set $HeizungAus to false>>
 <<else>>
     Angela zuckt mit den Schultern. "Keine Ahnung. Vielleicht ist der Energiesparmodus angesprungen."
@@ -8147,6 +8143,7 @@ Sie betritt den Raum. "Lisa schreibt, bei ihnen in der Kellerwohnung wären es n
 -> "Nur, solange sie versprechen, dass sie vernünftig mit dem Strom umgehen", knurrt Angela.
     <<Mood kathrin_conscious_smile_{$color_name}>>
     Kathrin nickt. "Ich sag es ihnen nochmal."
+    <<detour BatteryCheck>>
     <<set $power_sharing to true>>
 -> "Nein. Das ist nicht unser Problem."
     Kathrin verzieht das Gesicht. "Aber stell dir vor, wir hätten kein eHUB. Wir würden doch auch nicht wollen, dass uns die Nachbarn den Strom abdrehen."
@@ -8160,6 +8157,7 @@ Sie betritt den Raum. "Lisa schreibt, bei ihnen in der Kellerwohnung wären es n
         <<Mood kathrin_relieved_{$color_name}>>
         //Kathrin nickt.
         "Ich schreibs ihnen."
+        <<detour BatteryCheck>>
         <<set $power_sharing to true>>
 -> Angela schüttelt den Kopf. "Ich weiß nicht, was sie gemacht haben, aber so schnell sollte es nicht so kalt werden."
     "Es sei denn, man hat ein kaputtes Dach und keine Handwerker", setzt sie hinzu.
@@ -8168,6 +8166,7 @@ Sie betritt den Raum. "Lisa schreibt, bei ihnen in der Kellerwohnung wären es n
     //Angela starrt sie an.
     'Verdammt', denkt Angela. "Okay ... Wir können teilen."
     Kathrin lächelt. "Ich stells um!"
+    <<detour BatteryCheck>>
     <<set $power_sharing to true>> //TODO change ingame
 //        -> Okay, das ist blöd. Sag ihnen, der Strom ist bald wieder da.
 //            Also kann ich umschalten?
@@ -8238,6 +8237,7 @@ Kathrin zückt ihr Smartphone.
         <<set $IsolationUnknown to false>>
         Sie verzieht das Gesicht. "Ich hoffe wirklich, dieser Stromausfall dauert nicht mehr lange. Das Dach ist ja immer noch nicht repariert. Ich fürchte, bei den Temperaturen wird das Haus schnell runterkühlen."
     <<endif>>
+    <<detour BatteryCheck>>
     <<set $HeizungAus to true>>
 <<endif>>
 <<if visited("VierteWarnung") == false and $power_sharing>>
@@ -8246,6 +8246,7 @@ Kathrin zückt ihr Smartphone.
         "Kannst du das - Ach so, du bist ja nicht im Chat ..." Kathrin seufzt. "Na gut."
         <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
     -> "CaTARSis, deaktiviere den Inselbetrieb!"
+        <<detour BatteryCheck>>
         <<set $power_sharing to false>>
         "Der Inselbetrieb ist deaktiviert", meldet CaTARSis.
         //<<Mood kathrin_shocked_{$color_name}>>
@@ -8259,6 +8260,7 @@ Kathrin zückt ihr Smartphone.
         -> "Dann sag den Nachbarn, sie sollen ihren Stromverbrauch senken. Sonst senke ich ihn."
             <<Mood kathrin_empathetic_{$color_name}>>
             "Ja gut, mach ich ... CaTARSis, aktiviere den Inselbetrieb!"
+            <<detour BatteryCheck>>
             <<set $power_sharing to true>>
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
     Kathrin zückt ihr Smartphone und tippt.
@@ -8340,7 +8342,7 @@ tags: dependsOn:power_sharing
         "Ja. Der Speicher ist alle, das Auto ist weg und die PV generiert nicht genug. Der Strom ist weg."
         Kathrin starrt sie an.
     <<endif>>
-    <<set $Batterielevel to 0>>
+    <<set $battery_level to 0>>
     <<set $mental_health_angela to $mental_health_angela - 1>>
     <<if visited("VierteWarnung") and $DeadlineSonnenuntergang == false>>
         "Eigentlich sollte die Grundversorgung der kritischen Infrastruktur nicht so viel ziehen" knurrt Angela. "Zumindest nicht tagsüber. Aber sie tut es. Oder wir haben einfach zu viel verbraucht."
@@ -8361,6 +8363,7 @@ tags: dependsOn:power_sharing
         <<if visited("VierteWarnung") == false and $power_sharing and $DeadlineSonnenuntergang == false>>
             Angela seufzt. "CaTARSis, deaktiviere den Inselbetrieb!"
             //<<Mood catarsis_sad_silent_{$color_name}>>
+            <<detour BatteryCheck>>
             <<set $power_sharing to false>> //TODO change ingame
             <<if visited("KathrinNimmtMusikFuerPatrickAuf") == false>>
                 <<Mood kathrin_shocked_{$color_name}>>
@@ -8428,6 +8431,7 @@ tags: dependsOn:power_sharing
         <<if visited("VierteWarnung") == false and $power_sharing and $DeadlineSonnenuntergang == false>>
             //<<Mood catarsis_sad_silent_{$color_name}>>
             "CaTARSis, deaktiviere den Inselbetrieb!"
+            <<detour BatteryCheck>>
             <<set $power_sharing to false>>
             Angela holt ihr Smartphone hervor. Starrt auf die Akkuanzeige. 0%. Ein roter Pfeil nach unten.
             <<Mood angela_angry_talking_{$color_name}>>

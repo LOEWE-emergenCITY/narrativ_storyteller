@@ -77,18 +77,20 @@ Deno.test("set commands evaluate decimal arithmetic with precedence", () => {
 
 Deno.test("set commands evaluate battery formulas without rounding", () => {
   const variables = new Map<string, string | number | boolean>([
-    ["$Batterielevel", 98.0],
+    ["$battery_level", 98.0],
+    ["$battery_capacity", 98.0],
     ["$total_time", 100],
     ["$dthreshold", 0.70],
     ["$drain_battery_speed_modifier_max", 3],
     ["$drain_battery_speed_modifier", 0],
     ["$time_passes", 10],
+    ["$previous_time", 4],
   ])
 
   const updated = applySetCommands([
-    "$drain_battery_speed to $Batterielevel/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))",
+    "$drain_battery_speed to $battery_capacity/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))",
     "$drain_battery_speed_no_shared_power to $drain_battery_speed*0.1",
-    "$Batterielevel to $Batterielevel-$drain_battery_speed*$time_passes",
+    "$battery_level to $battery_level-$drain_battery_speed*($time_passes-$previous_time)",
   ], variables)
 
   assertEquals(updated.get("$drain_battery_speed"), 1.4)
@@ -98,7 +100,41 @@ Deno.test("set commands evaluate battery formulas without rounding", () => {
     ),
     14,
   )
-  assertEquals(updated.get("$Batterielevel"), 84)
+  assertEquals(updated.get("$battery_level"), 89.6)
+})
+
+Deno.test("set commands evaluate repeated battery formulas working with elapsed time", () => {
+  const variables = new Map<string, string | number | boolean>([
+    ["$battery_level", 98.0],
+    ["$battery_capacity", 98.0],
+    ["$total_time", 100],
+    ["$dthreshold", 0.70],
+    ["$drain_battery_speed_modifier_max", 3],
+    ["$drain_battery_speed_modifier", 0],
+    ["$time_passes", 10],
+    ["$previous_time", 0],
+  ])
+
+  const updated = applySetCommands([
+    "$drain_battery_speed to $battery_capacity/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))",
+    "$battery_level to $battery_level-$drain_battery_speed*($time_passes-$previous_time)",
+    "$previous_time to $time_passes",
+  ], variables)
+
+  assertEquals(updated.get("$drain_battery_speed"), 1.4)
+  assertEquals(updated.get("$battery_level"), 84)
+  assertEquals(updated.get("$previous_time"), 10)
+
+  updated.set("$time_passes", 15)
+
+  const updatedTwice = applySetCommands([
+    "$drain_battery_speed to $battery_capacity/($total_time*($dthreshold+((1-$dthreshold)/$drain_battery_speed_modifier_max)*$drain_battery_speed_modifier))",
+    "$battery_level to $battery_level-$drain_battery_speed*($time_passes-$previous_time)",
+    "$previous_time to $time_passes",
+  ], updated)
+
+  assertEquals(updatedTwice.get("$battery_level"), 77)
+  assertEquals(updatedTwice.get("$previous_time"), 15)
 })
 
 Deno.test("set arithmetic rejects division by zero", () => {

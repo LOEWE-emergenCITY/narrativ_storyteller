@@ -2,6 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import {
   activeBlockStatus,
+  ActiveRenderSnapshot,
   activeRenderSnapshot,
   applyVariables,
   blockEntryVariables,
@@ -151,6 +152,57 @@ Visible once <<once>>
     visibleNodes: [{ index: 1, variables: { "$counter": 1 } }],
     visibleOnceKeys: ["Start:4"],
   })
+})
+
+Deno.test("render snapshots persist variable deltas and restore full snapshots", () => {
+  const snapshot: ActiveRenderSnapshot = {
+    visibleNodes: [
+      { index: 2, variables: { "$first": "same", "$removed": true } },
+      { index: 5, variables: { "$first": "same", "$removed": true } },
+      { index: 8, variables: { "$first": "changed", "$added": 7 } },
+    ],
+    visibleOnceKeys: ["Start:9"],
+  }
+  const largeVariables: Record<string, string | number | boolean> = Object
+    .fromEntries(
+      Array.from({ length: 40 }, (_, index) => [
+        `$variable_${index}`,
+        `a repeated value shared by all visible nodes ${index}`,
+      ]),
+    )
+  const largeSnapshot: ActiveRenderSnapshot = {
+    visibleNodes: Array.from({ length: 20 }, (_, index) => ({
+      index,
+      variables: { ...largeVariables, "$step": index < 19 ? 0 : 1 },
+    })),
+    visibleOnceKeys: [],
+  }
+
+  updateActiveRenderSnapshot(snapshot)
+  const savedState = getSavedStoryState("demo.yarn", 1, true)
+  const persistedSnapshot = savedState.activeRenderSnapshot
+
+  assert(persistedSnapshot)
+  assertEquals(persistedSnapshot.visibleNodes, [
+    { index: 2, variables: { "$first": "same", "$removed": true } },
+    { index: 5, changes: {} },
+    {
+      index: 8,
+      changes: { "$first": "changed", "$removed": null, "$added": 7 },
+    },
+  ])
+
+  updateActiveRenderSnapshot(largeSnapshot)
+  const compactSnapshot = getSavedStoryState("demo.yarn", 1, true)
+    .activeRenderSnapshot
+  assert(compactSnapshot)
+  assert(
+    JSON.stringify(compactSnapshot).length <
+      JSON.stringify(largeSnapshot).length,
+  )
+
+  restoreSavedStoryState(savedState)
+  assertEquals(activeRenderSnapshot.value, snapshot)
 })
 
 Deno.test("plan variables remain true across save and reload", async () => {

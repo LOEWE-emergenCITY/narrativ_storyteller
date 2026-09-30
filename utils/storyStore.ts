@@ -16,7 +16,7 @@ import {
 import type { ActiveBlockStatus } from "@/utils/nodeVisibility.ts"
 
 export const STORY_STATE_STORAGE_KEY = "narrativ.storyState"
-export const STORY_STATE_VERSION = 4
+export const STORY_STATE_VERSION = 5
 
 // ===== SIGNALS =====
 
@@ -47,6 +47,15 @@ export interface RenderedNodeSnapshot {
 
 export interface ActiveRenderSnapshot {
   visibleNodes: RenderedNodeSnapshot[]
+  visibleOnceKeys: string[]
+}
+
+type PersistedRenderedNodeSnapshot =
+  | { index: number; variables: Record<string, StoryValue> }
+  | { index: number; changes: Record<string, StoryValue | null> }
+
+interface PersistedActiveRenderSnapshot {
+  visibleNodes: PersistedRenderedNodeSnapshot[]
   visibleOnceKeys: string[]
 }
 
@@ -122,6 +131,60 @@ function cloneRenderSnapshot(
   }
 }
 
+function compressRenderSnapshot(
+  snapshot: ActiveRenderSnapshot,
+): PersistedActiveRenderSnapshot {
+  let previousVariables: Record<string, StoryValue> | null = null
+
+  return {
+    visibleNodes: snapshot.visibleNodes.map((node) => {
+      const variables = { ...node.variables }
+      if (previousVariables === null) {
+        previousVariables = variables
+        return { index: node.index, variables }
+      }
+
+      const changes: Record<string, StoryValue | null> = {}
+      for (const [key, value] of Object.entries(variables)) {
+        if (previousVariables[key] !== value) changes[key] = value
+      }
+      for (const key of Object.keys(previousVariables)) {
+        if (!(key in variables)) changes[key] = null
+      }
+
+      previousVariables = variables
+      return { index: node.index, changes }
+    }),
+    visibleOnceKeys: [...snapshot.visibleOnceKeys],
+  }
+}
+
+function expandRenderSnapshot(
+  snapshot: PersistedActiveRenderSnapshot,
+): ActiveRenderSnapshot {
+  let variables: Record<string, StoryValue> = {}
+
+  return {
+    visibleNodes: snapshot.visibleNodes.map((node) => {
+      if ("variables" in node) {
+        variables = { ...node.variables }
+      } else {
+        variables = { ...variables }
+        for (const [key, value] of Object.entries(node.changes)) {
+          if (value === null) {
+            delete variables[key]
+          } else {
+            variables[key] = value
+          }
+        }
+      }
+
+      return { index: node.index, variables: { ...variables } }
+    }),
+    visibleOnceKeys: [...snapshot.visibleOnceKeys],
+  }
+}
+
 function currentBlockHasUserVisibleContent(): boolean {
   const block = storyBlocks.value.get(currentBlockTitle.value)
   if (!block) return false
@@ -184,7 +247,7 @@ export interface SavedBlockSnapshot {
   variables: Record<string, StoryValue>
   visitedBlocks: string[]
   seenOnceSections: string[]
-  renderSnapshot?: ActiveRenderSnapshot
+  renderSnapshot?: PersistedActiveRenderSnapshot
 }
 
 export interface SavedStoryState {
@@ -200,7 +263,7 @@ export interface SavedStoryState {
   visitedBlocks: string[]
   seenOnceSections: string[]
   visibleOnceSections: string[]
-  activeRenderSnapshot?: ActiveRenderSnapshot
+  activeRenderSnapshot?: PersistedActiveRenderSnapshot
   blockEntryVariables: Record<string, StoryValue>
   activeBlockStatus: ActiveBlockStatus
   pendingContinueTarget: string | null
@@ -366,7 +429,7 @@ function isSavedBlockSnapshot(value: unknown): value is SavedBlockSnapshot {
     isStringArray(snapshot.visitedBlocks) &&
     isStringArray(snapshot.seenOnceSections) &&
     (snapshot.renderSnapshot === undefined ||
-      isActiveRenderSnapshot(snapshot.renderSnapshot))
+      isPersistedActiveRenderSnapshot(snapshot.renderSnapshot))
 }
 
 function isSavedDetourReturn(value: unknown): value is DetourReturn {
@@ -379,20 +442,42 @@ function isSavedDetourReturn(value: unknown): value is DetourReturn {
     (entry.randomChoices === undefined || isChoiceState(entry.randomChoices))
 }
 
-function isRenderedNodeSnapshot(value: unknown): value is RenderedNodeSnapshot {
+function isPersistedRenderedNodeSnapshot(
+  value: unknown,
+  isFirst: boolean,
+): value is PersistedRenderedNodeSnapshot {
   if (typeof value !== "object" || value === null) return false
 
-  const snapshot = value as Partial<RenderedNodeSnapshot>
-  return typeof snapshot.index === "number" &&
-    isStoryValueRecord(snapshot.variables)
+  const snapshot = value as {
+    index?: unknown
+    variables?: unknown
+    changes?: unknown
+  }
+  if (typeof snapshot.index !== "number") return false
+
+  if (isFirst) {
+    return isStoryValueRecord(snapshot.variables) &&
+      snapshot.changes === undefined
+  }
+
+  return snapshot.variables === undefined &&
+    typeof snapshot.changes === "object" && snapshot.changes !== null &&
+    !Array.isArray(snapshot.changes) &&
+    Object.values(snapshot.changes).every((item) =>
+      item === null || isStoryValue(item)
+    )
 }
 
-function isActiveRenderSnapshot(value: unknown): value is ActiveRenderSnapshot {
+function isPersistedActiveRenderSnapshot(
+  value: unknown,
+): value is PersistedActiveRenderSnapshot {
   if (typeof value !== "object" || value === null) return false
 
-  const snapshot = value as Partial<ActiveRenderSnapshot>
+  const snapshot = value as Partial<PersistedActiveRenderSnapshot>
   return Array.isArray(snapshot.visibleNodes) &&
-    snapshot.visibleNodes.every(isRenderedNodeSnapshot) &&
+    snapshot.visibleNodes.every((node, index) =>
+      isPersistedRenderedNodeSnapshot(node, index === 0)
+    ) &&
     isStringArray(snapshot.visibleOnceKeys)
 }
 
@@ -422,7 +507,7 @@ export function getSavedStoryState(
     seenOnceSections: [...seenOnceSections.value],
     visibleOnceSections: [...visibleOnceSections.value],
     activeRenderSnapshot: activeRenderSnapshot.value
-      ? cloneRenderSnapshot(activeRenderSnapshot.value)
+      ? compressRenderSnapshot(activeRenderSnapshot.value)
       : undefined,
     blockEntryVariables: mapToRecord(blockEntryVariables.value),
     activeBlockStatus: activeBlockStatus.value,
@@ -436,7 +521,7 @@ export function getSavedStoryState(
       visitedBlocks: [...snapshot.visitedBlocks],
       seenOnceSections: [...snapshot.seenOnceSections],
       renderSnapshot: snapshot.renderSnapshot
-        ? cloneRenderSnapshot(snapshot.renderSnapshot)
+        ? compressRenderSnapshot(snapshot.renderSnapshot)
         : undefined,
     })),
     detourReturnStack: detourReturnStack.value.map((entry) => ({
@@ -460,7 +545,7 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
     seenOnceSections.value = new Set(savedState.seenOnceSections)
     visibleOnceSections.value = new Set(savedState.visibleOnceSections)
     activeRenderSnapshot.value = savedState.activeRenderSnapshot
-      ? cloneRenderSnapshot(savedState.activeRenderSnapshot)
+      ? expandRenderSnapshot(savedState.activeRenderSnapshot)
       : null
     blockEntryVariables.value = recordToMap(savedState.blockEntryVariables)
     activeBlockStatus.value = savedState.activeBlockStatus
@@ -474,7 +559,7 @@ export function restoreSavedStoryState(savedState: SavedStoryState): void {
       visitedBlocks: new Set(snapshot.visitedBlocks),
       seenOnceSections: new Set(snapshot.seenOnceSections),
       renderSnapshot: snapshot.renderSnapshot
-        ? cloneRenderSnapshot(snapshot.renderSnapshot)
+        ? expandRenderSnapshot(snapshot.renderSnapshot)
         : undefined,
     }))
     detourReturnStack.value = (savedState.detourReturnStack ?? []).map(
@@ -507,7 +592,7 @@ export function isSavedStoryState(value: unknown): value is SavedStoryState {
     isStringArray(savedState.seenOnceSections) &&
     isStringArray(savedState.visibleOnceSections) &&
     (savedState.activeRenderSnapshot === undefined ||
-      isActiveRenderSnapshot(savedState.activeRenderSnapshot)) &&
+      isPersistedActiveRenderSnapshot(savedState.activeRenderSnapshot)) &&
     isStoryValueRecord(savedState.blockEntryVariables) &&
     isActiveBlockStatus(savedState.activeBlockStatus) &&
     (savedState.pendingContinueTarget === null ||

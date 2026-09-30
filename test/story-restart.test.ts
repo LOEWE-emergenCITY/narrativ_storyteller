@@ -2,6 +2,7 @@ import { assertEquals } from "jsr:@std/assert@^1.0.19"
 
 import {
   shouldAutoReturnFromDetour,
+  shouldReplayDebugActionForBlock,
   shouldShowRestartButton,
 } from "@/islands/StoryViewer.tsx"
 import {
@@ -42,6 +43,24 @@ Deno.test("completed detours return automatically when a detour is active", () =
   )
   assertEquals(shouldAutoReturnFromDetour("ready_to_continue", 1), false)
   assertEquals(shouldAutoReturnFromDetour("waiting_for_choice", 1), false)
+})
+
+Deno.test("debug replay skips actions from a block that already navigated", () => {
+  assertEquals(
+    shouldReplayDebugActionForBlock("TimsQuelle", "TimsQuelle"),
+    true,
+  )
+  assertEquals(
+    shouldReplayDebugActionForBlock("TimsQuelle", "WarumCallMitValerie"),
+    false,
+  )
+  assertEquals(
+    shouldReplayDebugActionForBlock(
+      "WarumCallMitValerie",
+      "WarumCallMitValerie",
+    ),
+    true,
+  )
 })
 
 Deno.test("loading a story resets the state for a new run", () => {

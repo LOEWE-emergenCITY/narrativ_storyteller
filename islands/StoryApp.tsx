@@ -135,7 +135,7 @@ function StoryApp({ story, scienceFacts }: StoryAppProps) {
     )
     globalThis.localStorage?.setItem(
       STORY_STATE_STORAGE_KEY,
-      JSON.stringify(savedState, null, 2),
+      JSON.stringify(savedState),
     )
   }, [
     startupResolved,

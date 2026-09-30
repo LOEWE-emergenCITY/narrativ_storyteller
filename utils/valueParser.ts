@@ -25,13 +25,7 @@ export function parseConditionValue(
 
   // Numeric values
   if (trimmed === "0" || Number(trimmed)) {
-    const num = Number(trimmed)
-    if (num < 0) {
-      console.warn(
-        `Negative numbers in conditions might not work as expected: ${trimmed}`,
-      )
-    }
-    return num
+    return Number(trimmed)
   }
 
   // Variable lookup
@@ -102,12 +96,6 @@ export function parseNumber(
       { value: rawValue },
     )
     return null
-  }
-
-  if (num < 0) {
-    console.warn(
-      `Negative numbers in conditions might not work as expected: ${rawValue}`,
-    )
   }
 
   return num

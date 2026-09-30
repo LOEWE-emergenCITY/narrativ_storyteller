@@ -1,7 +1,7 @@
 title: Start
 position: -120,-1118
 ---
-<<declare $story_version = 27>>
+<<declare $story_version = 28>>
 <<set $time_passes to $time_passes + 1>>
 
 <<declare $player_name = "Angela">>

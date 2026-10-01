@@ -224,24 +224,101 @@ function evaluateSingleBlock(
   return false
 }
 
-/**
- * Evaluate OR conditions: block1 or block2 or block3
- * Each block is evaluated via evaluateSingleBlock.
- */
-function evaluateOrCondition(
-  blockStr: string,
-  variables: Map<string, string | number | boolean>,
-  visitedBlocks: Set<string>,
-  errorReporter?: ErrorReporter,
-): boolean {
-  const orBlocks = blockStr
-    .replace(/[()]/g, "")
-    .split(" or ")
-    .map((part) => part.trim())
+function isConditionBalanced(condition: string): boolean {
+  let depth = 0
+  let inQuotes = false
 
-  return orBlocks.some((orBlock) =>
-    evaluateSingleBlock(orBlock, variables, visitedBlocks, errorReporter)
-  )
+  for (let index = 0; index < condition.length; index++) {
+    const character = condition[index]
+
+    if (character === '"') {
+      inQuotes = !inQuotes
+      continue
+    }
+    if (inQuotes) continue
+
+    if (character === "(") depth++
+    if (character === ")" && --depth < 0) return false
+  }
+
+  return !inQuotes && depth === 0
+}
+
+function stripOuterParentheses(condition: string): string {
+  let result = condition.trim()
+
+  while (result.startsWith("(")) {
+    let depth = 0
+    let inQuotes = false
+    let wrapsWholeCondition = false
+
+    for (let index = 0; index < result.length; index++) {
+      const character = result[index]
+      if (character === '"') {
+        inQuotes = !inQuotes
+        continue
+      }
+      if (inQuotes) continue
+
+      if (character === "(") depth++
+      if (character === ")") {
+        depth--
+        if (depth === 0) {
+          wrapsWholeCondition = index === result.length - 1
+          break
+        }
+      }
+    }
+
+    if (!wrapsWholeCondition) break
+    result = result.slice(1, -1).trim()
+  }
+
+  return result
+}
+
+function splitTopLevelCondition(
+  condition: string,
+  operator: "and" | "or",
+): string[] {
+  const parts: string[] = []
+  let depth = 0
+  let inQuotes = false
+  let partStart = 0
+
+  for (let index = 0; index < condition.length; index++) {
+    const character = condition[index]
+
+    if (character === '"') {
+      inQuotes = !inQuotes
+      continue
+    }
+    if (inQuotes) continue
+
+    if (character === "(") {
+      depth++
+      continue
+    }
+    if (character === ")") {
+      depth--
+      continue
+    }
+
+    const operatorEnd = index + operator.length
+    if (
+      depth === 0 && condition.slice(index, operatorEnd) === operator &&
+      /\s/.test(condition[index - 1] ?? "") &&
+      /\s/.test(condition[operatorEnd] ?? "")
+    ) {
+      parts.push(condition.slice(partStart, index).trim())
+      partStart = operatorEnd
+      index = operatorEnd - 1
+    }
+  }
+
+  if (parts.length === 0) return [condition.trim()]
+  parts.push(condition.slice(partStart).trim())
+  return parts
 }
 
 /**
@@ -252,7 +329,8 @@ function evaluateOrCondition(
  *   - Boolean variables:   $var
  *   - visited():           visited("X") / visited("X") == false
  *   - AND chains:          cond1 and cond2 and cond3
- *   - OR conditions:       cond1 or cond2  (also inside AND chains)
+ *   - OR conditions:       cond1 or cond2
+ *   - Grouping:            (cond1 or cond2) and cond3
  *   - Multiplication:      $var * $other (3/4) > 10
  *   - Negation:            not (condition)
  */
@@ -262,40 +340,32 @@ function handleComparisionCondition(
   visitedBlocks: Set<string>,
   errorReporter?: ErrorReporter,
 ): boolean {
-  const trimmed = condition.trim()
+  const trimmed = stripOuterParentheses(condition)
 
-  // Handle NOT operator
   if (trimmed.startsWith("not ")) {
-    const innerCondition = trimmed.replace("not (", "").replace(")", "").trim()
     return !handleComparisionCondition(
-      innerCondition,
+      trimmed.slice(4),
       variables,
       visitedBlocks,
       errorReporter,
     )
   }
 
-  // Split by AND — each block is evaluated independently and all must be true
-  const conditionBlocks = trimmed.split(" and ").map((part) => part.trim())
-
-  for (const block of conditionBlocks) {
-    // OR condition within an AND block
-    if (block.includes(" or ")) {
-      if (
-        !evaluateOrCondition(block, variables, visitedBlocks, errorReporter)
-      ) {
-        return false
-      }
-      continue
-    }
-
-    // All other shapes (visited, truthy, comparison, multiplication)
-    if (!evaluateSingleBlock(block, variables, visitedBlocks, errorReporter)) {
-      return false
-    }
+  const orParts = splitTopLevelCondition(trimmed, "or")
+  if (orParts.length > 1) {
+    return orParts.some((part) =>
+      handleComparisionCondition(part, variables, visitedBlocks, errorReporter)
+    )
   }
 
-  return true
+  const andParts = splitTopLevelCondition(trimmed, "and")
+  if (andParts.length > 1) {
+    return andParts.every((part) =>
+      handleComparisionCondition(part, variables, visitedBlocks, errorReporter)
+    )
+  }
+
+  return evaluateSingleBlock(trimmed, variables, visitedBlocks, errorReporter)
 }
 
 /**
@@ -318,6 +388,15 @@ export function handleConditionNode(
   if (node.type === "if" || node.type === "elseif") {
     if (!node.condition) {
       return true // No condition means always true
+    }
+
+    if (!isConditionBalanced(node.condition)) {
+      reporter.addError(
+        `Unbalanced parentheses or quotes in condition: ${node.condition}`,
+        "condition_error",
+        { condition: node.condition },
+      )
+      return false
     }
 
     return handleComparisionCondition(

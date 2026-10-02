@@ -270,12 +270,15 @@ tags: scene:AsStoryWrapUpInTheEndBeforeRating
             <<if $social_score < 0>>
                 <<Mood kathrin_upset_{$color_name}>>
                 Kathrin schüttelt ihre Hand ab. "Ich fahre mit ihm zurück."
-                Angela sieht auf. "Dann komme ich mit. Und wir packen alle Vorräte ein."
+                Angela sieht auf. "Dann sitzt du dort fest, solange dieser Stromausfall dauert. Der Strom reicht nicht für die Rückfahrt."
+                Kathrin zuckt nur mit den Schultern.
+                <<Mood angela_conflicted_{$color_name}>>
+                "Ich komme mit. Und wir packen alle Vorräte ein."
                 Kathrin nickt bloß und verschwindet in Richtung Wohnzimmer.
             <<else>>
                 <<Mood kathrin_annoyed_{$color_name}>>
                 Kathrin wartet schweigend.
-                "Du hast ja recht. Es würde wahrscheinlich nicht mal reichen ..." Angela seufzt und sieht auf. "Ich komme mit. Und wir packen alle Vorräte ein."
+                "Du hast ja recht. Es würde wahrscheinlich nicht mal reichen ..." Angela seufzt und sieht auf. Der Strom würde auch nicht für die Rückfahrt reichen. Kathrin würde für die Dauer des Stromausfalls bei ihren Eltern festsitzen. "Ich komme mit. Und wir packen alle Vorräte ein."
                 Kathrin nickt. "Danke."
                 Sie verschwindet in Richtung Wohnzimmer.
             <<endif>>
@@ -736,7 +739,7 @@ Sie wirft einen Blick zu CaTARSis.
 <<Scene catarsis_with_background>> //or regular mood
 Den Smartspeaker in Form eines Katzenkopfes mit Pelzüberzug hat Kathrin zu ihrer Wohnung beigesteuert. Damals hörte er auf den Namen 'Lizzy'. Angela wäre das Ding gerne losgeworden. Stattdessen hat sie sich mit Kathrin darauf geeinigt, dass es bleiben darf. Unter der Bedingung, dass sie die Firmware austauschen und ihm einen neuen Namen geben darf.
 //<<Mood catarsis_happy_talking_{$color_name}>>
-"Aufgrund eines Stromausfalls hat das eHUB auf Notstrom umgeschaltet", meldet CaTARSis nach etwa einer Minute Stille. Die Lichter leuchten erneut auf. "Soll der Strom mit den Nachbarn geteilt werden?"
+"BEEP. BEEP. Hinweis - Aufgrund eines Stromausfalls hat das eHUB auf Notstrom umgeschaltet", meldet CaTARSis nach etwa einer Minute Stille. Die Lichter leuchten erneut auf. "Soll der Strom mit den Nachbarn geteilt werden?"
 <<set $gathered_science_fact_eHUB_idea to true>>
 <<GatherScienceFact eHUB_idea>>
 "Ja!", antwortet Kathrin sofort.
@@ -828,7 +831,7 @@ position: 269,449
 ---
 CaTARSis' Augen leuchten auf.
 <<Mood catarsis_happy_talking_{$color_name}>>
-"Warnung!", meldet der Smartspeaker. "Aufgrund eines technischen Fehlers in einer Verteilerstation kam es zu einem regionalen Stromausfall. Bei ungünstigen Wetterverhältnissen und während der Nacht ist mit Stromknappheit zu rechnen. Es kann zu vorübergehenden Störungen und Verzögerungen in der gewohnten Versorgung kommen. Die Behörden bitten die Bevölkerung, Energie zu sparen, ihre Telefone aufzuladen und Akkus zu schonen. Sie werden zeitnah über Änderungen informiert."
+"BEEP. Warnung! BEEP. Warnung! BEEP. Warnung!", meldet der Smartspeaker. "Aufgrund eines technischen Fehlers in einer Verteilerstation kam es zu einem regionalen Stromausfall. Bei ungünstigen Wetterverhältnissen und während der Nacht ist mit Stromknappheit zu rechnen. Es kann zu vorübergehenden Störungen und Verzögerungen in der gewohnten Versorgung kommen. Die Behörden bitten die Bevölkerung, Energie zu sparen, ihre Telefone aufzuladen und Akkus zu schonen. Sie werden zeitnah über Änderungen informiert."
 <<set $gathered_science_fact_smartspeaker to true>>
 <<GatherScienceFact smartspeaker>>
 <<set $color_name to "turquoise">>
@@ -975,8 +978,14 @@ title: Laptop
 
 <<detour CheckEnding>>
 
-// once all that is needed is the plans, you don't need the laptop any more
-<<if $checkEHUBLog <= 0 and $SpielerHasOwnEHUBPlan and ($SpielerHasJochensEHUBPlan == false or $SpielerHasThilosEHUBPlan == false) or visited("Loesung")>>
+// once all that is needed is the plans, you don't need the laptop any more (except to compare Thilo's and one's own plan)
+<<if $checkEHUBLog <= 0 and $SpielerHasOwnEHUBPlan and ($compareEHUBPlansToThilosPlans <= 0 or $SpielerHasThilosEHUBPlan == false) or visited("Loesung")>>
+    <<if $SpielerHasOwnEHUBPlan and $SpielerHasThilosEHUBPlan == false and $SpielerHasJochensEHUBPlan == false>>
+        <<once>>
+            Angela zögert, die Finger an der Tastatur. Sie hat zwar den Plan ihres eigenen eHUBs, aber ohne einen Vergleichsplan hilft ihr das nicht weiter.
+            <<jump GetBusy>>
+        <<endonce>>
+    <<endif>>
     <<if visited("GetBusy")>>
         Angela zögert, die Finger an der Tastatur. Ihr Automatismus schon wieder. Was will sie eigentlich hier?
     <<endif>>
@@ -1054,6 +1063,7 @@ title: Laptop
         <<set $rebootDevices to 0>>
         <<Mood angela_angry_talking_{$color_name}>>
         "Have you tried turning it off and on again?", murmelt Angela. Zum Glück hat sie ein Skript dafür geschrieben. <<once>>
+        Allerdings kann sie nicht testen, ob das Problem damit behoben ist. Zumindest sollte sie keine Logs verlieren. Dafür hat sie gesorgt. <<once>>
         <<detour Scheduler>>
         <<jump Laptop>>
     -> Sie entscheidet sich dafür, die eHUB Logs zu prüfen. <<if $checkEHUBLog > 0 and $currentTask != "checkEHUBLog">>
@@ -2321,7 +2331,7 @@ position: 113,1116
 <<set $KathrinWillAlleinSein to false>>
 <<set $KathrinPlaysMusic to false>>
 <<Mood catarsis_happy_talking_{$color_name}>>
-"Warnung! Aufgrund eines technischen Fehlers musste die Stromversorgung auf die Notstromversorgung der lokalen Betreiber umgestellt werden. Die Versorgungsunternehmen sind informiert und arbeiten an einer schnellen Lösung zur Wiederherstellung der Versorgung. Die Behörden bitten die Bevölkerung, Energie zu sparen, ihre Telefone aufzuladen, Akkus zu schonen und nach Möglichkeit zuhause zu bleiben. Sie werden zeitnah über Änderungen informiert."
+"BEEP. Warnung! BEEP. Warnung! BEEP. Warnung! Aufgrund eines technischen Fehlers musste die Stromversorgung auf die Notstromversorgung der lokalen Betreiber umgestellt werden. Die Versorgungsunternehmen sind informiert und arbeiten an einer schnellen Lösung zur Wiederherstellung der Versorgung. Die Behörden bitten die Bevölkerung, Energie zu sparen, ihre Telefone aufzuladen, Akkus zu schonen und nach Möglichkeit zuhause zu bleiben. Sie werden zeitnah über Änderungen informiert."
 <<set $mental_health_angela to $mental_health_angela - 1>>
 <<if $KathrinImRaum == false>>
     Kathrin taucht in der Tür auf. "Hast du das gehört?"
@@ -2508,7 +2518,7 @@ position: -144,1563
 <<set $time_passes to $time_passes + 1>>
 <<set $KathrinWillAlleinSein to false>>
 <<Mood catarsis_happy_talking_{$color_name}>>
-"Warnung! Der aktuelle Stromausfall übersteigt das Ausmaß eines zu erwartenden Stromausfalls aufgrund eines Einzeldefekts. Das genaue Ausmaß, die Ursache und die Dauer der Versorgungsunterbrechung sind noch unbekannt. Einsatzkräfte arbeiten an der Aufklärung und an der Einrichtung lokaler Notunterkünfte. Bitte füllen Sie sich Leitungswasser ab, um im Falle einer Versorgungsunterbrechung eine Grundversorgung sicherzustellen. Bleiben Sie nach Möglichkeit zuhause, sparen Sie Energie, halten Sie Ihre Telefone aufgeladen und schonen Sie die Akkus. Dies sind Routinemaßnahmen. Bitte bewahren Sie Ruhe."
+"BEEP. Warnung! BEEP. Warnung! BEEP. Warnung! Der aktuelle Stromausfall übersteigt das Ausmaß eines zu erwartenden Stromausfalls aufgrund eines Einzeldefekts. Das genaue Ausmaß, die Ursache und die Dauer der Versorgungsunterbrechung sind noch unbekannt. Einsatzkräfte arbeiten an der Aufklärung und an der Einrichtung lokaler Notunterkünfte. Bitte füllen Sie sich Leitungswasser ab, um im Falle einer Versorgungsunterbrechung eine Grundversorgung sicherzustellen. Bleiben Sie nach Möglichkeit zuhause, sparen Sie Energie, halten Sie Ihre Telefone aufgeladen und schonen Sie die Akkus. Dies sind Routinemaßnahmen. Bitte bewahren Sie Ruhe."
 <<if $KathrinImRaum == false>>
     <<set $KathrinImRaum to true>>
     Kathrin taucht an der Tür auf. Im Hintergrund ist weiterhin CaTARSis zu hören.
@@ -4695,9 +4705,14 @@ position: -811,4481
     'Wenigstens kriegt Patrick sein Geschenk, wenn Europa demnächst untergeht ...', denkt sie.
 <<elseif $KathrinsGeschenkFastFertig>>
     <<if visited("KathrinsAufnahmeFastFertig")>>
-        <<Mood kathrin_conscious_laughter_{$color_name}>>
-        "Alles super. Das war eine richtig gute Idee."
-        "Das klingt gut."
+        <<if visited("AufnahmeAnhoeren")>>
+            <<Mood kathrin_conscious_laughter_{$color_name}>>
+            "Alles super. Das war eine richtig gute Idee."
+            "Das klingt gut."
+        <<else>>
+            <<Mood kathrin_embarassed_{$color_name}>>
+            "Alles gut."
+        <<endif>>
     <<else>>
         <<jump KathrinsAufnahmeFastFertig>>
     <<endif>>
@@ -5012,7 +5027,7 @@ position: -244,3827
     CaTARSis' Stimme erklingt erneut aus dem Wohnzimmer.
 <<endif>>
 <<Mood catarsis_happy_talking_{$color_name}>>
-"Informationen zur aktuellen Lage - Einsatzkräfte haben eine Notunterkunft in der Sporthalle Kasinostraße 42 eingerichtet. Wenn Sie Hilfe oder einen Platz zum Bleiben benötigen, geben Sie einen FINKspruch ab oder wenden Sie sich direkt an die Einsatzkräfte und Helfer vor Ort. Bei Bedarf stehen Nahrungsmittel und Wasser zur Verfügung. Medikamente sind per FINKspruch verfügbar."
+"BEEP. BEEP. Informationen zur aktuellen Lage - Einsatzkräfte haben eine Notunterkunft in der Sporthalle Kasinostraße 42 eingerichtet. Wenn Sie Hilfe oder einen Platz zum Bleiben benötigen, geben Sie einen FINKspruch ab oder wenden Sie sich direkt an die Einsatzkräfte und Helfer vor Ort. Bei Bedarf stehen Nahrungsmittel und Wasser zur Verfügung. Medikamente sind per FINKspruch verfügbar."
 <<set $gathered_science_fact_drones_can_deliver_medics to true>>
 <<GatherScienceFact drones_can_deliver_medics>>
 Eine kurze Pause folgt, ehe CaTARSis fortfährt. "Beachten Sie bitte, dass Haustiere aktuell nicht in der Unterkunft untergebracht werden können. Wir werden schnellstmöglich Alternativen ausweisen. Wenden Sie sich bei Fragen an die Einsatzkräfte vor Ort."
@@ -7660,7 +7675,7 @@ position: 1517,3413
 // TODO should happen somewhat randomly while both are at home, some time after the third warning
 Wieder ertönt CaTARSis' Stimme. Angela stöhnt.
 <<Mood catarsis_happy_talking_{$color_name}>>
-"Warnung! Die Situation hat sich weiter verschärft. Um die Grundversorgung und die Funktion unserer kritischen Infrastrukturen gewährleisten zu können, muss auf die Stromversorgung sämtlicher eHUBs im Einzugsgebiet zurückgegriffen werden. Wir bitten um ihr Verständnis."
+"BEEP. Warnung! BEEP. Warnung! BEEP. Warnung! Die Situation hat sich weiter verschärft. Um die Grundversorgung und die Funktion unserer kritischen Infrastrukturen gewährleisten zu können, muss auf die Stromversorgung sämtlicher eHUBs im Einzugsgebiet zurückgegriffen werden. Wir bitten um ihr Verständnis."
 <<set $gathered_science_fact_powerSharing_critical_infrastructures to true>>
 <<GatherScienceFact powerSharing_critical_infrastructures>>
 <<set $color_name to "violet">>
@@ -8370,6 +8385,7 @@ Kathrin zückt ihr Smartphone.
         -> "Dann sag den Nachbarn, sie sollen ihren Stromverbrauch senken. Sonst senke ich ihn."
             <<Mood kathrin_empathetic_{$color_name}>>
             "Ja gut, mach ich ... CaTARSis, aktiviere den Inselbetrieb!"
+            "Der Inselbetrieb ist aktiviert", meldet CaTARSis.
             <<detour BatteryCheck>>
             <<set $power_sharing to true>>
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
@@ -8449,7 +8465,7 @@ tags: dependsOn:power_sharing
         "Ja und?"
         "Der Strom ist weg."
         Kathrin richtet sich auf. "Weg?"
-        "Ja. Der Speicher ist alle, das Auto ist weg und die PV generiert nicht genug. Der Strom ist weg."
+        "Ja. Der Speicher ist alle, das Auto ist weg. Der Strom ist weg."
         Kathrin starrt sie an.
     <<endif>>
     <<set $battery_level to 0>>
@@ -8465,13 +8481,21 @@ tags: dependsOn:power_sharing
             "Aber ohne Strom kann ich nicht aufnehmen! Und abmischen muss ich auch noch."
             <<set $mental_health_kathrin to $mental_health_kathrin - 1>>
             <<if $drohnenkomm_freigeschaltet>>
-                Angela schnaubt. "Denkst du, ich kann ohne Strom arbeiten? FINK fliegt so auch nicht mehr."
+                Angela schnaubt. "Denkst du, ich kann ohne Strom arbeiten? Mein Laptop hat einen Akku, aber alle anderen Geräte nicht. Und FINK fliegt jetzt nur noch Notfalleinsätze."
             <<else>>
-                Angela schnaubt. "Denkst du, ich kann ohne Strom arbeiten?"
+                Angela schnaubt. "Denkst du, ich kann ohne Strom arbeiten? Mein Laptop hat einen Akku, aber alle anderen Geräte nicht."
+            <<endif>>
+        <<else>>
+            "Und jetzt?", fragt Kathrin.
+            <<if $drohnenkomm_freigeschaltet>>
+                Angela schüttelt den Kopf. "Ohne Strom kann ich nicht arbeiten. Mein Laptop hat einen Akku, aber alle anderen Geräte nicht. Und FINK fliegt jetzt nur noch Notfalleinsätze."
+            <<else>>
+                Angela schüttelt den Kopf. "Ohne Strom kann ich nicht arbeiten. Mein Laptop hat einen Akku, aber alle anderen Geräte nicht."
             <<endif>>
         <<endif>>
         <<if visited("VierteWarnung") == false and $power_sharing and $DeadlineSonnenuntergang == false>>
             Angela seufzt. "CaTARSis, deaktiviere den Inselbetrieb!"
+            "Der Inselbetrieb ist deaktiviert", meldet CaTARSis.
             //<<Mood catarsis_sad_silent_{$color_name}>>
             <<detour BatteryCheck>>
             <<set $power_sharing to false>> //TODO change ingame
@@ -8541,12 +8565,18 @@ tags: dependsOn:power_sharing
         <<if visited("VierteWarnung") == false and $power_sharing and $DeadlineSonnenuntergang == false>>
             //<<Mood catarsis_sad_silent_{$color_name}>>
             "CaTARSis, deaktiviere den Inselbetrieb!"
+            "Der Inselbetrieb ist deaktiviert", meldet CaTARSis.
             <<detour BatteryCheck>>
             <<set $power_sharing to false>>
             Angela holt ihr Smartphone hervor. Starrt auf die Akkuanzeige. 0%. Ein roter Pfeil nach unten.
             <<Mood angela_angry_talking_{$color_name}>>
             "Nicht jetzt!", stöhnt sie.
-            Ein grüner Pfeil. Angela starrt darauf. Stößt erleichtert die Luft aus.
+            <<if $drohnenkomm_freigeschaltet>>
+                "Komm schon! Ich brauche Zugang zum eHUB. Und zu unserem FINK." Aber ohne Strom blieb ihr nur noch ihr Laptop und ihr Smartphone.
+            <<else>>
+                "Komm schon! Ich brauche Zugang zum eHUB." Aber ohne Strom blieb ihr nur noch ihr Laptop und ihr Smartphone.
+            <<endif>>
+            Ein grüner Pfeil taucht auf dem Display auf. Angela starrt darauf. Stößt erleichtert die Luft aus.
             Ihr bleibt nicht mehr viel Zeit bis Sonnenuntergang. Sie muss sich beeilen.
         <<else>>
             "Scheiße!"
@@ -8555,12 +8585,20 @@ tags: dependsOn:power_sharing
             <<if $AngelasPosition == "Laptop">>
                 <<set $AngelasPosition to "Büro">>
             <<endif>>
+            Sie bleibt stehen.
+            <<if $drohnenkomm_freigeschaltet>>
+                "Verdammt, das kannst du nicht mit mir machen!", ruft sie an die Decke. "Ich brauche Zugang zum eHUB. Und zu unserem FINK." Aber ohne Strom blieb ihr nur noch ihr Laptop und ihr Smartphone.
+            <<else>>
+                "Verdammt, das kannst du nicht mit mir machen!", ruft sie an die Decke. "Ich brauche Zugang zum eHUB." Aber ohne Strom blieb ihr nur noch ihr Laptop und ihr Smartphone.
+            <<endif>>
+            Reglos lauscht sie in die Stille.
             Schließlich zückt sie ihr Smartphone und schreibt eine Nachricht an Kathrin.
             Angela: Schreib den Nachbarn, dass es eine Chance gibt, dass der Strom bald wieder da ist, wenn sie mir alles zur Verfügung stellen, was sie noch haben! Autobatterie, Notfallgenerator - egal, hauptsache Strom!
+            Sie starrt auf ihr Display. Bewegt ihren Daumen über die glatte Oberfläche. Auf und ab. Auf und ab.
             Kathrin antwortet nicht.
-            'Warum bin ich nicht in diesem verfluchten Nachbarschaftschat?', denkt Angela.
-            Sie schreibt eine Nachricht an alle Nachbarn, deren Kontakt sie hat. Niemand antwortet.
             <<Mood angela_conflicted_{$color_name}>>
+            'Warum bin ich nicht in diesem verfluchten Nachbarschaftschat?', denkt sie.
+            Sie schreibt eine Nachricht an alle Nachbarn, deren Kontakt sie hat. Niemand antwortet.
             Schließlich öffnet sie die Smart Home App und starrt auf den roten Pfeil. 0% Akku.
             Plötzlich färbt sich der Pfeil grün und dreht sich nach oben. Sie weiß nicht, wieso. Aber irgendjemand scheint ihrer Bitte stillschweigend gefolgt zu sein.
             Das Smartphone zittert in ihrer Hand. Ihr bleibt nicht mehr viel Zeit. Vielleicht ist es auch längst zu spät. Vielleicht aber auch nicht.

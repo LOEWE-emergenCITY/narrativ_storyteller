@@ -30,7 +30,7 @@ export function Button(
         onPointerMove={updateGlowPosition}
         onPointerLeave={clearGlow}
         class={clsx(
-          "interactive-glow px-2 py-4 text-start flex items-center",
+          "interactive-glow px-2 py-4 text-start text-lg flex items-center",
           "w-full rounded-sm border-2 border-theme-strong bg-surface text-theme shadow-sm",
           props.disabled
             ? "opacity-60"
@@ -97,7 +97,7 @@ export function RestartButton(
         onPointerMove={updateGlowPosition}
         onPointerLeave={clearGlow}
         class={clsx(
-          "interactive-glow flex items-center justify-center gap-2 rounded-sm border-2 border-theme-strong bg-surface p-3 text-accent shadow-sm",
+          "interactive-glow flex items-center justify-center gap-2 rounded-sm border-2 border-theme-strong bg-surface p-3 text-lg text-accent shadow-sm",
           props.disabled
             ? "opacity-60"
             : "transition-colors hover:bg-surface-strong",

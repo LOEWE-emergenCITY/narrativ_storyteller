@@ -31,7 +31,7 @@ export function Chat(props: ChatProps) {
               : "bg-chat-other text-chat-other",
           )}
         >
-          {props.children}
+          <div class="story-copy">{props.children}</div>
           <div
             class={clsx(
               "text-sm font-serif",

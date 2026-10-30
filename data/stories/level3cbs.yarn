@@ -1,7 +1,7 @@
 title: Start
 position: -120,-1118
 ---
-<<declare $story_version = 30>>
+<<declare $story_version = 31>>
 <<set $time_passes to $time_passes + 1>>
 
 <<declare $player_name = "Angela">>
@@ -1599,7 +1599,9 @@ title: GetBusy
 ---
 // once finished with Laptop stuff, this is where the choice moves
 <<set $time_passes to $time_passes + 1>>
-<<detour CheckEnding>>
+<<if visited("Loesung") == false>>
+    <<detour CheckEnding>>
+<<endif>>
 <<set $chanceOfTalking to 0.5>>
 <<if $social_score > 0>>
     <<set $chanceOfTalking to 0.75>>

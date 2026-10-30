@@ -1,7 +1,7 @@
 title: Start
 position: -120,-1118
 ---
-<<declare $story_version = 29>>
+<<declare $story_version = 30>>
 <<set $time_passes to $time_passes + 1>>
 
 <<declare $player_name = "Angela">>
@@ -723,7 +723,7 @@ Angela sieht sich um. Sämtliche Lichter leuchten plötzlich. Die Leselampe in d
     Kathrin runzelt die Stirn. "Nanu?"
     <<Mood kathrin_regular_unhappy_{$color_name}>>
 <<endif>>
-"Ist das nicht vor drei Wochen schonmal passiert? Und direkt danach gab es diesen -"
+"Ist das nicht vor drei Wochen schonmal passiert?", fragt Kathrin. "Und direkt danach gab es diesen -"
 <<jump Stromausfall>>
 ===
 
@@ -806,6 +806,7 @@ position: -68,426
 "Der Blick, der sagt, dass du gleich in deiner Arbeit verschwindest."
 Angela zuckt mit den Schultern. "Vielleicht werfe ich mal einen Blick auf die Daten vom eHUB."
 "Und was ist mit unserer Planung? Das Lichtproblem kann warten. Patrick nicht."
+Angela mustert sie. Wenn sie ehrlich wäre, müsste sie zugeben, dass es ihr deutlich lieber wäre, den Tag an ihrem Rechner zu verbringen, als Kathrin, ihrer Schwester Julia und Julias sechsjährigem Sohn Patrick hinterherzulaufen und ihm dabei zuzusehen, wie er in diesem sogenannten Vergnügungspark das Geld seiner Eltern aus dem Fenster warf. Aber es war nicht immer die beste Idee, ehrlich zu sein.
 -> "Das kriegen wir schon noch unter. Vertrau mir!"
     "Das tu ich nicht! Nicht, wenn du an der Arbeit bist."
     "Du musst mir auch Chancen geben, mich zu bessern."
@@ -842,6 +843,8 @@ CaTARSis' Augen leuchten auf.
 "Oh nein! Dann schließt der Park bestimmt."
 <<if visited("InvestigationStarts")>>
     'Umso mehr Zeit für mich, den Lichteffekt zu untersuchen', denkt Angela.
+<<else>>
+    Angela versucht, sich nicht allzu erleichtert zu fühlen. Es ist ihr sehr viel lieber, den Tag an ihrem Rechner zu verbringen, als Kathrin, ihrer Schwester Julia und Julias sechsjährigem Sohn Patrick hinterherzulaufen und ihm dabei zuzusehen, wie er in diesem sogenannten Vergnügungspark das Geld seiner Eltern aus dem Fenster wirft. Aber Kathrin würde das anders sehen.
 <<endif>>
 //<<Mood angela_smirking_{$color_name}>>
 -> "Mit Sicherheit. Ein Vergnügungspark gehört garantiert nicht zur Grundversorgung." //being mean
@@ -1116,7 +1119,7 @@ title: CheckEnding
         Sie ist sich zwar immer noch nicht sicher, wonach sie genau sucht, aber wenn sie in diesen Plänen eine Gemeinsamkeit zwischen Jochens und ihrem eHUB findet, die bei Thilo nicht auftaucht, wäre das ein starker Hinweis darauf, wo das Problem liegen könnte.
         Natürlich kann es auch sein, dass sie nichts findet. Trotzdem ist es einen Versuch wert. 
     <<endif>>
-    Angela lässt ihre Augen über die Pläne gleiten. Markiert die Unterschiede. Es ist wie eines der Rätsel aus ihrer Kindheit. 'Finde die zehn Unterschiede zwischen diesen beiden Bildern.' Sie war damals ziemlich gut darin.
+    Angela lässt ihren Blick über die Pläne gleiten. Markiert die Unterschiede. Es ist wie eines der Rätsel aus ihrer Kindheit. 'Finde die zehn Unterschiede zwischen diesen beiden Bildern.' Sie war damals ziemlich gut darin.
     Nach einer Weile glaubt sie, sämtliche Unterschiede gefunden zu haben. Ein Lächeln breitet sich auf ihrem Gesicht aus und sie zieht zwei rote Kreise um eines der Geräte.
     "Hab ich dich!"
     <<set $color_name to "dark">>
@@ -1124,11 +1127,11 @@ title: CheckEnding
     <<if $SuspectedClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
         <<set $ClueInNeuerenEHUBsSpezialisierteSchalterVerbaut to true>>
         Das muss sie Tim erzählen.
-        <<jump SelectNextChat>>
+        <<jump Loesung>>
     <<else>>
         <<set $ClueInNeuerenEHUBsSpezialisierteSchalterVerbaut to true>>
         Sie nimmt ihr Smartphone zur Hand und öffnet den Chat mit Tim.
-        <<jump SelectNextChat>>
+        <<jump Loesung>>
     <<endif>>
 <<endif>>
 ===
@@ -3410,7 +3413,7 @@ tags: phone, chat_Tim, dtn
             <<endif>>
             <<detour BerichtVonAngela>> //alles nacheinander berichten
             <<if $ClueInNeuerenEHUBsSpezialisierteSchalterVerbaut>>
-                <<jump Loesung>> //TODO direkt hier hinspringen?
+                <<jump Loesung>>
             <<endif>>
         <<endif>>
         <<detour Scheduler>>
@@ -3543,22 +3546,20 @@ title: WenigerStrom
     -> Sie schaltet die Heizung aus, um Strom zu sparen. <<if $HeizungAus == false>>
         <<detour BatteryCheck>>
         <<set $HeizungAus to true>>
-    -> Sie überlegt, das Teilen des Stroms auszuschalten. <<if $power_sharing == true and $Energiesparwarnung > 0 and visited("NachbarnBeschwerenSich") == false>>
-        <<if visited("WenigerStromFirstTime")>>
-            <<Mood angela_angry_{$color_name}>>
-            <<if $Energiesparwarnung > 1>>
-                Sie tut es. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie. Und Kathrin hat die Nachbarn schließlich zweimal gewarnt.
-                <<detour BatteryCheck>>
-                <<set $power_sharing to false>>
-            <<else>>
-                Sie tut es. Schon um die Nachbarn zu warnen. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie.
-                <<detour BatteryCheck>>
-                <<set $power_sharing to false>>
-                <<set $social_score to $social_score - 1>>
-            <<endif>>
+    -> Sie könnte doch das Teilen des Stroms auszuschalten. <<if visited("WenigerStromFirstTime") == true and $power_sharing == true and $Energiesparwarnung > 0 and visited("NachbarnBeschwerenSich") == false>>
+        <<Mood angela_angry_{$color_name}>>
+        <<if $Energiesparwarnung > 1>>
+            Sie tut es. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie. Und Kathrin hat die Nachbarn schließlich zweimal gewarnt.
+            <<detour BatteryCheck>>
+            <<set $power_sharing to false>>
         <<else>>
-            <<detour WenigerStromFirstTime>>
+            Sie tut es. Schon um die Nachbarn zu warnen. 'Wer weiß, wie lange dieser Stromausfall dauert', denkt sie.
+            <<detour BatteryCheck>>
+            <<set $power_sharing to false>>
+            <<set $social_score to $social_score - 1>>
         <<endif>>
+    -> Sie überlegt, das Teilen des Stroms auszuschalten. <<if visited("WenigerStromFirstTime") == false and $power_sharing == true and $Energiesparwarnung > 0 and visited("NachbarnBeschwerenSich") == false>>
+        <<detour WenigerStromFirstTime>>
     -> Sie schreibt Kathrin eine Nachricht, damit sie die Nachbarn im Chat warnt, weniger Strom zu verbrauchen. <<if $power_sharing == true and visited("NachbarnBeschwerenSich") == false>>
         <<if $Energiesparwarnung > 0>>
             Hoffentlich hören sie diesmal auf sie.
@@ -4706,7 +4707,7 @@ position: -811,4481
 <<elseif $KathrinsGeschenkFastFertig>>
     <<if visited("KathrinsAufnahmeFastFertig")>>
         <<if visited("AufnahmeAnhoeren")>>
-            <<Mood kathrin_conscious_laughter_{$color_name}>>
+            <<Mood kathrin_conscious_laugher_{$color_name}>>
             "Alles super. Das war eine richtig gute Idee."
             "Das klingt gut."
         <<else>>
@@ -4714,7 +4715,7 @@ position: -811,4481
             "Alles gut."
         <<endif>>
     <<else>>
-        <<jump KathrinsAufnahmeFastFertig>>
+        <<detour KathrinsAufnahmeFastFertig>>
     <<endif>>
 <<else>>
     "Frag nicht ..."
@@ -4791,7 +4792,7 @@ position: -811,4481
 
 title: KathrinsAufnahmeFastFertig
 ---
-<<Mood kathrin_conscious_laughter_{$color_name}>>
+<<Mood kathrin_conscious_laugher_{$color_name}>>
 "Ich komme richtig gut voran." Sie zögert. "Glaube ich ..."
 -> "Glaubst du?"
     "Ja, also ... Kannst du es dir vielleicht mal anhören?"

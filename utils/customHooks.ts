@@ -1,3 +1,13 @@
+function formatNumber(value: number): string {
+  if (!Number.isFinite(value)) return String(value)
+
+  const sign = value < 0 ? "-" : ""
+  const rounded = Math.round((Math.abs(value) + Number.EPSILON) * 100) / 100
+  return `${rounded === 0 ? "" : sign}${rounded.toFixed(2)}`
+    .replace(/(\.\d*?)0+$/, "$1")
+    .replace(/\.$/, "")
+}
+
 export function interpolateVariables(
   html: string,
   variables?: Map<string, string | number | boolean>,
@@ -5,7 +15,8 @@ export function interpolateVariables(
   if (!variables) return html
   return html.replace(/\{\$(\w+)\}/g, (_, name) => {
     const value = variables.get(`$${name}`)
-    return value !== undefined ? String(value) : `{$${name}}`
+    if (value === undefined) return `{$${name}}`
+    return typeof value === "number" ? formatNumber(value) : String(value)
   })
 }
 
